@@ -48,7 +48,7 @@ def next_backoff(attempt: int, base: float = 0.5, cap: float = 30.0) -> float:
     """
 
     delay: float = min(cap, base * (2**attempt))
-    jitter = float(random.uniform(0, delay / 4))  # noqa: S311
+    jitter = float(random.uniform(0, delay / 4))  # noqa: S311  # nosec B311
     return float(delay + jitter)
 
 

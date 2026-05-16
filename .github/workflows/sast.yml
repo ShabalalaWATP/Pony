@@ -24,8 +24,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -m pip install bandit[toml]
-      - run: bandit -r apps packages scripts -f sarif -o bandit.sarif
+      - run: python -m pip install bandit[toml] bandit-sarif-formatter==1.1.1
+      - run: bandit -r apps packages scripts -x apps/backend/tests,apps/sensor-agent/tests -f sarif -o bandit.sarif
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

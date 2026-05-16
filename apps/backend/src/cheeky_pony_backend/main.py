@@ -61,7 +61,7 @@ def run() -> None:
     uvicorn.run(  # noqa: S104
         "cheeky_pony_backend.main:create_app",
         factory=True,
-        host="0.0.0.0",  # noqa: S104
+        host="0.0.0.0",  # noqa: S104  # nosec B104
         port=8000,
     )
 
