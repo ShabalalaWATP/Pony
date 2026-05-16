@@ -22,7 +22,12 @@ jobs:
         run: |
           curl -sSfL -o /tmp/osv-scanner https://github.com/google/osv-scanner/releases/download/v2.3.8/osv-scanner_linux_amd64
           sudo install -m 0755 /tmp/osv-scanner /usr/local/bin/osv-scanner
-      - run: osv-scanner scan source -r .
+      - name: Run OSV-Scanner
+        run: |
+          mkdir -p /tmp/osv-input/backend /tmp/osv-input/sensor
+          cp apps/backend/requirements.lock /tmp/osv-input/backend/requirements.txt
+          cp apps/sensor-agent/requirements.lock /tmp/osv-input/sensor/requirements.txt
+          osv-scanner scan source -r /tmp/osv-input
       - name: Install Trivy
         run: |
           curl -sSfL -o /tmp/trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.70.0/trivy_0.70.0_Linux-64bit.tar.gz
