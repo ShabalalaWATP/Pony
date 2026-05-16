@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { DesignSystem } from "@/routes/DesignSystem";
+import { DesignSystem } from "@/views/DesignSystem";
 
 describe("DesignSystem showcase", () => {
   it("renders all top-level section headings", () => {

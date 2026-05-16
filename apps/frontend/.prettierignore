@@ -1,4 +1,5 @@
 node_modules
 dist
 coverage
+src/routeTree.gen.ts
 src/services/api/openapi.d.ts
