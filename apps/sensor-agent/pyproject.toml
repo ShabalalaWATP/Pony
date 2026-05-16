@@ -14,7 +14,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "cryptography>=44,<46",
+  "cryptography>=46.0.6,<47",
   "hypothesis>=6.123",
   "mypy>=1.14",
   "pytest>=8.3",

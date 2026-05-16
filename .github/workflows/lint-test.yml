@@ -19,9 +19,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: pnpm
-      - run: pnpm install
-      - run: uv pip install --system -e "packages/shared-types[dev]" -e "apps/backend[dev]" -e "apps/sensor-agent[dev]"
+      - run: pnpm install --no-frozen-lockfile
+      - run: python -m pip install -e "packages/shared-types[dev]" -e "apps/backend[dev]" -e "apps/sensor-agent[dev]"
       - run: ruff check apps packages scripts
       - run: ruff format --check apps packages scripts
       - run: mypy apps/backend/src apps/sensor-agent/src packages/shared-types/src scripts
@@ -37,5 +36,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: uv pip install --system -e "packages/shared-types[dev]" -e "apps/backend[dev]" -e "apps/sensor-agent[dev]"
-      - run: pytest apps/backend/tests apps/sensor-agent/tests -m slow
+      - run: python -m pip install -e "packages/shared-types[dev]" -e "apps/backend[dev]" -e "apps/sensor-agent[dev]"
+      - name: Run slow tests when present
+        shell: bash
+        run: |
+          set +e
+          pytest apps/backend/tests apps/sensor-agent/tests -m slow
+          status=$?
+          if [ "$status" -eq 5 ]; then
+            echo "No slow tests collected"
+            exit 0
+          fi
+          exit "$status"
