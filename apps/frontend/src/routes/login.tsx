@@ -1,24 +1,38 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { Glyph } from "@/components/branding/Glyph";
 import { Wordmark } from "@/components/branding/Wordmark";
-import { Badge } from "@/components/ui/Badge";
+import { LoginForm } from "@/components/auth/LoginForm";
+import { useCurrentUser } from "@/services/auth/hooks";
+
+interface LoginSearch {
+  next?: string;
+}
 
 export const Route = createFileRoute("/login")({
-  component: LoginPlaceholder,
+  validateSearch: (search: Record<string, unknown>): LoginSearch => ({
+    next: typeof search.next === "string" ? search.next : undefined,
+  }),
+  component: LoginRoute,
 });
 
-function LoginPlaceholder(): JSX.Element {
+function LoginRoute(): JSX.Element {
+  const { data, isLoading } = useCurrentUser();
+  const { next } = Route.useSearch();
+
+  // Already signed in — bounce to next/overview.
+  if (!isLoading && data) {
+    return <Navigate to={next ?? "/"} replace />;
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg-0 px-4">
       <div className="flex w-full max-w-sm flex-col items-center gap-6 rounded-md border border-fg-20 bg-bg-2 p-8 text-center">
         <Glyph className="size-12 text-mode" />
         <Wordmark forceState="live" />
-        <Badge tone="accent" outline>
-          Stage 3
-        </Badge>
-        <p className="text-sm text-fg-60">
-          Login + TOTP flow lands in Stage 3 — paired with the backend cookie/CSRF + 2FA contract.
-        </p>
+        <div className="w-full text-left">
+          <LoginForm defaultNext="/" />
+        </div>
+        <p className="font-mono text-2xs text-fg-40">cheeky-pony · v0.3.0</p>
       </div>
     </div>
   );

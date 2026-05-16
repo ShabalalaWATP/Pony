@@ -27,6 +27,18 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    proxy: {
+      // Proxy API + WS calls to the backend so cookies are same-origin in
+      // development and we avoid the CORS preflight on every request.
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+      },
+      "/ws": {
+        target: "ws://localhost:8000",
+        ws: true,
+      },
+    },
   },
   preview: {
     port: 5173,
@@ -37,6 +49,17 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     css: true,
+    // jsdom + msw + TanStack Router accumulates heap fast on Windows.
+    // Forks give each test file a fresh process heap; bounded fork
+    // count keeps total memory under control.
+    pool: "forks",
+    poolOptions: {
+      forks: {
+        maxForks: 2,
+        minForks: 1,
+        execArgv: ["--max-old-space-size=4096"],
+      },
+    },
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov", "html"],

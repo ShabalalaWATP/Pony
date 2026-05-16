@@ -1,3 +1,4 @@
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   RouterProvider,
   createMemoryHistory,
@@ -11,8 +12,11 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppShell } from "@/components/layout/AppShell";
 import { StubView } from "@/views/StubView";
+import { AUTH_QUERY_KEY } from "@/services/auth/hooks";
 import { useLabModeStore } from "@/stores/useLabModeStore";
 import { useUIStore } from "@/stores/useUIStore";
+import { fixtures } from "./msw/handlers";
+import { makeTestQueryClient } from "./helpers";
 
 function makeRouter(initialPath = "/") {
   const rootRoute = createRootRoute({ component: () => <Outlet /> });
@@ -37,6 +41,17 @@ function makeRouter(initialPath = "/") {
   });
 }
 
+function renderAppShell(initialPath = "/"): QueryClient {
+  const qc = makeTestQueryClient();
+  qc.setQueryData(AUTH_QUERY_KEY, { csrf_token: fixtures.csrf, user: fixtures.user });
+  render(
+    <QueryClientProvider client={qc}>
+      <RouterProvider router={makeRouter(initialPath)} />
+    </QueryClientProvider>,
+  );
+  return qc;
+}
+
 beforeEach(() => {
   useUIStore.setState({
     sidebarCollapsed: false,
@@ -49,7 +64,7 @@ beforeEach(() => {
 
 describe("AppShell", () => {
   it("renders the sidebar, topbar, and current route content", async () => {
-    render(<RouterProvider router={makeRouter("/")} />);
+    renderAppShell();
     expect(await screen.findByLabelText("Cheeky Pony")).toBeInTheDocument();
     expect(
       await screen.findByRole("button", { name: /open command palette/i }),
@@ -58,18 +73,17 @@ describe("AppShell", () => {
   });
 
   it("syncs lab-mode preview to data-lab-mode on the document root", async () => {
-    render(<RouterProvider router={makeRouter("/")} />);
+    renderAppShell();
     await screen.findByLabelText("Cheeky Pony");
     expect(document.documentElement.dataset.labMode).toBe("false");
     useLabModeStore.setState({ preview: true });
-    // The sync effect runs on the next render — force one by toggling another piece of state.
     useUIStore.setState({ sidebarCollapsed: true });
     await screen.findByLabelText("Cheeky Pony");
     expect(document.documentElement.dataset.labMode).toBe("true");
   });
 
   it("toggles the command palette via ⌘K", async () => {
-    render(<RouterProvider router={makeRouter("/")} />);
+    renderAppShell();
     await screen.findByLabelText("Cheeky Pony");
     expect(useUIStore.getState().commandPaletteOpen).toBe(false);
     await userEvent.keyboard("{Meta>}k{/Meta}");
@@ -77,10 +91,8 @@ describe("AppShell", () => {
   });
 
   it("collapses sidebar on [ and expands on ]", async () => {
-    render(<RouterProvider router={makeRouter("/")} />);
+    renderAppShell();
     await screen.findByLabelText("Cheeky Pony");
-    // userEvent.keyboard treats [ and ] as chord delimiters — fireEvent
-    // bypasses that parser for these reserved characters.
     fireEvent.keyDown(window, { key: "[" });
     expect(useUIStore.getState().sidebarCollapsed).toBe(true);
     fireEvent.keyDown(window, { key: "]" });
