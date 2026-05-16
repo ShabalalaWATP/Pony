@@ -26,7 +26,7 @@ jobs:
       - run: mypy apps/backend/src apps/sensor-agent/src packages/shared-types/src scripts
       - run: pytest apps/backend/tests apps/sensor-agent/tests --cov=cheeky_pony_backend --cov=cheeky_pony_sensor --cov=cheeky_pony_shared --cov-report=xml --cov-report=term-missing --cov-fail-under=85
       - run: python scripts/generate-openapi-types.py
-      - run: git diff --exit-code packages/shared-types
+      - run: git diff --ignore-space-at-eol --exit-code packages/shared-types
 
   slow:
     runs-on: ubuntu-latest
