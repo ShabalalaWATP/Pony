@@ -28,6 +28,34 @@ jobs:
       - run: python scripts/generate-openapi-types.py
       - run: git diff --ignore-space-at-eol --exit-code packages/shared-types
 
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - name: Install workspace deps
+        working-directory: .
+        run: pnpm install --no-frozen-lockfile
+      - name: Regenerate API types
+        run: pnpm run generate:api-types
+      - name: Fail if generated types drift from committed copy
+        working-directory: .
+        run: git diff --ignore-space-at-eol --exit-code apps/frontend/src/services/api/openapi.d.ts
+      - run: pnpm run typecheck
+      - run: pnpm run lint
+      - run: pnpm run format:check
+      - run: pnpm run test
+      - run: pnpm run build
+
   slow:
     runs-on: ubuntu-latest
     steps:
