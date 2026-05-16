@@ -1,0 +1,39 @@
+services:
+  mongo:
+    image: mongo:7
+    tmpfs:
+      - /data/db
+
+  redis:
+    image: redis:7-alpine
+
+  backend:
+    build:
+      context: ..
+      dockerfile: apps/backend/Dockerfile
+    command: >
+      sh -c "python -m cheeky_pony_backend.infra.seed_admin &&
+             python -m uvicorn cheeky_pony_backend.main:create_app --factory --host 0.0.0.0 --port 8000"
+    environment:
+      CHEEKY_PONY_ENV: dast
+      CHEEKY_PONY_LAB_MODE: "false"
+      CHEEKY_PONY_MONGO_DSN: mongodb://mongo:27017
+      CHEEKY_PONY_MONGO_DB: cheeky_pony_dast
+      CHEEKY_PONY_REDIS_DSN: redis://redis:6379/0
+      CHEEKY_PONY_JWT_SECRET: dast-only-change-me-dast-only-change-me
+      CHEEKY_PONY_COOKIE_SECURE: "false"
+      CHEEKY_PONY_CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+      CHEEKY_PONY_SEED_ADMIN_EMAIL: admin@example.com
+      CHEEKY_PONY_SEED_ADMIN_PASSWORD: change-me-now
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongo
+      - redis
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: infra/frontend-placeholder.Dockerfile
+    ports:
+      - "5173:80"

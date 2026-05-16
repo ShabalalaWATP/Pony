@@ -1,0 +1,41 @@
+name: lint-test
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install
+      - run: uv pip install --system -e "packages/shared-types[dev]" -e "apps/backend[dev]" -e "apps/sensor-agent[dev]"
+      - run: ruff check apps packages scripts
+      - run: ruff format --check apps packages scripts
+      - run: mypy apps/backend/src apps/sensor-agent/src packages/shared-types/src scripts
+      - run: pytest apps/backend/tests apps/sensor-agent/tests --cov=cheeky_pony_backend --cov=cheeky_pony_sensor --cov=cheeky_pony_shared --cov-report=xml --cov-report=term-missing --cov-fail-under=85
+      - run: python scripts/generate-openapi-types.py
+      - run: git diff --exit-code packages/shared-types
+
+  slow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: uv pip install --system -e "packages/shared-types[dev]" -e "apps/backend[dev]" -e "apps/sensor-agent[dev]"
+      - run: pytest apps/backend/tests apps/sensor-agent/tests -m slow

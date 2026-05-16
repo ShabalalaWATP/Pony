@@ -1,0 +1,13 @@
+{
+  "acls": [
+    {
+      "action": "accept",
+      "src": ["tag:cheeky-pony-sensor"],
+      "dst": ["tag:cheeky-pony-backend:443"]
+    }
+  ],
+  "tagOwners": {
+    "tag:cheeky-pony-sensor": ["autogroup:admin"],
+    "tag:cheeky-pony-backend": ["autogroup:admin"]
+  }
+}

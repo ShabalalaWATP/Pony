@@ -1,0 +1,19 @@
+[Unit]
+Description=Cheeky Pony Sensor Agent
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+User=cheekypony
+Group=cheekypony
+ExecStart=/opt/cheeky-pony/venv/bin/cheeky-pony-sensor --config /etc/cheeky-pony/sensor.toml
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/cheeky-pony /etc/cheeky-pony
+
+[Install]
+WantedBy=multi-user.target

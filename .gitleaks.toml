@@ -1,0 +1,10 @@
+title = "Cheeky Pony gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "tailscale-auth-key"
+description = "Tailscale auth keys must never be committed"
+regex = '''tskey-[a-zA-Z0-9_-]+'''
+tags = ["key", "tailscale"]

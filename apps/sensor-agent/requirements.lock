@@ -1,0 +1,5 @@
+cheeky-pony-shared
+httpx==0.28.1
+pydantic==2.10.6
+websockets==14.2
+systemd-python==235; sys_platform == "linux"

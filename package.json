@@ -1,0 +1,17 @@
+{
+  "name": "cheeky-pony",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "bootstrap": "pnpm install",
+    "lint": "prettier --check .",
+    "format": "prettier --write .",
+    "generate:types": "python scripts/generate-openapi-types.py"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.5.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  }
+}

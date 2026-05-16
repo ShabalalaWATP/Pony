@@ -1,0 +1,988 @@
+{
+  "AccessPoint": {
+    "additionalProperties": false,
+    "description": "Normalized wireless access point snapshot.",
+    "properties": {
+      "band": {
+        "anyOf": [
+          {
+            "maxLength": 16,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Band"
+      },
+      "bssid": {
+        "pattern": "^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$",
+        "title": "Bssid",
+        "type": "string"
+      },
+      "channel": {
+        "anyOf": [
+          {
+            "maximum": 196.0,
+            "minimum": 1.0,
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Channel"
+      },
+      "encryption": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Encryption",
+        "type": "array"
+      },
+      "first_seen": {
+        "format": "date-time",
+        "title": "First Seen",
+        "type": "string"
+      },
+      "flags": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Flags",
+        "type": "array"
+      },
+      "last_seen": {
+        "format": "date-time",
+        "title": "Last Seen",
+        "type": "string"
+      },
+      "signal_history": {
+        "items": {
+          "$ref": "#/components/schemas/SignalSample"
+        },
+        "title": "Signal History",
+        "type": "array"
+      },
+      "ssid": {
+        "default": "",
+        "maxLength": 128,
+        "title": "Ssid",
+        "type": "string"
+      },
+      "vendor_oui": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Vendor Oui"
+      }
+    },
+    "required": [
+      "bssid"
+    ],
+    "title": "AccessPoint",
+    "type": "object"
+  },
+  "AcknowledgementRequest": {
+    "description": "Authorized-operator acknowledgement request.",
+    "properties": {
+      "statement": {
+        "maxLength": 512,
+        "minLength": 16,
+        "title": "Statement",
+        "type": "string"
+      }
+    },
+    "required": [
+      "statement"
+    ],
+    "title": "AcknowledgementRequest",
+    "type": "object"
+  },
+  "AllowTargetRequest": {
+    "description": "Allow-list target request.",
+    "properties": {
+      "kind": {
+        "$ref": "#/components/schemas/TargetKind"
+      },
+      "value": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Value",
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind",
+      "value"
+    ],
+    "title": "AllowTargetRequest",
+    "type": "object"
+  },
+  "ApiPage_AccessPoint_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/AccessPoint"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[AccessPoint]",
+    "type": "object"
+  },
+  "ApiPage_AuditLog_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/AuditLog"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[AuditLog]",
+    "type": "object"
+  },
+  "ApiPage_Client_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/Client"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[Client]",
+    "type": "object"
+  },
+  "ApiPage_Event_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/Event"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[Event]",
+    "type": "object"
+  },
+  "ApiPage_Sensor_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/Sensor"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[Sensor]",
+    "type": "object"
+  },
+  "AuditLog": {
+    "additionalProperties": false,
+    "description": "Append-only audit log entry.",
+    "properties": {
+      "action": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Action",
+        "type": "string"
+      },
+      "actor_id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Actor Id",
+        "type": "string"
+      },
+      "finished_at": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Finished At"
+      },
+      "id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Id",
+        "type": "string"
+      },
+      "occurred_at": {
+        "format": "date-time",
+        "title": "Occurred At",
+        "type": "string"
+      },
+      "outcome": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Outcome",
+        "type": "string"
+      },
+      "parameters": {
+        "additionalProperties": true,
+        "title": "Parameters",
+        "type": "object"
+      },
+      "raw_tool_output_ref": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Raw Tool Output Ref"
+      },
+      "started_at": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Started At"
+      },
+      "target": {
+        "additionalProperties": true,
+        "title": "Target",
+        "type": "object"
+      }
+    },
+    "required": [
+      "id",
+      "actor_id",
+      "action",
+      "outcome"
+    ],
+    "title": "AuditLog",
+    "type": "object"
+  },
+  "Client": {
+    "additionalProperties": false,
+    "description": "Normalized wireless client snapshot.",
+    "properties": {
+      "associated_bssid": {
+        "anyOf": [
+          {
+            "pattern": "^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Associated Bssid"
+      },
+      "first_seen": {
+        "format": "date-time",
+        "title": "First Seen",
+        "type": "string"
+      },
+      "last_seen": {
+        "format": "date-time",
+        "title": "Last Seen",
+        "type": "string"
+      },
+      "mac": {
+        "pattern": "^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$",
+        "title": "Mac",
+        "type": "string"
+      },
+      "probes": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Probes",
+        "type": "array"
+      },
+      "signal_history": {
+        "items": {
+          "$ref": "#/components/schemas/SignalSample"
+        },
+        "title": "Signal History",
+        "type": "array"
+      },
+      "vendor_oui": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Vendor Oui"
+      }
+    },
+    "required": [
+      "mac"
+    ],
+    "title": "Client",
+    "type": "object"
+  },
+  "Engagement": {
+    "additionalProperties": false,
+    "description": "Engagement scope and lifecycle metadata.",
+    "properties": {
+      "ended_at": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Ended At"
+      },
+      "id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Id",
+        "type": "string"
+      },
+      "name": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "scope_rules": {
+        "items": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "title": "Scope Rules",
+        "type": "array"
+      },
+      "started_at": {
+        "format": "date-time",
+        "title": "Started At",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "name"
+    ],
+    "title": "Engagement",
+    "type": "object"
+  },
+  "EngagementCreateRequest": {
+    "description": "Engagement creation request.",
+    "properties": {
+      "name": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "scope_rules": {
+        "items": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "title": "Scope Rules",
+        "type": "array"
+      }
+    },
+    "required": [
+      "name"
+    ],
+    "title": "EngagementCreateRequest",
+    "type": "object"
+  },
+  "Event": {
+    "additionalProperties": false,
+    "description": "Append-only event record.",
+    "properties": {
+      "id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Id",
+        "type": "string"
+      },
+      "kind": {
+        "$ref": "#/components/schemas/EventKind"
+      },
+      "occurred_at": {
+        "format": "date-time",
+        "title": "Occurred At",
+        "type": "string"
+      },
+      "payload": {
+        "additionalProperties": true,
+        "title": "Payload",
+        "type": "object"
+      },
+      "sensor_id": {
+        "maxLength": 96,
+        "minLength": 1,
+        "title": "Sensor Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "sensor_id",
+      "kind",
+      "payload"
+    ],
+    "title": "Event",
+    "type": "object"
+  },
+  "EventKind": {
+    "description": "Normalized event kinds emitted by sensors.",
+    "enum": [
+      "access_point_seen",
+      "client_seen",
+      "sensor_status",
+      "command_result"
+    ],
+    "title": "EventKind",
+    "type": "string"
+  },
+  "HTTPValidationError": {
+    "properties": {
+      "detail": {
+        "items": {
+          "$ref": "#/components/schemas/ValidationError"
+        },
+        "title": "Detail",
+        "type": "array"
+      }
+    },
+    "title": "HTTPValidationError",
+    "type": "object"
+  },
+  "LoginRequest": {
+    "description": "User login request.",
+    "properties": {
+      "email": {
+        "format": "email",
+        "title": "Email",
+        "type": "string"
+      },
+      "password": {
+        "maxLength": 256,
+        "minLength": 1,
+        "title": "Password",
+        "type": "string"
+      }
+    },
+    "required": [
+      "email",
+      "password"
+    ],
+    "title": "LoginRequest",
+    "type": "object"
+  },
+  "LoginResponse": {
+    "description": "Login response payload.",
+    "properties": {
+      "csrf_token": {
+        "title": "Csrf Token",
+        "type": "string"
+      },
+      "user": {
+        "$ref": "#/components/schemas/UserPublic"
+      }
+    },
+    "required": [
+      "user",
+      "csrf_token"
+    ],
+    "title": "LoginResponse",
+    "type": "object"
+  },
+  "RegisterRequest": {
+    "description": "User registration request.",
+    "properties": {
+      "email": {
+        "format": "email",
+        "title": "Email",
+        "type": "string"
+      },
+      "password": {
+        "maxLength": 256,
+        "minLength": 12,
+        "title": "Password",
+        "type": "string"
+      }
+    },
+    "required": [
+      "email",
+      "password"
+    ],
+    "title": "RegisterRequest",
+    "type": "object"
+  },
+  "Sensor": {
+    "additionalProperties": false,
+    "description": "Registered sensor identity and health metadata.",
+    "properties": {
+      "capabilities": {
+        "items": {
+          "$ref": "#/components/schemas/SensorCapability"
+        },
+        "title": "Capabilities",
+        "type": "array"
+      },
+      "id": {
+        "maxLength": 96,
+        "minLength": 1,
+        "title": "Id",
+        "type": "string"
+      },
+      "last_seen": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Last Seen"
+      },
+      "name": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "revoked": {
+        "default": false,
+        "title": "Revoked",
+        "type": "boolean"
+      },
+      "tailnet_ip": {
+        "maxLength": 64,
+        "minLength": 3,
+        "title": "Tailnet Ip",
+        "type": "string"
+      },
+      "version": {
+        "maxLength": 64,
+        "minLength": 1,
+        "title": "Version",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "tailnet_ip",
+      "version"
+    ],
+    "title": "Sensor",
+    "type": "object"
+  },
+  "SensorCapability": {
+    "description": "Capabilities advertised by a sensor.",
+    "enum": [
+      "passive_capture",
+      "channel_control",
+      "active_modules",
+      "rogue_ap",
+      "deauth",
+      "evil_twin",
+      "captive_portal",
+      "mitm"
+    ],
+    "title": "SensorCapability",
+    "type": "string"
+  },
+  "SensorRegisterRequest": {
+    "description": "Sensor registration payload.",
+    "properties": {
+      "capabilities": {
+        "items": {
+          "$ref": "#/components/schemas/SensorCapability"
+        },
+        "title": "Capabilities",
+        "type": "array"
+      },
+      "id": {
+        "maxLength": 96,
+        "minLength": 1,
+        "title": "Id",
+        "type": "string"
+      },
+      "name": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "tailnet_ip": {
+        "maxLength": 64,
+        "minLength": 3,
+        "title": "Tailnet Ip",
+        "type": "string"
+      },
+      "version": {
+        "maxLength": 64,
+        "minLength": 1,
+        "title": "Version",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "tailnet_ip",
+      "version"
+    ],
+    "title": "SensorRegisterRequest",
+    "type": "object"
+  },
+  "SensorRegisterResponse": {
+    "description": "Sensor registration response with one-time client material.",
+    "properties": {
+      "ca_certificate_pem": {
+        "title": "Ca Certificate Pem",
+        "type": "string"
+      },
+      "client_certificate_pem": {
+        "title": "Client Certificate Pem",
+        "type": "string"
+      },
+      "client_private_key_pem": {
+        "title": "Client Private Key Pem",
+        "type": "string"
+      },
+      "sensor": {
+        "$ref": "#/components/schemas/Sensor"
+      }
+    },
+    "required": [
+      "sensor",
+      "client_certificate_pem",
+      "client_private_key_pem",
+      "ca_certificate_pem"
+    ],
+    "title": "SensorRegisterResponse",
+    "type": "object"
+  },
+  "SignalSample": {
+    "additionalProperties": false,
+    "description": "Signal reading at a point in time.",
+    "properties": {
+      "rssi_dbm": {
+        "maximum": 20.0,
+        "minimum": -127.0,
+        "title": "Rssi Dbm",
+        "type": "integer"
+      },
+      "seen_at": {
+        "format": "date-time",
+        "title": "Seen At",
+        "type": "string"
+      }
+    },
+    "required": [
+      "rssi_dbm"
+    ],
+    "title": "SignalSample",
+    "type": "object"
+  },
+  "SystemAcknowledgement": {
+    "additionalProperties": false,
+    "description": "Stored legal acknowledgement record.",
+    "properties": {
+      "accepted_at": {
+        "format": "date-time",
+        "title": "Accepted At",
+        "type": "string"
+      },
+      "accepted_by": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Accepted By",
+        "type": "string"
+      },
+      "kind": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Kind",
+        "type": "string"
+      },
+      "statement_hash": {
+        "maxLength": 256,
+        "minLength": 32,
+        "title": "Statement Hash",
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind",
+      "accepted_by",
+      "statement_hash"
+    ],
+    "title": "SystemAcknowledgement",
+    "type": "object"
+  },
+  "TargetKind": {
+    "description": "Target identifier kinds used by active-operation allow-lists.",
+    "enum": [
+      "bssid",
+      "ssid",
+      "client_mac"
+    ],
+    "title": "TargetKind",
+    "type": "string"
+  },
+  "TotpSetupResponse": {
+    "description": "TOTP setup response.",
+    "properties": {
+      "provisioning_uri": {
+        "title": "Provisioning Uri",
+        "type": "string"
+      },
+      "secret": {
+        "title": "Secret",
+        "type": "string"
+      }
+    },
+    "required": [
+      "secret",
+      "provisioning_uri"
+    ],
+    "title": "TotpSetupResponse",
+    "type": "object"
+  },
+  "TotpVerifyRequest": {
+    "description": "TOTP verification request.",
+    "properties": {
+      "code": {
+        "maxLength": 8,
+        "minLength": 6,
+        "title": "Code",
+        "type": "string"
+      }
+    },
+    "required": [
+      "code"
+    ],
+    "title": "TotpVerifyRequest",
+    "type": "object"
+  },
+  "UserPublic": {
+    "additionalProperties": false,
+    "description": "Safe user fields returned from API responses.",
+    "properties": {
+      "email": {
+        "maxLength": 254,
+        "minLength": 3,
+        "title": "Email",
+        "type": "string"
+      },
+      "id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Id",
+        "type": "string"
+      },
+      "roles": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Roles",
+        "type": "array"
+      },
+      "totp_enabled": {
+        "default": false,
+        "title": "Totp Enabled",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "id",
+      "email"
+    ],
+    "title": "UserPublic",
+    "type": "object"
+  },
+  "ValidationError": {
+    "properties": {
+      "ctx": {
+        "title": "Context",
+        "type": "object"
+      },
+      "input": {
+        "title": "Input"
+      },
+      "loc": {
+        "items": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            }
+          ]
+        },
+        "title": "Location",
+        "type": "array"
+      },
+      "msg": {
+        "title": "Message",
+        "type": "string"
+      },
+      "type": {
+        "title": "Error Type",
+        "type": "string"
+      }
+    },
+    "required": [
+      "loc",
+      "msg",
+      "type"
+    ],
+    "title": "ValidationError",
+    "type": "object"
+  }
+}

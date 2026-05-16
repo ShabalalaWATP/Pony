@@ -1,0 +1,1837 @@
+{
+  "components": {
+    "schemas": {
+      "AccessPoint": {
+        "additionalProperties": false,
+        "description": "Normalized wireless access point snapshot.",
+        "properties": {
+          "band": {
+            "anyOf": [
+              {
+                "maxLength": 16,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Band"
+          },
+          "bssid": {
+            "pattern": "^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$",
+            "title": "Bssid",
+            "type": "string"
+          },
+          "channel": {
+            "anyOf": [
+              {
+                "maximum": 196.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel"
+          },
+          "encryption": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Encryption",
+            "type": "array"
+          },
+          "first_seen": {
+            "format": "date-time",
+            "title": "First Seen",
+            "type": "string"
+          },
+          "flags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Flags",
+            "type": "array"
+          },
+          "last_seen": {
+            "format": "date-time",
+            "title": "Last Seen",
+            "type": "string"
+          },
+          "signal_history": {
+            "items": {
+              "$ref": "#/components/schemas/SignalSample"
+            },
+            "title": "Signal History",
+            "type": "array"
+          },
+          "ssid": {
+            "default": "",
+            "maxLength": 128,
+            "title": "Ssid",
+            "type": "string"
+          },
+          "vendor_oui": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor Oui"
+          }
+        },
+        "required": [
+          "bssid"
+        ],
+        "title": "AccessPoint",
+        "type": "object"
+      },
+      "AcknowledgementRequest": {
+        "description": "Authorized-operator acknowledgement request.",
+        "properties": {
+          "statement": {
+            "maxLength": 512,
+            "minLength": 16,
+            "title": "Statement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "statement"
+        ],
+        "title": "AcknowledgementRequest",
+        "type": "object"
+      },
+      "AllowTargetRequest": {
+        "description": "Allow-list target request.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/TargetKind"
+          },
+          "value": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value"
+        ],
+        "title": "AllowTargetRequest",
+        "type": "object"
+      },
+      "ApiPage_AccessPoint_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AccessPoint"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[AccessPoint]",
+        "type": "object"
+      },
+      "ApiPage_AuditLog_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLog"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[AuditLog]",
+        "type": "object"
+      },
+      "ApiPage_Client_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Client"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[Client]",
+        "type": "object"
+      },
+      "ApiPage_Event_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Event"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[Event]",
+        "type": "object"
+      },
+      "ApiPage_Sensor_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Sensor"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[Sensor]",
+        "type": "object"
+      },
+      "AuditLog": {
+        "additionalProperties": false,
+        "description": "Append-only audit log entry.",
+        "properties": {
+          "action": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "outcome": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Outcome",
+            "type": "string"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "raw_tool_output_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Tool Output Ref"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "target": {
+            "additionalProperties": true,
+            "title": "Target",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "actor_id",
+          "action",
+          "outcome"
+        ],
+        "title": "AuditLog",
+        "type": "object"
+      },
+      "Client": {
+        "additionalProperties": false,
+        "description": "Normalized wireless client snapshot.",
+        "properties": {
+          "associated_bssid": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Associated Bssid"
+          },
+          "first_seen": {
+            "format": "date-time",
+            "title": "First Seen",
+            "type": "string"
+          },
+          "last_seen": {
+            "format": "date-time",
+            "title": "Last Seen",
+            "type": "string"
+          },
+          "mac": {
+            "pattern": "^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$",
+            "title": "Mac",
+            "type": "string"
+          },
+          "probes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Probes",
+            "type": "array"
+          },
+          "signal_history": {
+            "items": {
+              "$ref": "#/components/schemas/SignalSample"
+            },
+            "title": "Signal History",
+            "type": "array"
+          },
+          "vendor_oui": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor Oui"
+          }
+        },
+        "required": [
+          "mac"
+        ],
+        "title": "Client",
+        "type": "object"
+      },
+      "Engagement": {
+        "additionalProperties": false,
+        "description": "Engagement scope and lifecycle metadata.",
+        "properties": {
+          "ended_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "scope_rules": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Scope Rules",
+            "type": "array"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "Engagement",
+        "type": "object"
+      },
+      "EngagementCreateRequest": {
+        "description": "Engagement creation request.",
+        "properties": {
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "scope_rules": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Scope Rules",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "EngagementCreateRequest",
+        "type": "object"
+      },
+      "Event": {
+        "additionalProperties": false,
+        "description": "Append-only event record.",
+        "properties": {
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/EventKind"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "title": "Payload",
+            "type": "object"
+          },
+          "sensor_id": {
+            "maxLength": 96,
+            "minLength": 1,
+            "title": "Sensor Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "sensor_id",
+          "kind",
+          "payload"
+        ],
+        "title": "Event",
+        "type": "object"
+      },
+      "EventKind": {
+        "description": "Normalized event kinds emitted by sensors.",
+        "enum": [
+          "access_point_seen",
+          "client_seen",
+          "sensor_status",
+          "command_result"
+        ],
+        "title": "EventKind",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "LoginRequest": {
+        "description": "User login request.",
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest",
+        "type": "object"
+      },
+      "LoginResponse": {
+        "description": "Login response payload.",
+        "properties": {
+          "csrf_token": {
+            "title": "Csrf Token",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserPublic"
+          }
+        },
+        "required": [
+          "user",
+          "csrf_token"
+        ],
+        "title": "LoginResponse",
+        "type": "object"
+      },
+      "RegisterRequest": {
+        "description": "User registration request.",
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 256,
+            "minLength": 12,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "RegisterRequest",
+        "type": "object"
+      },
+      "Sensor": {
+        "additionalProperties": false,
+        "description": "Registered sensor identity and health metadata.",
+        "properties": {
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/SensorCapability"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "id": {
+            "maxLength": 96,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "last_seen": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "revoked": {
+            "default": false,
+            "title": "Revoked",
+            "type": "boolean"
+          },
+          "tailnet_ip": {
+            "maxLength": 64,
+            "minLength": 3,
+            "title": "Tailnet Ip",
+            "type": "string"
+          },
+          "version": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "tailnet_ip",
+          "version"
+        ],
+        "title": "Sensor",
+        "type": "object"
+      },
+      "SensorCapability": {
+        "description": "Capabilities advertised by a sensor.",
+        "enum": [
+          "passive_capture",
+          "channel_control",
+          "active_modules",
+          "rogue_ap",
+          "deauth",
+          "evil_twin",
+          "captive_portal",
+          "mitm"
+        ],
+        "title": "SensorCapability",
+        "type": "string"
+      },
+      "SensorRegisterRequest": {
+        "description": "Sensor registration payload.",
+        "properties": {
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/SensorCapability"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "id": {
+            "maxLength": 96,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "tailnet_ip": {
+            "maxLength": 64,
+            "minLength": 3,
+            "title": "Tailnet Ip",
+            "type": "string"
+          },
+          "version": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "tailnet_ip",
+          "version"
+        ],
+        "title": "SensorRegisterRequest",
+        "type": "object"
+      },
+      "SensorRegisterResponse": {
+        "description": "Sensor registration response with one-time client material.",
+        "properties": {
+          "ca_certificate_pem": {
+            "title": "Ca Certificate Pem",
+            "type": "string"
+          },
+          "client_certificate_pem": {
+            "title": "Client Certificate Pem",
+            "type": "string"
+          },
+          "client_private_key_pem": {
+            "title": "Client Private Key Pem",
+            "type": "string"
+          },
+          "sensor": {
+            "$ref": "#/components/schemas/Sensor"
+          }
+        },
+        "required": [
+          "sensor",
+          "client_certificate_pem",
+          "client_private_key_pem",
+          "ca_certificate_pem"
+        ],
+        "title": "SensorRegisterResponse",
+        "type": "object"
+      },
+      "SignalSample": {
+        "additionalProperties": false,
+        "description": "Signal reading at a point in time.",
+        "properties": {
+          "rssi_dbm": {
+            "maximum": 20.0,
+            "minimum": -127.0,
+            "title": "Rssi Dbm",
+            "type": "integer"
+          },
+          "seen_at": {
+            "format": "date-time",
+            "title": "Seen At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rssi_dbm"
+        ],
+        "title": "SignalSample",
+        "type": "object"
+      },
+      "SystemAcknowledgement": {
+        "additionalProperties": false,
+        "description": "Stored legal acknowledgement record.",
+        "properties": {
+          "accepted_at": {
+            "format": "date-time",
+            "title": "Accepted At",
+            "type": "string"
+          },
+          "accepted_by": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Accepted By",
+            "type": "string"
+          },
+          "kind": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Kind",
+            "type": "string"
+          },
+          "statement_hash": {
+            "maxLength": 256,
+            "minLength": 32,
+            "title": "Statement Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "accepted_by",
+          "statement_hash"
+        ],
+        "title": "SystemAcknowledgement",
+        "type": "object"
+      },
+      "TargetKind": {
+        "description": "Target identifier kinds used by active-operation allow-lists.",
+        "enum": [
+          "bssid",
+          "ssid",
+          "client_mac"
+        ],
+        "title": "TargetKind",
+        "type": "string"
+      },
+      "TotpSetupResponse": {
+        "description": "TOTP setup response.",
+        "properties": {
+          "provisioning_uri": {
+            "title": "Provisioning Uri",
+            "type": "string"
+          },
+          "secret": {
+            "title": "Secret",
+            "type": "string"
+          }
+        },
+        "required": [
+          "secret",
+          "provisioning_uri"
+        ],
+        "title": "TotpSetupResponse",
+        "type": "object"
+      },
+      "TotpVerifyRequest": {
+        "description": "TOTP verification request.",
+        "properties": {
+          "code": {
+            "maxLength": 8,
+            "minLength": 6,
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "TotpVerifyRequest",
+        "type": "object"
+      },
+      "UserPublic": {
+        "additionalProperties": false,
+        "description": "Safe user fields returned from API responses.",
+        "properties": {
+          "email": {
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Roles",
+            "type": "array"
+          },
+          "totp_enabled": {
+            "default": false,
+            "title": "Totp Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "email"
+        ],
+        "title": "UserPublic",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Cheeky Pony API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/access_points": {
+      "get": {
+        "description": "List observed access points.\n\nArgs:\n    _: Current user.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated access point list.",
+        "operationId": "list_access_points_api_v1_access_points_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_AccessPoint_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Access Points",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/access_points/{bssid}": {
+      "get": {
+        "description": "Return one access point.\n\nArgs:\n    bssid: BSSID.\n    _: Current user.\n    store: Application store.\n\nReturns:\n    Access point.",
+        "operationId": "get_access_point_api_v1_access_points__bssid__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bssid",
+            "required": true,
+            "schema": {
+              "title": "Bssid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessPoint"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Access Point",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/audit": {
+      "get": {
+        "description": "List audit entries.\n\nArgs:\n    _: Current admin with verified TOTP.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated audit entries.",
+        "operationId": "list_audit_api_v1_audit_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_AuditLog_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Audit",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/v1/auth/2fa/setup": {
+      "post": {
+        "description": "Create or return a TOTP secret for the current user.\n\nArgs:\n    user: Current user.\n    store: Application store.\n    totp: TOTP service.\n\nReturns:\n    TOTP setup data.",
+        "operationId": "setup_totp_api_v1_auth_2fa_setup_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TotpSetupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Setup Totp",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/2fa/verify": {
+      "post": {
+        "description": "Verify TOTP for the current user.\n\nArgs:\n    payload: TOTP code payload.\n    user: Current user.\n    store: Application store.\n    totp: TOTP service.\n\nReturns:\n    Updated public user.",
+        "operationId": "verify_totp_api_v1_auth_2fa_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TotpVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify Totp",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "Authenticate a user and set secure cookies.\n\nArgs:\n    payload: Login payload.\n    response: FastAPI response.\n    store: Application store.\n    passwords: Password service.\n    csrf: CSRF service.\n    tokens: Token service.\n    settings: Runtime settings.\n\nReturns:\n    Public user and CSRF token.",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Login",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "description": "Refresh an authenticated browser session.\n\nArgs:\n    request: FastAPI request.\n    response: FastAPI response.\n    store: Application store.\n    csrf: CSRF service.\n    tokens: Token service.\n    settings: Runtime settings.\n\nReturns:\n    Public user and new CSRF token.",
+        "operationId": "refresh_api_v1_auth_refresh_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Refresh",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "description": "Register the first admin or an admin-created user.\n\nArgs:\n    payload: Registration payload.\n    request: FastAPI request.\n    store: Application store.\n    passwords: Password service.\n    tokens: Token service.\n\nReturns:\n    Created public user.",
+        "operationId": "register_api_v1_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/devices": {
+      "get": {
+        "description": "List observed client devices.\n\nArgs:\n    _: Current user.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated client list.",
+        "operationId": "list_clients_api_v1_devices_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_Client_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Clients",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/devices/{mac}": {
+      "get": {
+        "description": "Return one client device.\n\nArgs:\n    mac: Client MAC.\n    _: Current user.\n    store: Application store.\n\nReturns:\n    Client device.",
+        "operationId": "get_client_api_v1_devices__mac__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "mac",
+            "required": true,
+            "schema": {
+              "title": "Mac",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Client"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Client",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/engagements": {
+      "post": {
+        "description": "Create an engagement.\n\nArgs:\n    payload: Engagement payload.\n    _: Current admin with verified TOTP.\n    store: Application store.\n\nReturns:\n    Created engagement.",
+        "operationId": "create_engagement_api_v1_engagements_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EngagementCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Engagement"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Engagement",
+        "tags": [
+          "engagements"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}/allow-list": {
+      "post": {
+        "description": "Add a target to an engagement allow-list.\n\nArgs:\n    engagement_id: Engagement identifier.\n    payload: Target payload.\n    _: Current admin with verified TOTP.\n    store: Application store.",
+        "operationId": "allow_target_api_v1_engagements__engagement_id__allow_list_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AllowTargetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Allow Target",
+        "tags": [
+          "engagements"
+        ]
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "description": "List events.\n\nArgs:\n    _: Current user.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated event list.",
+        "operationId": "list_events_api_v1_events_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_Event_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Events",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/events/{event_id}": {
+      "get": {
+        "description": "Return one event.\n\nArgs:\n    event_id: Event identifier.\n    _: Current user.\n    store: Application store.\n\nReturns:\n    Event.",
+        "operationId": "get_event_api_v1_events__event_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Event"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Event",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/sensors": {
+      "get": {
+        "description": "List sensors.\n\nArgs:\n    _: Current admin with verified TOTP.\n    store: Application store.\n\nReturns:\n    Paginated sensor list.",
+        "operationId": "list_sensors_api_v1_sensors_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_Sensor_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Sensors",
+        "tags": [
+          "sensors"
+        ]
+      },
+      "post": {
+        "description": "Register a sensor and issue client certificate material.\n\nArgs:\n    payload: Sensor registration payload.\n    _: Current admin with verified TOTP.\n    store: Application store.\n\nReturns:\n    Registered sensor and certificate bundle.",
+        "operationId": "register_sensor_api_v1_sensors_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SensorRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorRegisterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register Sensor",
+        "tags": [
+          "sensors"
+        ]
+      }
+    },
+    "/api/v1/sensors/{sensor_id}": {
+      "get": {
+        "description": "Return one sensor.\n\nArgs:\n    sensor_id: Sensor identifier.\n    _: Current admin with verified TOTP.\n    store: Application store.\n\nReturns:\n    Sensor record.",
+        "operationId": "get_sensor_api_v1_sensors__sensor_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sensor_id",
+            "required": true,
+            "schema": {
+              "title": "Sensor Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sensor"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Sensor",
+        "tags": [
+          "sensors"
+        ]
+      }
+    },
+    "/api/v1/sensors/{sensor_id}/revoke": {
+      "post": {
+        "description": "Revoke a sensor.\n\nArgs:\n    sensor_id: Sensor identifier.\n    _: Current admin with verified TOTP.\n    store: Application store.",
+        "operationId": "revoke_sensor_api_v1_sensors__sensor_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sensor_id",
+            "required": true,
+            "schema": {
+              "title": "Sensor Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Sensor",
+        "tags": [
+          "sensors"
+        ]
+      }
+    },
+    "/api/v1/system/acknowledgements": {
+      "post": {
+        "description": "Create the one-time authorized-operator acknowledgement.\n\nArgs:\n    payload: Typed legal statement.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n\nReturns:\n    Stored acknowledgement.",
+        "operationId": "create_authorized_operator_acknowledgement_api_v1_system_acknowledgements_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcknowledgementRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemAcknowledgement"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Authorized Operator Acknowledgement",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Return process health.\n\nReturns:\n    Health status payload.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/metrics": {
+      "get": {
+        "description": "Return Prometheus-style metrics.\n\nReturns:\n    Plain-text metrics response.",
+        "operationId": "metrics_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Metrics"
+      }
+    }
+  }
+}

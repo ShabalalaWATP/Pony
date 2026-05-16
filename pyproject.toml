@@ -1,0 +1,61 @@
+[project]
+name = "cheeky-pony-workspace"
+version = "0.1.0"
+description = "Workspace metadata for Cheeky Pony."
+requires-python = ">=3.12"
+license = { text = "AGPL-3.0-only" }
+
+[tool.uv.workspace]
+members = [
+  "apps/backend",
+  "apps/sensor-agent",
+  "packages/shared-types",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["apps/backend/src", "apps/sensor-agent/src", "packages/shared-types/src", "scripts"]
+
+[tool.ruff.lint]
+select = ["B", "C4", "E", "F", "I", "N", "S", "UP", "W"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"apps/*/tests/**/*.py" = ["S101", "S105", "S106"]
+"scripts/add-license-headers.py" = ["S603", "S607"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = [
+  "apps/backend/src",
+  "apps/sensor-agent/src",
+  "packages/shared-types/src",
+]
+packages = [
+  "cheeky_pony_backend",
+  "cheeky_pony_sensor",
+  "cheeky_pony_shared",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = "--strict-markers --strict-config"
+markers = [
+  "slow: integration tests that need Docker or external services",
+]
+
+[tool.coverage.run]
+branch = true
+source = [
+  "apps/backend/src/cheeky_pony_backend",
+  "apps/sensor-agent/src/cheeky_pony_sensor",
+  "packages/shared-types/src/cheeky_pony_shared",
+]
+omit = [
+  "apps/backend/src/cheeky_pony_backend/infra/mongo_store.py",
+  "apps/backend/src/cheeky_pony_backend/infra/seed_admin.py",
+  "apps/backend/src/cheeky_pony_backend/workers/settings.py",
+  "apps/*/src/**/main.py",
+]
