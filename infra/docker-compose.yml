@@ -24,7 +24,7 @@ services:
       CHEEKY_PONY_REDIS_DSN: redis://redis:6379/0
       CHEEKY_PONY_JWT_SECRET: dev-only-change-me-dev-only-change-me
       CHEEKY_PONY_COOKIE_SECURE: "false"
-      CHEEKY_PONY_CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+      CHEEKY_PONY_CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000"]'
     ports:
       - "8000:8000"
     volumes:
