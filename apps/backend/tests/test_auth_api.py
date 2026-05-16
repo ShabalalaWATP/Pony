@@ -18,6 +18,8 @@ async def test_health_is_public_and_has_security_headers(backend_client: Backend
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
     assert response.headers["content-security-policy"].startswith("default-src")
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["pragma"] == "no-cache"
 
 
 async def test_first_registration_creates_admin(backend_client: BackendClient) -> None:
