@@ -28,6 +28,7 @@ jobs:
           artifact_name: zap-baseline
           fail_action: true
           allow_issue_writing: false
+          cmd_options: -I
       - uses: zaproxy/action-full-scan@v0.12.0
         if: contains(github.event.pull_request.labels.*.name, 'run-dast-full')
         with:
@@ -35,6 +36,7 @@ jobs:
           artifact_name: zap-full
           fail_action: true
           allow_issue_writing: false
+          cmd_options: -I
       - name: Dump DAST logs on failure
         if: failure()
         run: |
