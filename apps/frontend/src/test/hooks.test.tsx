@@ -40,4 +40,33 @@ describe("useReducedMotion", () => {
     const { result } = renderHook(() => useReducedMotion());
     expect(result.current).toBe(false);
   });
+
+  it("subscribes to media-query changes and updates state", () => {
+    let storedListener: ((e: MediaQueryListEvent) => void) | null = null;
+    const mqList: MediaQueryList = {
+      matches: false,
+      media: "(prefers-reduced-motion: reduce)",
+      onchange: null,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      addEventListener: (_evt: string, l: EventListenerOrEventListenerObject) => {
+        storedListener = l as (e: MediaQueryListEvent) => void;
+      },
+      removeEventListener: () => undefined,
+      dispatchEvent: () => false,
+    };
+    const original = window.matchMedia;
+    Object.defineProperty(window, "matchMedia", { writable: true, value: () => mqList });
+
+    try {
+      const { result } = renderHook(() => useReducedMotion());
+      expect(result.current).toBe(false);
+      act(() => {
+        storedListener?.({ matches: true } as MediaQueryListEvent);
+      });
+      expect(result.current).toBe(true);
+    } finally {
+      Object.defineProperty(window, "matchMedia", { writable: true, value: original });
+    }
+  });
 });

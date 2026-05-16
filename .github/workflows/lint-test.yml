@@ -44,6 +44,10 @@ jobs:
         run: pnpm --filter @cheeky-pony/frontend run generate:api-types
       - name: Fail if generated frontend types drift from committed copy
         run: git diff --ignore-space-at-eol --exit-code apps/frontend/src/services/api/openapi.d.ts
+      - name: Regenerate frontend route tree
+        run: pnpm --filter @cheeky-pony/frontend run generate:routes
+      - name: Fail if generated route tree drifts from committed copy
+        run: git diff --ignore-space-at-eol --exit-code apps/frontend/src/routeTree.gen.ts
       - name: Type-check
         run: pnpm --filter @cheeky-pony/frontend run typecheck
       - name: Lint
