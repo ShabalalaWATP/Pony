@@ -174,6 +174,7 @@ export function EngagementsView(): JSX.Element {
         data={items}
         columns={columns}
         getRowId={(row) => row.id}
+        onRowOpen={(e) => void navigate({ to: "/engagements/$id", params: { id: e.id } })}
         label="Engagements"
         maxHeight={520}
         emptyState={

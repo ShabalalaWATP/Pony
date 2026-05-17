@@ -73,6 +73,30 @@ export function useActiveEngagement() {
 }
 
 /**
+ * Single engagement by id. Backed by
+ * `GET /api/v1/engagements/{engagement_id}`. Powers the
+ * `/engagements/$id` deep-link so an operator can land directly on
+ * one without the list being loaded first.
+ *
+ * Disabled until an id is supplied; 404 surfaces as `error.status === 404`
+ * so the detail view can render a "not found" empty state without
+ * retrying.
+ */
+export function useEngagement(engagementId: string | null | undefined) {
+  return useQuery<Engagement, ApiError>({
+    queryKey: [...ENGAGEMENTS_LIST_KEY, engagementId ?? "", "detail"],
+    queryFn: () =>
+      apiClient.get<Engagement>(`/engagements/${encodeURIComponent(engagementId ?? "")}`),
+    enabled: Boolean(engagementId),
+    staleTime: 30_000,
+    retry: (count, error) => {
+      if (error.status === 401 || error.status === 403 || error.status === 404) return false;
+      return count < 1;
+    },
+  });
+}
+
+/**
  * Paginated engagements list (active + ended). Powers `/engagements`
  * where the operator picks one to resume or audit.
  */
