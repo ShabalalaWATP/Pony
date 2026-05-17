@@ -74,7 +74,7 @@ class ActiveGateService:
                 return "no_acknowledgement"
             if not actor.is_admin():
                 return "admin_required"
-            if not actor.has_recent_totp():
+            if not actor.has_recent_totp(self._settings.totp_recent_minutes):
                 return "missing_2fa"
             engagement = await self._store.get_engagement(engagement_id)
             if engagement is None or engagement.ended_at is not None:

@@ -84,9 +84,12 @@ async def register_sensor(
 
     if await store.get_sensor(payload.id):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="sensor_exists")
-    sensor = Sensor(**payload.model_dump())
+    bundle = issue_sensor_certificate(payload.id)
+    sensor = Sensor(
+        **payload.model_dump(),
+        client_cert_fingerprint_sha256=bundle.fingerprint_sha256,
+    )
     await store.create_sensor(sensor)
-    bundle = issue_sensor_certificate(sensor.id)
     return SensorRegisterResponse(
         sensor=sensor,
         client_certificate_pem=bundle.certificate_pem,

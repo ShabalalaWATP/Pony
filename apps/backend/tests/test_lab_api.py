@@ -14,7 +14,7 @@ from cheeky_pony_backend.config import Settings
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
 from cheeky_pony_backend.main import create_app
-from cheeky_pony_backend.security import TokenService
+from cheeky_pony_backend.security import TokenService, sign_sensor_gateway_headers
 from cheeky_pony_shared import (
     Engagement,
     Sensor,
@@ -22,6 +22,10 @@ from cheeky_pony_shared import (
     SystemAcknowledgement,
     TargetKind,
 )
+
+SENSOR_FINGERPRINT = "b" * 64
+SENSOR_HEADER_VALUE = "".join(["test-", "lab-", "sensor-", "header-", "value-", "1234567890"])
+OPERATOR_ORIGIN = "http://localhost:5173"
 
 
 @pytest.mark.asyncio
@@ -126,11 +130,14 @@ def test_lab_start_stop_commands_flow_over_sensor_gateway() -> None:
 
     with TestClient(app) as client:
         client.cookies.set("access_token", token)
-        with client.websocket_connect("/ws/operator") as operator:
+        with client.websocket_connect(
+            "/ws/operator",
+            headers={"origin": OPERATOR_ORIGIN},
+        ) as operator:
             assert operator.receive_json()["kind"] == "connected"
             with client.websocket_connect(
                 "/ws/sensor-gateway?sensor_id=pi-1",
-                headers={"x-client-cert-subject": "CN=pi-1"},
+                headers=_sensor_headers(),
             ) as sensor:
                 started = client.post(
                     "/api/v1/lab/deauth/start",
@@ -252,6 +259,7 @@ def _settings(lab_mode: bool) -> Settings:
         lab_mode=lab_mode,
         cookie_secure=False,
         jwt_secret="test-secret-test-secret-test-secret-123",
+        sensor_gateway_header_secret=SENSOR_HEADER_VALUE,
         use_in_memory_store=True,
     )
 
@@ -263,6 +271,16 @@ def _sensor() -> Sensor:
         tailnet_ip="100.64.0.1",
         version="0.1.0",
         capabilities=[SensorCapability.ACTIVE_MODULES, SensorCapability.DEAUTH],
+        client_cert_fingerprint_sha256=SENSOR_FINGERPRINT,
+    )
+
+
+def _sensor_headers() -> dict[str, str]:
+    return sign_sensor_gateway_headers(
+        SENSOR_HEADER_VALUE,
+        "pi-1",
+        "CN=pi-1",
+        SENSOR_FINGERPRINT,
     )
 
 

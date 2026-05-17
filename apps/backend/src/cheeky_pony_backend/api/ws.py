@@ -19,7 +19,7 @@ from cheeky_pony_backend.infra.sensor_command_broker import (
     SensorCommandBroker,
     SensorCommandMetadata,
 )
-from cheeky_pony_backend.security import TokenService
+from cheeky_pony_backend.security import TokenService, verified_sensor_gateway_headers
 from cheeky_pony_shared import (
     AccessPoint,
     AuditLog,
@@ -43,13 +43,22 @@ async def sensor_gateway(websocket: WebSocket) -> None:
     """
 
     store: Store = websocket.app.state.store
-    subject = websocket.headers.get("x-client-cert-subject")
+    settings: Settings = websocket.app.state.settings
     sensor_id = websocket.query_params.get("sensor_id")
-    if not subject or not sensor_id:
+    if not sensor_id:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     sensor = await store.get_sensor(sensor_id)
     if sensor is None or sensor.revoked:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+    if not verified_sensor_gateway_headers(
+        websocket.headers,
+        settings.sensor_gateway_header_secret,
+        sensor_id,
+        sensor.client_cert_fingerprint_sha256,
+        settings.sensor_gateway_header_skew_seconds,
+    ):
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     broker: OperatorBroker = websocket.app.state.operator_broker
@@ -64,6 +73,9 @@ async def sensor_gateway(websocket: WebSocket) -> None:
             if await _handle_lab_progress(sensor_id, payload, broker, command_broker):
                 continue
             event = Event.model_validate(payload)
+            if event.sensor_id != sensor_id:
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                return
             await _persist_event(store, broker, event)
     except WebSocketDisconnect:
         await command_broker.disconnect(sensor_id, websocket)
@@ -80,6 +92,9 @@ async def operator_gateway(websocket: WebSocket) -> None:
 
     settings: Settings = websocket.app.state.settings
     store: Store = websocket.app.state.store
+    if not _operator_origin_allowed(websocket, settings):
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
     token = websocket.cookies.get("access_token")
     if token is None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
@@ -103,6 +118,11 @@ async def operator_gateway(websocket: WebSocket) -> None:
     except WebSocketDisconnect:
         await broker.disconnect(websocket)
         return
+
+
+def _operator_origin_allowed(websocket: WebSocket, settings: Settings) -> bool:
+    origin = websocket.headers.get("origin")
+    return origin is not None and origin in settings.cors_origins
 
 
 async def _persist_event(store: Store, broker: OperatorBroker, event: Event) -> None:

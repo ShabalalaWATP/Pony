@@ -3,9 +3,16 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
+import pyotp
 import pytest
 from conftest import BackendClient
 from helpers import create_verified_admin
+
+from cheeky_pony_backend.config import Settings
+from cheeky_pony_backend.domain.users import UserRecord
+from cheeky_pony_backend.security import TokenService
 
 pytestmark = pytest.mark.asyncio
 
@@ -85,6 +92,7 @@ async def test_admin_totp_enables_sensor_registration(backend_client: BackendCli
 
     assert response.status_code == 200
     assert "BEGIN CERTIFICATE" in response.json()["client_certificate_pem"]
+    assert response.json()["sensor"]["client_cert_fingerprint_sha256"]
 
     listed = await backend_client.client.get("/api/v1/sensors")
     fetched = await backend_client.client.get("/api/v1/sensors/pi-1")
@@ -137,6 +145,81 @@ async def test_refresh_rotates_session_tokens(backend_client: BackendClient) -> 
 
     assert response.status_code == 200
     assert "csrf_token" in response.json()
+
+
+async def test_logout_revokes_existing_refresh_token(backend_client: BackendClient) -> None:
+    """Logout increments the refresh-token version so stolen refresh tokens fail."""
+
+    csrf = await create_verified_admin(backend_client)
+    old_refresh = backend_client.client.cookies.get("refresh_token")
+
+    logout = await backend_client.client.post(
+        "/api/v1/auth/logout",
+        headers={"x-csrf-token": csrf},
+    )
+    backend_client.client.cookies.set("refresh_token", str(old_refresh))
+    refreshed = await backend_client.client.post("/api/v1/auth/refresh")
+
+    assert logout.status_code == 204
+    assert refreshed.status_code == 401
+
+
+async def test_existing_totp_secret_requires_recent_totp_to_rotate(
+    backend_client: BackendClient,
+) -> None:
+    """The setup endpoint never re-discloses TOTP material without step-up auth."""
+
+    csrf = await create_verified_admin(backend_client)
+    user = next(iter(backend_client.store.users.values()))
+    expired = datetime.now(tz=UTC) - timedelta(minutes=16)
+    await backend_client.store.update_user(user.model_copy(update={"totp_verified_at": expired}))
+
+    denied = await backend_client.client.post(
+        "/api/v1/auth/2fa/setup",
+        headers={"x-csrf-token": csrf},
+    )
+    user = next(iter(backend_client.store.users.values()))
+    code = pyotp.TOTP(str(user.totp_secret)).now()
+    await backend_client.client.post(
+        "/api/v1/auth/2fa/verify",
+        json={"code": code},
+        headers={"x-csrf-token": csrf},
+    )
+    rotated = await backend_client.client.post(
+        "/api/v1/auth/2fa/setup",
+        headers={"x-csrf-token": csrf},
+    )
+
+    assert denied.status_code == 403
+    assert rotated.status_code == 200
+    assert rotated.json()["secret"] != user.totp_secret
+
+
+async def test_stale_totp_does_not_satisfy_admin_gate(backend_client: BackendClient) -> None:
+    """Admin-only routes require a bounded recent TOTP verification."""
+
+    await backend_client.store.create_user(
+        UserRecord(
+            id="user-1",
+            email="admin@example.com",
+            password_hash="hash",
+            roles=["admin"],
+            totp_secret="JBSWY3DPEHPK3PXP",
+            totp_verified_at=datetime.now(tz=UTC) - timedelta(minutes=16),
+        )
+    )
+    settings = Settings(
+        env="test",
+        cookie_secure=False,
+        jwt_secret="test-secret-test-secret-test-secret-123",
+        use_in_memory_store=True,
+    )
+    access = TokenService(settings).create_access_token("user-1", "csrf")
+    backend_client.client.cookies.set("access_token", access)
+
+    response = await backend_client.client.get("/api/v1/sensors")
+
+    assert response.status_code == 403
 
 
 async def test_logout_clears_session_cookies_and_audits(
