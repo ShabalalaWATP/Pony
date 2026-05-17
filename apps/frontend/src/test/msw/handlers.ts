@@ -207,6 +207,15 @@ export const authHandlers = [
     ),
   ),
   http.post("/api/v1/lab/:module/stop/:commandId", () => new HttpResponse(null, { status: 204 })),
+
+  // Reporting + exports — defaults: POST queues, status starts pending.
+  // Tests that need ready/failed states override these per-case.
+  http.post("/api/v1/engagements/:id/reports", () =>
+    HttpResponse.json({ report_id: "report-test", status: "pending" }, { status: 202 }),
+  ),
+  http.get("/api/v1/engagements/:id/reports/:reportId", () =>
+    HttpResponse.json({ status: "pending" }),
+  ),
 ];
 
 export const unauthenticatedHandlers = [

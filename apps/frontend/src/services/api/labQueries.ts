@@ -11,6 +11,11 @@ type LabModuleStartRequest = components["schemas"]["LabModuleStartRequest"];
 type LabModuleStartResponse = components["schemas"]["LabModuleStartResponse"];
 type LabStatusResponse = components["schemas"]["LabStatusResponse"];
 type TargetKind = components["schemas"]["TargetKind"];
+type ReportCreateRequest = components["schemas"]["ReportCreateRequest"];
+type ReportCreateResponse = components["schemas"]["ReportCreateResponse"];
+type ReportStatusResponse = components["schemas"]["ReportStatusResponse"];
+type ReportFormat = components["schemas"]["ReportFormat"];
+type ReportStatus = components["schemas"]["ReportStatus"];
 
 interface Page<T> {
   items: T[];
@@ -227,6 +232,57 @@ export function useStopLabModule() {
   });
 }
 
+export interface CreateReportArgs {
+  engagementId: string;
+  body: ReportCreateRequest;
+}
+
+/**
+ * Kick off an engagement report. Backend returns 202 + `report_id` and
+ * the actual generation runs asynchronously — callers immediately
+ * follow up with `useReportStatus(engagementId, report_id)` to poll
+ * until the status flips to `ready` or `failed`.
+ */
+export function useCreateReport() {
+  return useMutation<ReportCreateResponse, ApiError, CreateReportArgs>({
+    mutationFn: ({ engagementId, body }) =>
+      apiClient.post<ReportCreateResponse>(
+        `/engagements/${encodeURIComponent(engagementId)}/reports`,
+        body,
+      ),
+  });
+}
+
+/** Poll cadence for in-flight reports. 1.5s mirrors live-data §9. */
+const REPORT_POLL_MS = 1500;
+
+/**
+ * Poll one report until it lands. The `refetchInterval` callback
+ * returns `false` once the backend reports a terminal state, which
+ * stops the polling without unsubscribing the query.
+ *
+ * `enabled` is wired to the truthiness of `reportId` so the caller
+ * can mount the hook before they have an id without firing a
+ * request against `.../reports/undefined`.
+ */
+export function useReportStatus(engagementId: string, reportId: string | null | undefined) {
+  return useQuery<ReportStatusResponse, ApiError>({
+    queryKey: ["reports", engagementId, reportId ?? ""],
+    queryFn: () =>
+      apiClient.get<ReportStatusResponse>(
+        `/engagements/${encodeURIComponent(engagementId)}/reports/${encodeURIComponent(
+          reportId ?? "",
+        )}`,
+      ),
+    enabled: Boolean(reportId),
+    refetchInterval: (q) => {
+      const status = q.state.data?.status;
+      return status === "ready" || status === "failed" ? false : REPORT_POLL_MS;
+    },
+    staleTime: 0,
+  });
+}
+
 export type {
   Engagement,
   AllowTargetRequest,
@@ -237,4 +293,9 @@ export type {
   LabModuleStartResponse,
   LabStatusResponse,
   TargetKind,
+  ReportCreateRequest,
+  ReportCreateResponse,
+  ReportStatusResponse,
+  ReportFormat,
+  ReportStatus,
 };
