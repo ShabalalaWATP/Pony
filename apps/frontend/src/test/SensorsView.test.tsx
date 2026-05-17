@@ -45,6 +45,43 @@ describe("SensorsView", () => {
     expect(screen.getByText("wlan-pi-02")).toBeInTheDocument();
   });
 
+  it("flags GPS-capable sensors with the geo icon", async () => {
+    server.use(
+      http.get("/api/v1/sensors", () =>
+        HttpResponse.json({
+          items: [
+            {
+              id: "geo-pi",
+              name: "wlan-pi-geo",
+              tailnet_ip: "100.64.0.20",
+              version: "0.1.0",
+              capabilities: ["passive_capture", "geo"],
+              last_seen: ts(2_000),
+              revoked: false,
+            },
+            {
+              id: "no-geo-pi",
+              name: "wlan-pi-no-geo",
+              tailnet_ip: "100.64.0.21",
+              version: "0.1.0",
+              capabilities: ["passive_capture"],
+              last_seen: ts(2_000),
+              revoked: false,
+            },
+          ],
+          total: 2,
+          limit: 500,
+          offset: 0,
+        }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<SensorsView />);
+    render(node);
+    await screen.findByText("wlan-pi-geo");
+    // Exactly one geo icon — only on the GPS-capable sensor row.
+    expect(screen.getAllByTestId("sensor-geo-icon")).toHaveLength(1);
+  });
+
   it("shows the admin-required empty state on 403", async () => {
     const { node } = withQueryAndRouter(<SensorsView />);
     render(node);

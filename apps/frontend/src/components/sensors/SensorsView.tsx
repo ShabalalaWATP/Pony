@@ -1,5 +1,6 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { type ColumnDef } from "@tanstack/react-table";
+import { MapPin } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
@@ -10,6 +11,10 @@ import { EmptyState } from "@/components/domain/EmptyState";
 import { LiveDot } from "@/components/domain/LiveDot";
 import { RelativeTime } from "@/components/domain/RelativeTime";
 import { useSensorsList, type Sensor } from "@/services/api/queries";
+
+function hasGeo(sensor: Sensor): boolean {
+  return (sensor.capabilities ?? []).includes("geo");
+}
 
 /**
  * Derive a sensor's live/stale/offline status from its last-seen
@@ -30,7 +35,21 @@ const columns: ColumnDef<Sensor, unknown>[] = [
   {
     accessorKey: "name",
     header: "Name",
-    cell: (ctx) => <span className="truncate text-fg-100">{ctx.getValue<string>()}</span>,
+    cell: (ctx) => {
+      const sensor = ctx.row.original;
+      return (
+        <span className="flex items-center gap-2 truncate text-fg-100">
+          <span className="truncate">{ctx.getValue<string>()}</span>
+          {hasGeo(sensor) && (
+            <MapPin
+              className="size-3 shrink-0 text-mode"
+              aria-label="GPS-capable"
+              data-testid="sensor-geo-icon"
+            />
+          )}
+        </span>
+      );
+    },
   },
   {
     accessorKey: "tailnet_ip",

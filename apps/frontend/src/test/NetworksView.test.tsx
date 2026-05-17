@@ -74,6 +74,114 @@ describe("NetworksView", () => {
     expect(screen.getByText(/signal history/i)).toBeInTheDocument();
   });
 
+  it("renders the location row when an AP has coordinates", async () => {
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({
+          items: [
+            {
+              bssid: "aa:bb:cc:dd:ee:42",
+              ssid: "GeoNet",
+              channel: 6,
+              encryption: ["WPA2"],
+              signal_history: [],
+              latitude: 51.50721,
+              longitude: -0.1275,
+              location_source: "sensor_gps",
+            },
+          ],
+          total: 1,
+          limit: 500,
+          offset: 0,
+        }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<NetworksView />);
+    render(node);
+    const row = await screen.findByText("GeoNet");
+    await userEvent.click(row);
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText(/51\.50721/)).toBeInTheDocument();
+    expect(screen.getByText(/sensor gps/i)).toBeInTheDocument();
+  });
+
+  it("renders associated clients in the AP detail drawer", async () => {
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({
+          items: [
+            {
+              bssid: "aa:bb:cc:dd:ee:55",
+              ssid: "ClientsNet",
+              channel: 6,
+              encryption: ["WPA2"],
+              signal_history: [],
+            },
+          ],
+          total: 1,
+          limit: 500,
+          offset: 0,
+        }),
+      ),
+      http.get("/api/v1/access_points/:bssid/clients", () =>
+        HttpResponse.json({
+          items: [
+            {
+              mac: "11:22:33:44:55:66",
+              vendor_oui: "Foo Inc",
+              associated_bssid: "aa:bb:cc:dd:ee:55",
+              probes: [],
+              signal_history: [{ rssi_dbm: -60 }],
+              last_seen: new Date().toISOString(),
+            },
+          ],
+          total: 1,
+          limit: 50,
+          offset: 0,
+        }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<NetworksView />);
+    render(node);
+    const row = await screen.findByText("ClientsNet");
+    await userEvent.click(row);
+    const list = await screen.findByTestId("ap-associated-clients");
+    expect(list).toBeInTheDocument();
+    // MacAddress renders truncated by default in dense surfaces.
+    expect(list).toHaveTextContent("11:22");
+    expect(list).toHaveTextContent("55:66");
+    expect(list).toHaveTextContent("Foo Inc");
+  });
+
+  it("shows an empty message when an AP has no associated clients", async () => {
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({
+          items: [
+            {
+              bssid: "aa:bb:cc:dd:ee:77",
+              ssid: "QuietNet",
+              channel: 1,
+              encryption: ["WPA2"],
+              signal_history: [],
+            },
+          ],
+          total: 1,
+          limit: 500,
+          offset: 0,
+        }),
+      ),
+      http.get("/api/v1/access_points/:bssid/clients", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 50, offset: 0 }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<NetworksView />);
+    render(node);
+    const row = await screen.findByText("QuietNet");
+    await userEvent.click(row);
+    expect(await screen.findByText(/no clients are currently associated/i)).toBeInTheDocument();
+  });
+
   it("filters by SSID", async () => {
     server.use(
       http.get("/api/v1/access_points", () =>
