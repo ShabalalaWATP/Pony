@@ -16,6 +16,7 @@ from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
 from cheeky_pony_backend.infra.mongo_store import MongoStore
 from cheeky_pony_backend.infra.operator_broker import OperatorBroker
+from cheeky_pony_backend.infra.sensor_command_broker import SensorCommandBroker
 from cheeky_pony_backend.logging import configure_logging
 from cheeky_pony_backend.security import CsrfService, TokenService
 
@@ -38,6 +39,7 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
     app.state.settings = active_settings
     app.state.store = active_store
     app.state.operator_broker = OperatorBroker()
+    app.state.sensor_command_broker = SensorCommandBroker()
     app.dependency_overrides[get_settings] = lambda: active_settings
 
     app.add_middleware(

@@ -670,6 +670,97 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sensors/{sensor_id}/commands/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restart Sensor
+         * @description Queue a sensor restart command.
+         *
+         *     Args:
+         *         sensor_id: Sensor identifier.
+         *         user: Current admin with verified TOTP.
+         *         store: Application store.
+         *         audit: Audit logger.
+         *         broker: Sensor command broker.
+         *
+         *     Returns:
+         *         Accepted command identifier.
+         */
+        post: operations["restart_sensor_api_v1_sensors__sensor_id__commands_restart_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{sensor_id}/commands/set-channel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Sensor Channel
+         * @description Queue a sensor channel-change command.
+         *
+         *     Args:
+         *         sensor_id: Sensor identifier.
+         *         payload: Channel payload.
+         *         user: Current admin with verified TOTP.
+         *         store: Application store.
+         *         audit: Audit logger.
+         *         broker: Sensor command broker.
+         *
+         *     Returns:
+         *         Accepted command identifier.
+         */
+        post: operations["set_sensor_channel_api_v1_sensors__sensor_id__commands_set_channel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sensors/{sensor_id}/commands/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Update Sensor Agent
+         * @description Queue a sensor update command.
+         *
+         *     Args:
+         *         sensor_id: Sensor identifier.
+         *         user: Current admin with verified TOTP.
+         *         store: Application store.
+         *         audit: Audit logger.
+         *         broker: Sensor command broker.
+         *
+         *     Returns:
+         *         Accepted command identifier.
+         */
+        post: operations["update_sensor_agent_api_v1_sensors__sensor_id__commands_update_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sensors/{sensor_id}/revoke": {
         parameters: {
             query?: never;
@@ -1186,6 +1277,14 @@ export interface components {
          */
         SensorCapability: "passive_capture" | "channel_control" | "active_modules" | "rogue_ap" | "deauth" | "evil_twin" | "captive_portal" | "mitm" | "geo";
         /**
+         * SensorCommandAcceptedResponse
+         * @description Sensor command acceptance response.
+         */
+        SensorCommandAcceptedResponse: {
+            /** Command Id */
+            command_id: string;
+        };
+        /**
          * SensorRegisterRequest
          * @description Sensor registration payload.
          */
@@ -1213,6 +1312,16 @@ export interface components {
             /** Client Private Key Pem */
             client_private_key_pem: string;
             sensor: components["schemas"]["Sensor"];
+        };
+        /**
+         * SetChannelRequest
+         * @description Set-channel command body.
+         */
+        SetChannelRequest: {
+            /** Band */
+            band: string;
+            /** Channel */
+            channel: number;
         };
         /**
          * SignalSample
@@ -2048,6 +2157,103 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Sensor"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restart_sensor_api_v1_sensors__sensor_id__commands_restart_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sensor_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SensorCommandAcceptedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_sensor_channel_api_v1_sensors__sensor_id__commands_set_channel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sensor_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetChannelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SensorCommandAcceptedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_sensor_agent_api_v1_sensors__sensor_id__commands_update_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sensor_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SensorCommandAcceptedResponse"];
                 };
             };
             /** @description Validation Error */
