@@ -12,6 +12,7 @@ from cheeky_pony_shared import (
     Alert,
     AlertRule,
     AlertSeverity,
+    AllowedTarget,
     AuditLog,
     Client,
     Engagement,
@@ -265,6 +266,16 @@ class InMemoryStore:
         self.engagements[engagement.id] = engagement
         return engagement
 
+    async def list_engagements(self, limit: int, offset: int) -> tuple[list[Engagement], int]:
+        """List engagements."""
+
+        values = sorted(
+            self.engagements.values(),
+            key=lambda engagement: engagement.started_at,
+            reverse=True,
+        )
+        return values[offset : offset + limit], len(values)
+
     async def get_engagement(self, engagement_id: str) -> Engagement | None:
         """Return an engagement by id."""
 
@@ -289,6 +300,29 @@ class InMemoryStore:
         """Allow a target for an engagement."""
 
         self.allow_list.add((engagement_id, kind, value.upper()))
+
+    async def list_allowed_targets(
+        self,
+        engagement_id: str,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[AllowedTarget], int]:
+        """List allowed targets for an engagement."""
+
+        values = sorted(
+            [
+                AllowedTarget(kind=kind, value=value)
+                for item_engagement_id, kind, value in self.allow_list
+                if item_engagement_id == engagement_id
+            ],
+            key=lambda target: (target.kind.value, target.value),
+        )
+        return values[offset : offset + limit], len(values)
+
+    async def remove_allowed_target(self, engagement_id: str, kind: TargetKind, value: str) -> None:
+        """Remove an allowed target from an engagement."""
+
+        self.allow_list.discard((engagement_id, kind, value.upper()))
 
     async def target_allowed(self, engagement_id: str, kind: TargetKind, value: str) -> bool:
         """Return whether a target is allowed."""

@@ -75,6 +75,14 @@ class LabActiveCommand(BaseModel):
     started_at: datetime
 
 
+class LabStatusResponse(BaseModel):
+    """Current lab gate status for operator UI banners."""
+
+    lab_mode: bool
+    acknowledgement_on_file: bool
+    is_admin_2fa: bool
+
+
 _MAC_RE = re.compile(r"^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$")
 _SENSITIVE_KEYS = ("password", "credential", "secret", "token", "key", "handshake")
 _MODULE_CAPABILITIES: dict[LabModule, SensorCapability] = {

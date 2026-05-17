@@ -47,6 +47,15 @@ Method: STRIDE per major component.
 - Denial of service: commands are queued in-process for disconnected sensors and disconnected WebSockets are removed after failed sends.
 - Elevation of privilege: `set_channel` requires the sensor to advertise channel-control capability; Pi-side execution uses `create_subprocess_exec` argument lists.
 
+## Engagement Management
+
+- Spoofing: engagement list and allow-list reads require an authenticated session; mutations require admin, recent TOTP, and CSRF.
+- Tampering: engagement and allow-list payloads are Pydantic-validated and stored through the repository boundary.
+- Repudiation: engagement creation, resume, end, allow-list add, and allow-list remove operations append audit entries.
+- Information disclosure: allow-list reads expose only target kind and value to authenticated operators.
+- Denial of service: list endpoints are bounded by standard pagination limits.
+- Elevation of privilege: resuming an engagement is refused when another engagement is already active.
+
 ## MongoDB and Redis
 
 - Spoofing: services are isolated in compose networks and configured through environment variables.
@@ -72,7 +81,7 @@ Method: STRIDE per major component.
 - Repudiation: every success, refusal, stop request, and sensor command result writes an audit entry with actor, target, timestamps, outcome, and a command-scoped raw-output reference.
 - Information disclosure: sensitive parameter keys such as credentials, tokens, secrets, keys, and handshakes are redacted before audit storage; plaintext captured credentials must not be accepted by this command plane.
 - Denial of service: active commands are tracked in the broker and removed on stop, failed start acknowledgement, or engagement end; ending an engagement cancels scoped active commands.
-- Elevation of privilege: the gate stack fails closed unless `LAB_MODE=true`, an `authorized_operator` acknowledgement exists, the requested engagement is active, and the target is present in that engagement allow-list.
+- Elevation of privilege: the gate stack fails closed unless `LAB_MODE=true`, an `authorized_operator` acknowledgement exists, the requested engagement is active, and the target is present in that engagement allow-list. The read-only lab status probe exposes gate state but never bypasses start/stop authorization.
 
 ## Reporting and Export
 
