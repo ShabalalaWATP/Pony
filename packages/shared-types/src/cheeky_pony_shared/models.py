@@ -96,6 +96,10 @@ class Sensor(StrictBase):
     capabilities: list[SensorCapability] = Field(default_factory=list)
     version: str = Field(min_length=1, max_length=64)
     revoked: bool = False
+    client_cert_fingerprint_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+    )
 
 
 class AccessPoint(StrictBase):

@@ -72,6 +72,7 @@ async def register(
     store: Annotated[Store, Depends(get_store)],
     passwords: Annotated[PasswordService, Depends(get_password_service)],
     tokens: Annotated[TokenService, Depends(get_token_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> UserPublic:
     """Register the first admin or an admin-created user.
 
@@ -81,6 +82,7 @@ async def register(
         store: Application store.
         passwords: Password service.
         tokens: Token service.
+        settings: Runtime settings.
 
     Returns:
         Created public user.
@@ -91,7 +93,11 @@ async def register(
     roles = ["admin"] if await store.count_users() == 0 else ["operator"]
     if roles != ["admin"]:
         user = await _optional_user(request, store, tokens)
-        if user is None or not user.is_admin() or not user.has_recent_totp():
+        if (
+            user is None
+            or not user.is_admin()
+            or not user.has_recent_totp(settings.totp_recent_minutes)
+        ):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin_2fa_required")
     user = UserRecord(
         id=str(uuid4()),
@@ -133,7 +139,12 @@ async def login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials")
     csrf_token = csrf.create_token()
     _set_cookie(response, "access_token", tokens.create_access_token(user.id, csrf_token), settings)
-    _set_cookie(response, "refresh_token", tokens.create_refresh_token(user.id), settings)
+    _set_cookie(
+        response,
+        "refresh_token",
+        tokens.create_refresh_token(user.id, user.refresh_token_version),
+        settings,
+    )
     response.set_cookie(
         "csrf_token",
         csrf_token,
@@ -182,11 +193,16 @@ async def refresh(
             detail="invalid_refresh",
         ) from exc
     user = await store.get_user(str(claims["sub"]))
-    if user is None:
+    if user is None or not _refresh_claim_matches_user(claims, user):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_user")
     csrf_token = csrf.create_token()
     _set_cookie(response, "access_token", tokens.create_access_token(user.id, csrf_token), settings)
-    _set_cookie(response, "refresh_token", tokens.create_refresh_token(user.id), settings)
+    _set_cookie(
+        response,
+        "refresh_token",
+        tokens.create_refresh_token(user.id, user.refresh_token_version),
+        settings,
+    )
     _set_cookie(response, "csrf_token", csrf_token, settings, httponly=False)
     return LoginResponse(user=_public_user(user), csrf_token=csrf_token)
 
@@ -196,6 +212,7 @@ async def logout(
     response: Response,
     user: Annotated[UserRecord, Depends(current_user)],
     audit: Annotated[AuditLogger, Depends(get_audit_logger)],
+    store: Annotated[Store, Depends(get_store)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> None:
     """Clear browser session cookies and record a logout audit event.
@@ -204,9 +221,11 @@ async def logout(
         response: FastAPI response.
         user: Current authenticated user.
         audit: Audit logger.
+        store: Application store.
         settings: Runtime settings.
     """
 
+    await store.update_user(user.next_refresh_token_version())
     _clear_cookie(response, "access_token", settings, httponly=True)
     _clear_cookie(response, "refresh_token", settings, httponly=True)
     _clear_cookie(response, "csrf_token", settings, httponly=False)
@@ -224,20 +243,24 @@ async def setup_totp(
     user: Annotated[UserRecord, Depends(current_user)],
     store: Annotated[Store, Depends(get_store)],
     totp: Annotated[TotpService, Depends(get_totp_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> TotpSetupResponse:
-    """Create or return a TOTP secret for the current user.
+    """Create or rotate a TOTP secret for the current user.
 
     Args:
         user: Current user.
         store: Application store.
         totp: TOTP service.
+        settings: Runtime settings.
 
     Returns:
         TOTP setup data.
     """
 
-    secret = user.totp_secret or totp.create_secret()
-    updated = user.model_copy(update={"totp_secret": secret})
+    if user.totp_secret and not user.has_recent_totp(settings.totp_recent_minutes):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="totp_required")
+    secret = totp.create_secret()
+    updated = user.model_copy(update={"totp_secret": secret, "totp_verified_at": None})
     await store.update_user(updated)
     return TotpSetupResponse(
         secret=secret,
@@ -323,3 +346,14 @@ def _public_user(user: UserRecord) -> UserPublic:
         roles=user.roles,
         totp_enabled=user.totp_secret is not None,
     )
+
+
+def _refresh_claim_matches_user(claims: dict[str, object], user: UserRecord) -> bool:
+    raw_version = claims.get("rv")
+    if not isinstance(raw_version, int | str) or isinstance(raw_version, bool):
+        return False
+    try:
+        token_version = int(raw_version)
+    except ValueError:
+        return False
+    return token_version == user.refresh_token_version

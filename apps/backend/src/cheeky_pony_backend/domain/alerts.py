@@ -9,6 +9,14 @@ from uuid import uuid4
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_shared import Alert, AlertRule, Event
 
+MAX_ALERT_REGEX_LENGTH = 128
+MAX_ALERT_MATCH_VALUE_LENGTH = 256
+_UNSAFE_REGEX_PATTERNS = (
+    re.compile(r"\((?:[^()\\]|\\.)*[+*](?:[^()\\]|\\.)*\)\s*(?:[+*]|\{\d*,?\d*\})"),
+    re.compile(r"\\[1-9]"),
+    re.compile(r"\(\?"),
+)
+
 
 class AlertRuleEngine:
     """Evaluate enabled alert rules against inserted events."""
@@ -78,9 +86,26 @@ class AlertRuleEngine:
 
 
 def _regex_matches(pattern: str, value: str) -> bool:
-    if len(pattern) > 256:
+    if not is_safe_alert_regex(pattern):
+        return False
+    if len(value) > MAX_ALERT_MATCH_VALUE_LENGTH:
         return False
     try:
         return re.search(pattern, value, flags=re.IGNORECASE) is not None
     except re.error:
         return False
+
+
+def is_safe_alert_regex(pattern: str) -> bool:
+    """Return whether an alert regex is accepted by the v1 safe subset.
+
+    Args:
+        pattern: Operator-supplied regex pattern.
+
+    Returns:
+        True when the pattern is short and avoids known ReDoS constructs.
+    """
+
+    if not pattern or len(pattern) > MAX_ALERT_REGEX_LENGTH:
+        return False
+    return not any(unsafe.search(pattern) for unsafe in _UNSAFE_REGEX_PATTERNS)

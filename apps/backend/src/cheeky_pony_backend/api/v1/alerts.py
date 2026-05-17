@@ -16,6 +16,7 @@ from cheeky_pony_backend.dependencies import (
     get_store,
     require_admin_2fa,
 )
+from cheeky_pony_backend.domain.alerts import is_safe_alert_regex
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.users import UserRecord
@@ -252,8 +253,10 @@ def _validate_match(value: object) -> None:
     if not isinstance(value, dict) or not value:
         raise ValueError("predicate.match must be a non-empty object")
     for key, pattern in value.items():
-        if not isinstance(key, str) or not isinstance(pattern, str) or len(pattern) > 256:
-            raise ValueError("predicate.match values must be short strings")
+        if not isinstance(key, str) or not isinstance(pattern, str):
+            raise ValueError("predicate.match values must be strings")
+        if not is_safe_alert_regex(pattern):
+            raise ValueError("predicate.match values must use the safe regex subset")
 
 
 def _validate_watch(value: object) -> None:

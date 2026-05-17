@@ -94,7 +94,7 @@ async def get_lab_status(
     return LabStatusResponse(
         lab_mode=settings.lab_mode,
         acknowledgement_on_file=acknowledgement,
-        is_admin_2fa=user.is_admin() and user.has_recent_totp(),
+        is_admin_2fa=user.is_admin() and user.has_recent_totp(settings.totp_recent_minutes),
     )
 
 

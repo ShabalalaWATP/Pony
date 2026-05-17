@@ -116,3 +116,20 @@ async def test_alert_rule_predicates_are_validated(backend_client: BackendClient
     )
 
     assert response.status_code == 422
+
+
+async def test_alert_rule_rejects_redos_prone_regex(backend_client: BackendClient) -> None:
+    """Alert rule predicates reject nested quantifier regex patterns."""
+
+    csrf = await create_verified_admin(backend_client)
+    response = await backend_client.client.post(
+        "/api/v1/alerts/rules",
+        headers={"x-csrf-token": csrf},
+        json={
+            "name": "Catastrophic",
+            "severity": "medium",
+            "predicate": {"event_kind": "access_point_seen", "match": {"ssid": "^(a+)+$"}},
+        },
+    )
+
+    assert response.status_code == 422

@@ -270,12 +270,13 @@ export interface paths {
         put?: never;
         /**
          * Setup Totp
-         * @description Create or return a TOTP secret for the current user.
+         * @description Create or rotate a TOTP secret for the current user.
          *
          *     Args:
          *         user: Current user.
          *         store: Application store.
          *         totp: TOTP service.
+         *         settings: Runtime settings.
          *
          *     Returns:
          *         TOTP setup data.
@@ -365,6 +366,7 @@ export interface paths {
          *         response: FastAPI response.
          *         user: Current authenticated user.
          *         audit: Audit logger.
+         *         store: Application store.
          *         settings: Runtime settings.
          */
         post: operations["logout_api_v1_auth_logout_post"];
@@ -424,6 +426,7 @@ export interface paths {
          *         store: Application store.
          *         passwords: Password service.
          *         tokens: Token service.
+         *         settings: Runtime settings.
          *
          *     Returns:
          *         Created public user.
@@ -1754,6 +1757,8 @@ export interface components {
         Sensor: {
             /** Capabilities */
             capabilities?: components["schemas"]["SensorCapability"][];
+            /** Client Cert Fingerprint Sha256 */
+            client_cert_fingerprint_sha256?: string | null;
             /** Id */
             id: string;
             /** Last Seen */
