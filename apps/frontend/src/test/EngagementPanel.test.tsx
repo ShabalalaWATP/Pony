@@ -77,4 +77,57 @@ describe("EngagementPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: /^allow$/i }));
     expect(await screen.findByText(/admin required/i)).toBeInTheDocument();
   });
+
+  it("renders the live allow-list from GET /allow-list", async () => {
+    server.use(
+      http.get("/api/v1/engagements/:id/allow-list", () =>
+        HttpResponse.json({
+          items: [
+            { kind: "bssid", value: "aa:bb:cc:dd:ee:01" },
+            { kind: "ssid", value: "Office-WiFi" },
+          ],
+          total: 2,
+          limit: 200,
+          offset: 0,
+        }),
+      ),
+    );
+    const { node } = withQuery(<EngagementPanel engagement={engagement} />);
+    render(node);
+    const list = await screen.findByTestId("allow-list");
+    expect(list).toHaveTextContent("aa:bb:cc:dd:ee:01");
+    expect(list).toHaveTextContent("Office-WiFi");
+  });
+
+  it("renders the empty allow-list message when the backend returns no entries", async () => {
+    const { node } = withQuery(<EngagementPanel engagement={engagement} />);
+    render(node);
+    expect(await screen.findByText(/allow-list is empty/i)).toBeInTheDocument();
+  });
+
+  it("DELETEs the target when the remove button is clicked", async () => {
+    let deleteBody: unknown = null;
+    let deletePath = "";
+    server.use(
+      http.get("/api/v1/engagements/:id/allow-list", () =>
+        HttpResponse.json({
+          items: [{ kind: "bssid", value: "aa:bb:cc:dd:ee:01" }],
+          total: 1,
+          limit: 200,
+          offset: 0,
+        }),
+      ),
+      http.delete("/api/v1/engagements/:id/allow-list", async ({ params, request }) => {
+        deletePath = typeof params.id === "string" ? params.id : (params.id?.[0] ?? "");
+        deleteBody = await request.json();
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const { node } = withQuery(<EngagementPanel engagement={engagement} />);
+    render(node);
+    await screen.findByTestId("allow-list");
+    await userEvent.click(screen.getByRole("button", { name: /remove bssid aa:bb:cc:dd:ee:01/i }));
+    await waitFor(() => expect(deletePath).toBe("eng-7"));
+    expect(deleteBody).toEqual({ kind: "bssid", value: "aa:bb:cc:dd:ee:01" });
+  });
 });

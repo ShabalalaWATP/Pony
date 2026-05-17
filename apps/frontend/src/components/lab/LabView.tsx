@@ -2,11 +2,13 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   AlertOctagon,
   Beaker,
+  CheckCircle2,
   Globe,
   Network,
   ShieldX,
   Skull,
   Wifi,
+  XCircle,
   type LucideIcon,
 } from "lucide-react";
 import { useMemo } from "react";
@@ -17,7 +19,12 @@ import { StartLabModuleDialog } from "./StartLabModuleDialog";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/domain/EmptyState";
-import { type LabModule, useActiveEngagement } from "@/services/api/labQueries";
+import {
+  type LabModule,
+  type LabStatusResponse,
+  useActiveEngagement,
+  useLabStatus,
+} from "@/services/api/labQueries";
 
 interface LabSearch {
   module?: string;
@@ -75,13 +82,16 @@ function parseModule(raw: string | undefined): LabModule | null {
  *   with `{ reason, detail }`)
  * - the operator's typed confirm field on the Start dialog
  *
- * The URL carries `?module=` so a launched dialog is shareable
+ * The gate banner reads from `GET /lab/status` so the operator sees
+ * each missing gate up-front instead of inferring it from a refused
+ * fire. The URL carries `?module=` so a launched dialog is shareable
  * (useful for a runbook screenshot or a Linear ticket).
  */
 export function LabView(): JSX.Element {
   const navigate = useNavigate();
   const search: LabSearch = useSearch({ strict: false });
   const engagementQuery = useActiveEngagement();
+  const labStatusQuery = useLabStatus();
   const activeModule = useMemo(() => parseModule(search.module), [search.module]);
 
   const openModule = (m: LabModule): void => {
@@ -94,7 +104,14 @@ export function LabView(): JSX.Element {
   const engagement = engagementQuery.data ?? null;
   const noEngagement = engagementQuery.error?.status === 404;
   const unauthorized =
-    engagementQuery.error?.status === 401 || engagementQuery.error?.status === 403;
+    engagementQuery.error?.status === 401 ||
+    engagementQuery.error?.status === 403 ||
+    labStatusQuery.error?.status === 401 ||
+    labStatusQuery.error?.status === 403;
+  const status = labStatusQuery.data ?? null;
+  const allGatesGreen = Boolean(
+    status?.lab_mode && status.acknowledgement_on_file && status.is_admin_2fa && engagement,
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -107,7 +124,11 @@ export function LabView(): JSX.Element {
         />
       )}
 
-      {!unauthorized && noEngagement && (
+      {!unauthorized && status && (
+        <GateStatusBanner status={status} hasEngagement={Boolean(engagement)} />
+      )}
+
+      {!unauthorized && noEngagement && !status && (
         <div className="flex flex-col gap-3 rounded-md border border-accent-amber/40 bg-accent-amber/10 p-4 text-sm text-accent-amber">
           <div className="flex items-center gap-2">
             <ShieldX className="size-4" aria-hidden="true" />
@@ -130,7 +151,7 @@ export function LabView(): JSX.Element {
           <ModuleCard
             key={m.id}
             module={m}
-            disabled={!engagement}
+            disabled={!allGatesGreen}
             onConfigure={() => openModule(m.id)}
           />
         ))}
@@ -142,6 +163,83 @@ export function LabView(): JSX.Element {
 
       <StartLabModuleDialog module={activeModule} engagement={engagement} onClose={closeModule} />
     </div>
+  );
+}
+
+interface GateStatusBannerProps {
+  status: LabStatusResponse;
+  hasEngagement: boolean;
+}
+
+/**
+ * Surfaces each lab-gate flag so the operator can see exactly which
+ * gate is still failing before they pick a target. The `engagement`
+ * flag derives from the separate `/engagements/active` call — keeping
+ * them on the same banner keeps the diagnostic in one place.
+ */
+function GateStatusBanner({ status, hasEngagement }: GateStatusBannerProps): JSX.Element {
+  const gates: { label: string; ok: boolean; hint: string }[] = [
+    {
+      label: "Lab mode",
+      ok: status.lab_mode,
+      hint: "Set LAB_MODE=true on the backend.",
+    },
+    {
+      label: "Authorized-operator acknowledgement",
+      ok: status.acknowledgement_on_file,
+      hint: "Accept the authorized-operator statement under /settings.",
+    },
+    {
+      label: "Admin + recent 2FA",
+      ok: status.is_admin_2fa,
+      hint: "Sign in as admin and re-verify TOTP.",
+    },
+    {
+      label: "Active engagement",
+      ok: hasEngagement,
+      hint: "Create or resume an engagement at /engagements.",
+    },
+  ];
+  const allGreen = gates.every((g) => g.ok);
+
+  return (
+    <section
+      data-testid="lab-gate-banner"
+      className={
+        allGreen
+          ? "rounded-md border border-accent-green/40 bg-accent-green/10 p-3 text-sm text-accent-green"
+          : "rounded-md border border-accent-amber/40 bg-accent-amber/10 p-3 text-sm text-accent-amber"
+      }
+    >
+      <div className="flex items-center gap-2 text-2xs uppercase tracking-wide">
+        {allGreen ? (
+          <CheckCircle2 className="size-3.5" aria-hidden="true" />
+        ) : (
+          <ShieldX className="size-3.5" aria-hidden="true" />
+        )}
+        Lab gates
+      </div>
+      <ul className="mt-2 grid grid-cols-1 gap-1.5 text-xs sm:grid-cols-2">
+        {gates.map((g) => (
+          <li
+            key={g.label}
+            data-testid="lab-gate"
+            data-ok={g.ok}
+            className="flex items-start gap-2 text-fg-100"
+          >
+            {g.ok ? (
+              <CheckCircle2 className="size-3 shrink-0 text-accent-green" aria-hidden="true" />
+            ) : (
+              <XCircle className="size-3 shrink-0 text-accent-red" aria-hidden="true" />
+            )}
+            <span className="flex flex-col">
+              <span>{g.label}</span>
+              {!g.ok && <span className="text-2xs text-fg-60">{g.hint}</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
