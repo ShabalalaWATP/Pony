@@ -13,6 +13,7 @@ type Engagement = components["schemas"]["Engagement"];
 type LabActiveCommand = components["schemas"]["LabActiveCommand"];
 type LabStatusResponse = components["schemas"]["LabStatusResponse"];
 type AllowedTarget = components["schemas"]["AllowedTarget"];
+type AuditLog = components["schemas"]["AuditLog"];
 
 export const fixtures = {
   user: {
@@ -85,6 +86,17 @@ export const fixtures = {
     kind: "bssid",
     value: "aa:bb:cc:dd:ee:01",
   } satisfies AllowedTarget,
+  auditEntry: {
+    id: "audit-1",
+    actor_id: "operator@cheeky.local",
+    action: "lab.deauth.start",
+    outcome: "denied:lab_mode_disabled",
+    occurred_at: "2026-05-17T10:00:00Z",
+    started_at: "2026-05-17T10:00:00Z",
+    finished_at: "2026-05-17T10:00:00Z",
+    target: { sensor_id: "sensor-1", target: { kind: "bssid", value: "aa:bb:cc:dd:ee:01" } },
+    parameters: { module: "deauth" },
+  } satisfies AuditLog,
 };
 
 export const authHandlers = [
@@ -145,6 +157,12 @@ export const authHandlers = [
   ),
   http.get("/api/v1/events", () =>
     HttpResponse.json({ items: [fixtures.event], total: 1, limit: 50, offset: 0 }),
+  ),
+  // Audit log — backend gates on auth; default returns a single
+  // entry so the table tests have something to render. Tests that
+  // need a 403 surface override with `server.use(...)`.
+  http.get("/api/v1/audit", () =>
+    HttpResponse.json({ items: [fixtures.auditEntry], total: 1, limit: 200, offset: 0 }),
   ),
   // Sensors is gated on admin + 2FA, so the default returns 403 — the
   // KPI tile handles this gracefully. Tests that need a successful

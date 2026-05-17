@@ -13,6 +13,7 @@ type AlertRuleCreateRequest = components["schemas"]["AlertRuleCreateRequest"];
 type AlertRuleUpdateRequest = components["schemas"]["AlertRuleUpdateRequest"];
 type SensorCommandAcceptedResponse = components["schemas"]["SensorCommandAcceptedResponse"];
 type SetChannelRequest = components["schemas"]["SetChannelRequest"];
+type AuditLog = components["schemas"]["AuditLog"];
 
 /**
  * Bands the backend's `SetChannelRequest` accepts. Re-exported from
@@ -119,6 +120,26 @@ export function useEventsList(pagination: Pagination = {}) {
     queryKey: ["events", { limit, offset }],
     queryFn: () => apiClient.get<Page<Event>>(withQuery("/events", { limit, offset })),
     staleTime: 10_000,
+  });
+}
+
+/**
+ * Paginated audit log. Backend currently only supports `limit` /
+ * `offset` — `actor` / `action` / `outcome` filtering is done
+ * client-side against the returned page. Surface a 401/403 to the
+ * caller without retrying so the view can render an explanatory
+ * empty state instead of looking like a flake.
+ */
+export function useAuditList(pagination: Pagination = {}) {
+  const { limit = 200, offset = 0 } = pagination;
+  return useQuery<Page<AuditLog>, ApiError>({
+    queryKey: ["audit", { limit, offset }],
+    queryFn: () => apiClient.get<Page<AuditLog>>(withQuery("/audit", { limit, offset })),
+    staleTime: PAGE_STALE_TIME,
+    retry: (count, error) => {
+      if (error.status === 401 || error.status === 403) return false;
+      return count < 1;
+    },
   });
 }
 
@@ -273,4 +294,5 @@ export type {
   AlertRuleCreateRequest,
   AlertRuleUpdateRequest,
   SensorCommandAcceptedResponse,
+  AuditLog,
 };

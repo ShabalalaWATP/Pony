@@ -9,6 +9,7 @@ import {
   useAlertRulesList,
   useAlertsList,
   useApAssociatedClients,
+  useAuditList,
   useCreateAlertRule,
   useDeleteAlertRule,
   useDevicesList,
@@ -267,6 +268,44 @@ describe("HTTP query hooks", () => {
     const { wrapper } = wrap();
     const { result } = renderHook(() => useRestartSensor(), { wrapper });
     result.current.mutate("sensor-A");
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.status).toBe(403);
+    expect(calls).toBe(1);
+  });
+
+  it("useAuditList returns the page from the backend", async () => {
+    let receivedUrl = "";
+    server.use(
+      http.get("/api/v1/audit", ({ request }) => {
+        receivedUrl = new URL(request.url).search;
+        return HttpResponse.json({
+          items: [fixtures.auditEntry],
+          total: 1,
+          limit: 200,
+          offset: 0,
+        });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useAuditList({ limit: 200 }), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.items[0]?.id).toBe(fixtures.auditEntry.id);
+    expect(receivedUrl).toContain("limit=200");
+  });
+
+  it("useAuditList surfaces 403 without retrying", async () => {
+    let calls = 0;
+    server.use(
+      http.get("/api/v1/audit", () => {
+        calls += 1;
+        return HttpResponse.json(
+          { detail: "Admin role with recent TOTP required" },
+          { status: 403 },
+        );
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useAuditList(), { wrapper });
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error?.status).toBe(403);
     expect(calls).toBe(1);
