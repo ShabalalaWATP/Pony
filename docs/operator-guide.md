@@ -22,6 +22,21 @@ The first user may self-register. After that, registration requires an authentic
 Admin actions require both the `admin` role and a recent TOTP verification. The
 recent-verification window is controlled by `CHEEKY_PONY_TOTP_RECENT_MINUTES`.
 
+## User management
+
+The `/settings/users` surface is backed by `GET /api/v1/users` and
+`PATCH /api/v1/users/{id}`. Both endpoints require an admin with recent TOTP; the
+patch route also requires CSRF because it mutates role and TOTP state.
+
+User list responses expose only `UserPublic` fields: id, email, roles, and TOTP
+enabled state. Password hashes, TOTP secrets, and refresh-token versions must never
+leave the backend.
+
+Admins can replace a user's roles with the allowed role set (`operator`, `admin`) and
+can reset TOTP enrollment. Resetting TOTP clears the stored secret and forces the
+target user to re-enrol. The backend refuses to remove the final active admin role,
+returning `409` and writing a denied audit entry.
+
 ## Authorized operator acknowledgement
 
 Admin users must verify TOTP and submit the exact typed legal statement before active modules can be started.

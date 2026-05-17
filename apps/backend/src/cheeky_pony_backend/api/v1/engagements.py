@@ -126,6 +126,29 @@ async def get_active_engagement(
     return engagement
 
 
+@router.get("/{engagement_id}", response_model=Engagement)
+async def get_engagement(
+    engagement_id: str,
+    _: Annotated[UserRecord, Depends(current_user)],
+    store: Annotated[Store, Depends(get_store)],
+) -> Engagement:
+    """Return a single engagement by id.
+
+    Args:
+        engagement_id: Engagement identifier.
+        _: Current user.
+        store: Application store.
+
+    Returns:
+        Matching engagement.
+    """
+
+    engagement = await store.get_engagement(engagement_id)
+    if engagement is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="engagement not found")
+    return engagement
+
+
 @router.post("/{engagement_id}/allow-list", status_code=status.HTTP_204_NO_CONTENT)
 async def allow_target(
     engagement_id: str,

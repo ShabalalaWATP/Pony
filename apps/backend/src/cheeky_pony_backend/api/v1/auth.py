@@ -24,7 +24,7 @@ from cheeky_pony_backend.dependencies import (
 )
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.ports import Store
-from cheeky_pony_backend.domain.users import UserRecord
+from cheeky_pony_backend.domain.users import UserRecord, public_user
 from cheeky_pony_backend.security import CsrfService, PasswordService, TokenService, TotpService
 from cheeky_pony_shared import UserPublic
 
@@ -106,7 +106,7 @@ async def register(
         roles=roles,
     )
     await store.create_user(user)
-    return _public_user(user)
+    return public_user(user)
 
 
 @router.post("/login", response_model=LoginResponse, dependencies=[Depends(check_auth_rate_limit)])
@@ -152,7 +152,7 @@ async def login(
         secure=settings.cookie_secure,
         samesite="strict",
     )
-    return LoginResponse(user=_public_user(user), csrf_token=csrf_token)
+    return LoginResponse(user=public_user(user), csrf_token=csrf_token)
 
 
 @router.post(
@@ -204,7 +204,7 @@ async def refresh(
         settings,
     )
     _set_cookie(response, "csrf_token", csrf_token, settings, httponly=False)
-    return LoginResponse(user=_public_user(user), csrf_token=csrf_token)
+    return LoginResponse(user=public_user(user), csrf_token=csrf_token)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -291,7 +291,7 @@ async def verify_totp(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_totp")
     updated = user.model_copy(update={"totp_verified_at": datetime.now(tz=UTC)})
     await store.update_user(updated)
-    return _public_user(updated)
+    return public_user(updated)
 
 
 async def _optional_user(
@@ -336,15 +336,6 @@ def _clear_cookie(
         httponly=httponly,
         secure=settings.cookie_secure,
         samesite="strict",
-    )
-
-
-def _public_user(user: UserRecord) -> UserPublic:
-    return UserPublic(
-        id=user.id,
-        email=user.email,
-        roles=user.roles,
-        totp_enabled=user.totp_secret is not None,
     )
 
 

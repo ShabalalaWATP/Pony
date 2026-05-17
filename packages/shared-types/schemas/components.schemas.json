@@ -792,6 +792,42 @@
     "title": "ApiPage[Sensor]",
     "type": "object"
   },
+  "ApiPage_UserPublic_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/UserPublic"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[UserPublic]",
+    "type": "object"
+  },
   "AuditLog": {
     "additionalProperties": false,
     "description": "Append-only audit log entry.",
@@ -1734,6 +1770,37 @@
       "email"
     ],
     "title": "UserPublic",
+    "type": "object"
+  },
+  "UserUpdateRequest": {
+    "additionalProperties": false,
+    "description": "Admin user update request.",
+    "properties": {
+      "reset_totp": {
+        "default": false,
+        "title": "Reset Totp",
+        "type": "boolean"
+      },
+      "roles": {
+        "anyOf": [
+          {
+            "items": {
+              "enum": [
+                "admin",
+                "operator"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Roles"
+      }
+    },
+    "title": "UserUpdateRequest",
     "type": "object"
   },
   "ValidationError": {

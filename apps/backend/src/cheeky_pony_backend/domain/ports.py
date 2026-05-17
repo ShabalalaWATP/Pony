@@ -41,8 +41,20 @@ class Store(Protocol):
     async def get_user(self, user_id: str) -> UserRecord | None:
         """Look up a user by id."""
 
+    async def list_users(self, limit: int, offset: int) -> tuple[list[UserRecord], int]:
+        """List users in stable order."""
+
     async def update_user(self, user: UserRecord) -> UserRecord:
         """Persist updated user fields."""
+
+    async def update_user_access(
+        self,
+        user_id: str,
+        roles: list[str] | None,
+        reset_totp: bool,
+        actor_id: str,
+    ) -> UserRecord | None:
+        """Atomically update user roles or TOTP enrollment state."""
 
     async def create_sensor(self, sensor: Sensor) -> Sensor:
         """Persist a sensor."""

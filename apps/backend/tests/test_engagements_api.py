@@ -7,7 +7,7 @@ import pytest
 from conftest import BackendClient
 from helpers import create_verified_admin
 
-from cheeky_pony_shared import TargetKind
+from cheeky_pony_shared import Engagement, TargetKind
 
 pytestmark = pytest.mark.asyncio
 
@@ -77,6 +77,43 @@ async def test_active_engagement_and_endpoints(backend_client: BackendClient) ->
     assert duplicate.status_code == 409
     assert ended.status_code == 204
     assert missing.status_code == 404
+
+
+async def test_get_engagement_by_id(backend_client: BackendClient) -> None:
+    """Authenticated operators can deep-link to one engagement."""
+
+    csrf = await create_verified_admin(backend_client)
+    created = await backend_client.client.post(
+        "/api/v1/engagements",
+        json={"name": "Deep Link Lab"},
+        headers={"x-csrf-token": csrf},
+    )
+
+    response = await backend_client.client.get(
+        f"/api/v1/engagements/{created.json()['id']}",
+    )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == created.json()["id"]
+
+
+async def test_get_engagement_by_id_rejects_missing_and_anonymous(
+    backend_client: BackendClient,
+) -> None:
+    """Single-engagement reads distinguish missing ids from missing auth."""
+
+    await backend_client.store.create_engagement(Engagement(id="eng-1", name="Lab"))
+
+    anonymous = await backend_client.client.get("/api/v1/engagements/eng-1")
+    csrf = await create_verified_admin(backend_client)
+    missing = await backend_client.client.get(
+        "/api/v1/engagements/missing",
+        headers={"x-csrf-token": csrf},
+    )
+
+    assert anonymous.status_code == 401
+    assert missing.status_code == 404
+    assert missing.json() == {"detail": "engagement not found"}
 
 
 async def test_list_and_resume_engagements(backend_client: BackendClient) -> None:

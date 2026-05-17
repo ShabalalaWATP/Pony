@@ -8,8 +8,8 @@ from typing import Any
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from cheeky_pony_backend.domain.reports import ReportRecord
-from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.infra.mongo_engagements import MongoEngagementStoreMixin
+from cheeky_pony_backend.infra.mongo_users import MongoUserStoreMixin
 from cheeky_pony_shared import (
     AccessPoint,
     Alert,
@@ -23,7 +23,7 @@ from cheeky_pony_shared import (
 )
 
 
-class MongoStore(MongoEngagementStoreMixin):
+class MongoStore(MongoUserStoreMixin, MongoEngagementStoreMixin):
     """MongoDB implementation of the application store."""
 
     def __init__(self, dsn: str, database_name: str) -> None:
@@ -40,40 +40,13 @@ class MongoStore(MongoEngagementStoreMixin):
         await self.db.alerts.create_index([("severity", 1), ("acked_at", 1)])
         await self.db.alert_rules.create_index("enabled")
         await self.db.audit_logs.create_index("occurred_at")
+        await self.db.users.create_index("email", unique=True)
+        await self.db.users.create_index([("created_at", 1), ("email", 1)])
         await self.db.allow_list.create_index(
             [("engagement_id", 1), ("kind", 1), ("value", 1)],
             unique=True,
         )
         await self.db.reports.create_index([("engagement_id", 1), ("id", 1)], unique=True)
-
-    async def count_users(self) -> int:
-        """Return the number of users."""
-
-        return await self.db.users.count_documents({})
-
-    async def create_user(self, user: UserRecord) -> UserRecord:
-        """Persist a user."""
-
-        await self.db.users.insert_one(user.model_dump(mode="json"))
-        return user
-
-    async def get_user_by_email(self, email: str) -> UserRecord | None:
-        """Look up a user by email."""
-
-        data = await self.db.users.find_one({"email": email})
-        return UserRecord.model_validate(data) if data else None
-
-    async def get_user(self, user_id: str) -> UserRecord | None:
-        """Look up a user by id."""
-
-        data = await self.db.users.find_one({"id": user_id})
-        return UserRecord.model_validate(data) if data else None
-
-    async def update_user(self, user: UserRecord) -> UserRecord:
-        """Persist updated user fields."""
-
-        await self.db.users.replace_one({"id": user.id}, user.model_dump(mode="json"), upsert=True)
-        return user
 
     async def create_sensor(self, sensor: Sensor) -> Sensor:
         """Persist a sensor."""
@@ -84,13 +57,13 @@ class MongoStore(MongoEngagementStoreMixin):
     async def list_sensors(self) -> list[Sensor]:
         """Return all sensors."""
 
-        docs = self.db.sensors.find({})
+        docs = self.db.sensors.find({}, {"_id": False})
         return [Sensor.model_validate(doc) async for doc in docs]
 
     async def get_sensor(self, sensor_id: str) -> Sensor | None:
         """Return a sensor by id."""
 
-        data = await self.db.sensors.find_one({"id": sensor_id})
+        data = await self.db.sensors.find_one({"id": sensor_id}, {"_id": False})
         return Sensor.model_validate(data) if data else None
 
     async def revoke_sensor(self, sensor_id: str) -> None:
@@ -138,20 +111,20 @@ class MongoStore(MongoEngagementStoreMixin):
         """List access points."""
 
         total = await self.db.access_points.count_documents({})
-        docs = self.db.access_points.find({}).skip(offset).limit(limit)
+        docs = self.db.access_points.find({}, {"_id": False}).skip(offset).limit(limit)
         return [AccessPoint.model_validate(doc) async for doc in docs], total
 
     async def get_access_point(self, bssid: str) -> AccessPoint | None:
         """Return an access point by BSSID."""
 
-        data = await self.db.access_points.find_one({"bssid": bssid.upper()})
+        data = await self.db.access_points.find_one({"bssid": bssid.upper()}, {"_id": False})
         return AccessPoint.model_validate(data) if data else None
 
     async def list_clients(self, limit: int, offset: int) -> tuple[list[Client], int]:
         """List client devices."""
 
         total = await self.db.clients.count_documents({})
-        docs = self.db.clients.find({}).skip(offset).limit(limit)
+        docs = self.db.clients.find({}, {"_id": False}).skip(offset).limit(limit)
         return [Client.model_validate(doc) async for doc in docs], total
 
     async def list_clients_for_access_point(
@@ -164,26 +137,36 @@ class MongoStore(MongoEngagementStoreMixin):
 
         query = {"associated_bssid": bssid.upper()}
         total = await self.db.clients.count_documents(query)
-        docs = self.db.clients.find(query).sort("last_seen", -1).skip(offset).limit(limit)
+        docs = (
+            self.db.clients.find(query, {"_id": False})
+            .sort("last_seen", -1)
+            .skip(offset)
+            .limit(limit)
+        )
         return [Client.model_validate(doc) async for doc in docs], total
 
     async def get_client(self, mac: str) -> Client | None:
         """Return a client by MAC."""
 
-        data = await self.db.clients.find_one({"mac": mac.upper()})
+        data = await self.db.clients.find_one({"mac": mac.upper()}, {"_id": False})
         return Client.model_validate(data) if data else None
 
     async def list_events(self, limit: int, offset: int) -> tuple[list[Event], int]:
         """List events."""
 
         total = await self.db.events.count_documents({})
-        docs = self.db.events.find({}).sort("occurred_at", -1).skip(offset).limit(limit)
+        docs = (
+            self.db.events.find({}, {"_id": False})
+            .sort("occurred_at", -1)
+            .skip(offset)
+            .limit(limit)
+        )
         return [Event.model_validate(doc) async for doc in docs], total
 
     async def get_event(self, event_id: str) -> Event | None:
         """Return an event by id."""
 
-        data = await self.db.events.find_one({"id": event_id})
+        data = await self.db.events.find_one({"id": event_id}, {"_id": False})
         return Event.model_validate(data) if data else None
 
     async def insert_alert(self, alert: Alert) -> Alert:
@@ -274,7 +257,12 @@ class MongoStore(MongoEngagementStoreMixin):
         """List audit logs."""
 
         total = await self.db.audit_logs.count_documents({})
-        docs = self.db.audit_logs.find({}).sort("occurred_at", -1).skip(offset).limit(limit)
+        docs = (
+            self.db.audit_logs.find({}, {"_id": False})
+            .sort("occurred_at", -1)
+            .skip(offset)
+            .limit(limit)
+        )
         return [AuditLog.model_validate(doc) async for doc in docs], total
 
     async def create_acknowledgement(self, acknowledgement: SystemAcknowledgement) -> None:

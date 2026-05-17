@@ -794,6 +794,42 @@
         "title": "ApiPage[Sensor]",
         "type": "object"
       },
+      "ApiPage_UserPublic_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UserPublic"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[UserPublic]",
+        "type": "object"
+      },
       "AuditLog": {
         "additionalProperties": false,
         "description": "Append-only audit log entry.",
@@ -1736,6 +1772,37 @@
           "email"
         ],
         "title": "UserPublic",
+        "type": "object"
+      },
+      "UserUpdateRequest": {
+        "additionalProperties": false,
+        "description": "Admin user update request.",
+        "properties": {
+          "reset_totp": {
+            "default": false,
+            "title": "Reset Totp",
+            "type": "boolean"
+          },
+          "roles": {
+            "anyOf": [
+              {
+                "items": {
+                  "enum": [
+                    "admin",
+                    "operator"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roles"
+          }
+        },
+        "title": "UserUpdateRequest",
         "type": "object"
       },
       "ValidationError": {
@@ -2720,6 +2787,49 @@
           }
         },
         "summary": "Get Active Engagement",
+        "tags": [
+          "engagements"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}": {
+      "get": {
+        "description": "Return a single engagement by id.\n\nArgs:\n    engagement_id: Engagement identifier.\n    _: Current user.\n    store: Application store.\n\nReturns:\n    Matching engagement.",
+        "operationId": "get_engagement_api_v1_engagements__engagement_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Engagement"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Engagement",
         "tags": [
           "engagements"
         ]
@@ -3715,6 +3825,116 @@
         "summary": "Create Authorized Operator Acknowledgement",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "description": "List users for admin settings.\n\nArgs:\n    _: Current admin with verified TOTP.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated public users.",
+        "operationId": "list_users_api_v1_users_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_UserPublic_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Users",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/{user_id}": {
+      "patch": {
+        "description": "Update roles or reset TOTP for one user.\n\nArgs:\n    user_id: Target user identifier.\n    payload: Requested update.\n    actor: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n\nReturns:\n    Updated public user.",
+        "operationId": "update_user_api_v1_users__user_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update User",
+        "tags": [
+          "users"
         ]
       }
     },

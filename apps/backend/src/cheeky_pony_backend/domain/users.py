@@ -7,7 +7,14 @@ from datetime import UTC, datetime, timedelta
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from cheeky_pony_shared import UserPublic
 from cheeky_pony_shared.models import utc_now
+
+ALLOWED_USER_ROLES = frozenset({"admin", "operator"})
+
+
+class LastAdminDemotionError(Exception):
+    """Raised when an update would remove the final active admin."""
 
 
 class UserRecord(BaseModel):
@@ -61,3 +68,44 @@ class UserRecord(BaseModel):
         """
 
         return self.model_copy(update={"refresh_token_version": self.refresh_token_version + 1})
+
+
+def normalize_roles(roles: list[str]) -> list[str]:
+    """Validate and de-duplicate user roles while preserving request order.
+
+    Args:
+        roles: Requested role list.
+
+    Returns:
+        Validated role list.
+
+    Raises:
+        ValueError: If a role is not in the allowed role set.
+    """
+
+    normalized: list[str] = []
+    for role in roles:
+        if role not in ALLOWED_USER_ROLES:
+            msg = f"unsupported role: {role}"
+            raise ValueError(msg)
+        if role not in normalized:
+            normalized.append(role)
+    return normalized
+
+
+def public_user(user: UserRecord) -> UserPublic:
+    """Convert an internal user record into its public API shape.
+
+    Args:
+        user: Internal user record.
+
+    Returns:
+        Safe user fields for API responses.
+    """
+
+    return UserPublic(
+        id=user.id,
+        email=user.email,
+        roles=user.roles,
+        totp_enabled=user.totp_secret is not None,
+    )
