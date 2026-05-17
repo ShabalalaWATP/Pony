@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, Request, Response, status
@@ -47,7 +48,11 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
     configure_logging()
     active_settings = settings or get_settings()
     active_store = store or _create_store(active_settings)
-    app = FastAPI(title="Cheeky Pony API", version="0.1.0")
+    app = FastAPI(
+        title="Cheeky Pony API",
+        version="0.1.0",
+        lifespan=_lifespan(active_store),
+    )
     app.state.settings = active_settings
     app.state.store = active_store
     app.state.operator_broker = OperatorBroker()
@@ -64,10 +69,6 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
     _install_exception_handlers(app)
     _install_security_middleware(app, active_settings)
     _install_routes(app)
-
-    @app.on_event("startup")
-    async def _startup() -> None:
-        await active_store.ensure_indexes()
 
     return app
 
@@ -87,6 +88,15 @@ def _create_store(settings: Settings) -> Store:
     if settings.use_in_memory_store or settings.env == "test":
         return InMemoryStore()
     return MongoStore(settings.mongo_dsn, settings.mongo_db)
+
+
+def _lifespan(store: Store) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        await store.ensure_indexes()
+        yield
+
+    return lifespan
 
 
 def _install_routes(app: FastAPI) -> None:
