@@ -10,6 +10,7 @@ import {
   useActiveLabCommands,
   useAddAllowListTarget,
   useAllowList,
+  useCreateEngagement,
   useEndEngagement,
   useEngagementsList,
   useLabStatus,
@@ -354,6 +355,40 @@ describe("lab + engagement query hooks", () => {
     const { wrapper } = wrap();
     const { result } = renderHook(() => useAcknowledgeOperator(), { wrapper });
     result.current.mutate({ statement: "..." });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.status).toBe(403);
+  });
+
+  it("useCreateEngagement POSTs name + scope_rules and returns the engagement", async () => {
+    let body: unknown = null;
+    server.use(
+      http.post("/api/v1/engagements", async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({
+          ...fixtures.engagement,
+          id: "eng-fresh",
+          name: "Spring 2026",
+          scope_rules: [{ org: "acme" }],
+        });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useCreateEngagement(), { wrapper });
+    result.current.mutate({ name: "Spring 2026", scope_rules: [{ org: "acme" }] });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(body).toEqual({ name: "Spring 2026", scope_rules: [{ org: "acme" }] });
+    expect(result.current.data?.id).toBe("eng-fresh");
+  });
+
+  it("useCreateEngagement surfaces 403 with the structured detail", async () => {
+    server.use(
+      http.post("/api/v1/engagements", () =>
+        HttpResponse.json({ detail: "Admin role with recent TOTP required" }, { status: 403 }),
+      ),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useCreateEngagement(), { wrapper });
+    result.current.mutate({ name: "Blocked" });
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error?.status).toBe(403);
   });

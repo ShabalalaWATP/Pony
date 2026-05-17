@@ -99,4 +99,18 @@ describe("EngagementsView", () => {
     render(node);
     expect(await screen.findByText(/sign in required/i)).toBeInTheDocument();
   });
+
+  it("opens the create drawer when the New button is clicked", async () => {
+    const { node } = withQueryAndRouter(<EngagementsView />, { initialPath: "/engagements" });
+    render(node);
+    await screen.findByRole("button", { name: /create engagement/i });
+    await userEvent.click(screen.getByRole("button", { name: /create engagement/i }));
+    expect(await screen.findByTestId("create-engagement-form")).toBeInTheDocument();
+  });
+
+  // NB: deep-link via `?new=1` is covered by `validateSearch` on the
+  // real route file (`_shell.engagements.index.tsx`) — the unit test
+  // here uses a stripped-down memory router without that schema, so
+  // the URL `?new=1` doesn't reach `useSearch`. The button-click case
+  // above is what the test harness can exercise faithfully.
 });

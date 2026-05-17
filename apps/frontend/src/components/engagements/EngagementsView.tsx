@@ -1,5 +1,6 @@
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { type ColumnDef } from "@tanstack/react-table";
-import { PlayCircle, ShieldCheck } from "lucide-react";
+import { PlayCircle, Plus, ShieldCheck } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +13,12 @@ import {
   useEngagementsList,
   useResumeEngagement,
 } from "@/services/api/labQueries";
+import { CreateEngagementDrawer } from "./CreateEngagementDrawer";
+
+interface EngagementsSearch {
+  /** `?new=1` deep-opens the create drawer. */
+  new?: string;
+}
 
 function isActive(e: Engagement): boolean {
   return !e.ended_at;
@@ -30,10 +37,23 @@ function isActive(e: Engagement): boolean {
  * surface, intentionally narrow.
  */
 export function EngagementsView(): JSX.Element {
+  const navigate = useNavigate();
+  const search: EngagementsSearch = useSearch({ strict: false });
   const query = useEngagementsList({ limit: 500 });
   const resume = useResumeEngagement();
   const [error, setError] = useState<string | null>(null);
   const items = useMemo(() => query.data?.items ?? [], [query.data?.items]);
+
+  // The create drawer is URL-driven (`?new=1`) so opening it is
+  // shareable and reload-safe; the button just navigates to the
+  // searched URL rather than flipping local state.
+  const drawerOpen = search.new === "1";
+  const openCreate = (): void => {
+    void navigate({ to: "/engagements", search: { new: "1" } });
+  };
+  const closeCreate = (): void => {
+    void navigate({ to: "/engagements", search: {} });
+  };
 
   const onResume = (engagement: Engagement): void => {
     setError(null);
@@ -134,7 +154,12 @@ export function EngagementsView(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Engagements" total={query.data?.total} />
+      <PageHeader title="Engagements" total={query.data?.total}>
+        <Button variant="primary" size="sm" onClick={openCreate} aria-label="Create engagement">
+          <Plus className="size-3.5" aria-hidden="true" />
+          New engagement
+        </Button>
+      </PageHeader>
 
       {error && (
         <div
@@ -154,10 +179,12 @@ export function EngagementsView(): JSX.Element {
         emptyState={
           <EmptyState
             title="No engagements yet"
-            description="Create one from a runbook or the audit log to scope lab activity."
+            description="Click 'New engagement' to scope your first run."
           />
         }
       />
+
+      <CreateEngagementDrawer open={drawerOpen} onClose={closeCreate} />
     </div>
   );
 }

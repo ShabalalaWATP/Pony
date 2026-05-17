@@ -18,6 +18,7 @@ type ReportFormat = components["schemas"]["ReportFormat"];
 type ReportStatus = components["schemas"]["ReportStatus"];
 type AcknowledgementRequest = components["schemas"]["AcknowledgementRequest"];
 type SystemAcknowledgement = components["schemas"]["SystemAcknowledgement"];
+type EngagementCreateRequest = components["schemas"]["EngagementCreateRequest"];
 
 interface Page<T> {
   items: T[];
@@ -148,6 +149,26 @@ export function useEndEngagement() {
       void qc.invalidateQueries({ queryKey: ENGAGEMENT_ACTIVE_KEY });
       void qc.invalidateQueries({ queryKey: ENGAGEMENTS_LIST_KEY });
       void qc.invalidateQueries({ queryKey: LAB_ACTIVE_KEY });
+    },
+  });
+}
+
+/**
+ * Create a new engagement. Returns the freshly-created `Engagement`
+ * record. Invalidates both the engagement list and the active-engagement
+ * query so the new row appears in `/engagements` and, if the backend
+ * promotes it to active, the lab gate banner refreshes too.
+ *
+ * Admin + recent 2FA gated server-side — 403 surfaces with the
+ * structured detail body, callers render it inline.
+ */
+export function useCreateEngagement() {
+  const qc = useQueryClient();
+  return useMutation<Engagement, ApiError, EngagementCreateRequest>({
+    mutationFn: (body) => apiClient.post<Engagement>("/engagements", body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ENGAGEMENTS_LIST_KEY });
+      void qc.invalidateQueries({ queryKey: ENGAGEMENT_ACTIVE_KEY });
     },
   });
 }
@@ -320,4 +341,5 @@ export type {
   ReportStatus,
   AcknowledgementRequest,
   SystemAcknowledgement,
+  EngagementCreateRequest,
 };
