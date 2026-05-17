@@ -77,4 +77,43 @@ describe("DevicesView", () => {
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("office")).toBeInTheDocument();
   });
+
+  it("deep-link to a MAC outside the visible page loads from the detail endpoint", async () => {
+    server.use(
+      http.get("/api/v1/devices", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 500, offset: 0 }),
+      ),
+      http.get("/api/v1/devices/:mac", () =>
+        HttpResponse.json({
+          mac: "de:ad:be:ef:00:01",
+          vendor_oui: "DeepLinkCo",
+          associated_bssid: null,
+          probes: ["alpha"],
+          signal_history: [],
+        }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<DevicesView />, {
+      initialPath: "/devices?mac=de:ad:be:ef:00:01",
+    });
+    render(node);
+    expect(await screen.findByTestId("device-detail")).toBeInTheDocument();
+    expect(screen.getByText("DeepLinkCo")).toBeInTheDocument();
+  });
+
+  it("deep-link to an unknown MAC renders the 'not seen yet' state", async () => {
+    server.use(
+      http.get("/api/v1/devices", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 500, offset: 0 }),
+      ),
+      http.get("/api/v1/devices/:mac", () =>
+        HttpResponse.json({ detail: "not found" }, { status: 404 }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<DevicesView />, {
+      initialPath: "/devices?mac=ff:ff:ff:ff:ff:ff",
+    });
+    render(node);
+    expect(await screen.findByText(/not seen yet/i)).toBeInTheDocument();
+  });
 });

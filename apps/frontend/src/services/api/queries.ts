@@ -82,12 +82,58 @@ export function useDevicesList(pagination: Pagination = {}) {
   });
 }
 
+/**
+ * Single client device by MAC. Backend route:
+ * `GET /api/v1/devices/{mac}`.
+ *
+ * Keyed by lowercase MAC for the same reason as the AP detail hook.
+ * Disabled until a MAC is supplied; 404 surfaces as `error.status === 404`
+ * for the deep-link-to-unknown-MAC case.
+ */
+export function useDeviceDetail(mac: string | null | undefined) {
+  const normalised = mac?.toLowerCase() ?? "";
+  return useQuery<Client, ApiError>({
+    queryKey: ["devices", normalised, "detail"],
+    queryFn: () => apiClient.get<Client>(`/devices/${encodeURIComponent(normalised)}`),
+    enabled: Boolean(normalised),
+    staleTime: PAGE_STALE_TIME,
+    retry: (count, error) => {
+      if (error.status === 401 || error.status === 403 || error.status === 404) return false;
+      return count < 1;
+    },
+  });
+}
+
 export function useAccessPointsList(pagination: Pagination = {}) {
   const { limit = 100, offset = 0 } = pagination;
   return useQuery<Page<AccessPoint>, ApiError>({
     queryKey: ["access_points", { limit, offset }],
     queryFn: () => apiClient.get<Page<AccessPoint>>(withQuery("/access_points", { limit, offset })),
     staleTime: PAGE_STALE_TIME,
+  });
+}
+
+/**
+ * Single access point by BSSID. Backend route:
+ * `GET /api/v1/access_points/{bssid}`.
+ *
+ * Keyed by lowercase BSSID so the cache survives vendor-stack MAC-case
+ * quirks. Disabled until a BSSID is supplied. A 404 (the detail page
+ * deep-linked to a BSSID that hasn't been observed) surfaces as
+ * `error.status === 404` so the drawer can render a "not found" empty
+ * state without retrying.
+ */
+export function useAccessPointDetail(bssid: string | null | undefined) {
+  const normalised = bssid?.toLowerCase() ?? "";
+  return useQuery<AccessPoint, ApiError>({
+    queryKey: ["access_points", normalised, "detail"],
+    queryFn: () => apiClient.get<AccessPoint>(`/access_points/${encodeURIComponent(normalised)}`),
+    enabled: Boolean(normalised),
+    staleTime: PAGE_STALE_TIME,
+    retry: (count, error) => {
+      if (error.status === 401 || error.status === 403 || error.status === 404) return false;
+      return count < 1;
+    },
   });
 }
 
