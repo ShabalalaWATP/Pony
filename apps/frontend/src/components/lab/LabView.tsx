@@ -12,6 +12,7 @@ import {
 import { useMemo } from "react";
 import { ActiveLabCommandsList } from "./ActiveLabCommandsList";
 import { EngagementPanel } from "./EngagementPanel";
+import { ReportsPanel } from "./ReportsPanel";
 import { StartLabModuleDialog } from "./StartLabModuleDialog";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -136,6 +137,8 @@ export function LabView(): JSX.Element {
       </section>
 
       <ActiveLabCommandsList />
+
+      {engagement && <ReportsPanel engagement={engagement} />}
 
       <StartLabModuleDialog module={activeModule} engagement={engagement} onClose={closeModule} />
     </div>
