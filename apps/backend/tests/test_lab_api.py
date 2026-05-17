@@ -25,6 +25,24 @@ from cheeky_pony_shared import (
 
 
 @pytest.mark.asyncio
+async def test_lab_status_reports_gate_inputs() -> None:
+    """Operators can inspect lab gate status before starting a module."""
+
+    bundle = await _prepared_lab_client()
+
+    response = await bundle.client.get("/api/v1/lab/status")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "lab_mode": True,
+        "acknowledgement_on_file": True,
+        "is_admin_2fa": True,
+    }
+
+    await bundle.client.aclose()
+
+
+@pytest.mark.asyncio
 async def test_lab_start_refuses_with_structured_reason_and_audit() -> None:
     """Disabled lab mode returns the frontend-friendly refusal shape and audits."""
 

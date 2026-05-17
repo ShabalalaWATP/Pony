@@ -17,13 +17,18 @@ from cheeky_pony_backend.dependencies import (
     get_sensor_command_broker,
     get_store,
 )
-from cheeky_pony_backend.domain.active_gates import ActiveGateDeniedError, ActiveGateService
+from cheeky_pony_backend.domain.active_gates import (
+    AUTHORIZED_OPERATOR_KIND,
+    ActiveGateDeniedError,
+    ActiveGateService,
+)
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.lab import (
     LabActiveCommand,
     LabModule,
     LabModuleStartRequest,
     LabModuleStartResponse,
+    LabStatusResponse,
     LabTarget,
     module_capability,
     sanitize_parameters,
@@ -66,6 +71,31 @@ async def list_active_lab_commands(
     )
     items = [_record_to_public(record) for record in records[offset : offset + limit]]
     return ApiPage[LabActiveCommand](items=items, total=len(records), limit=limit, offset=offset)
+
+
+@router.get("/status", response_model=LabStatusResponse)
+async def get_lab_status(
+    user: Annotated[UserRecord, Depends(current_user)],
+    store: Annotated[Store, Depends(get_store)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> LabStatusResponse:
+    """Return the current active-lab gate status.
+
+    Args:
+        user: Current user.
+        store: Application store.
+        settings: Runtime settings.
+
+    Returns:
+        Lab mode, acknowledgement, and admin 2FA status.
+    """
+
+    acknowledgement = await store.has_acknowledgement(AUTHORIZED_OPERATOR_KIND)
+    return LabStatusResponse(
+        lab_mode=settings.lab_mode,
+        acknowledgement_on_file=acknowledgement,
+        is_admin_2fa=user.is_admin() and user.has_recent_totp(),
+    )
 
 
 @router.post(

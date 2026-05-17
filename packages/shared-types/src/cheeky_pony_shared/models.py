@@ -190,6 +190,13 @@ class Engagement(StrictBase):
     ended_at: datetime | None = None
 
 
+class AllowedTarget(StrictBase):
+    """Engagement allow-list entry."""
+
+    kind: TargetKind
+    value: str = Field(min_length=1, max_length=128)
+
+
 class UserPublic(StrictBase):
     """Safe user fields returned from API responses."""
 

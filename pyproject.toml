@@ -55,6 +55,7 @@ source = [
 ]
 omit = [
   "apps/backend/src/cheeky_pony_backend/infra/mongo_store.py",
+  "apps/backend/src/cheeky_pony_backend/infra/mongo_engagements.py",
   "apps/backend/src/cheeky_pony_backend/infra/seed_admin.py",
   "apps/backend/src/cheeky_pony_backend/workers/settings.py",
   "apps/*/src/**/main.py",

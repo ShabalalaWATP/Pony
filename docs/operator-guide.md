@@ -22,6 +22,8 @@ Required statement:
 
 Active module starts are default-deny. Before using `/api/v1/lab/{module}/start`, enable `LAB_MODE=true`, create the authorized-operator acknowledgement, create an active engagement, and add each target to that engagement allow-list.
 
+Operators can inspect the current gate inputs at `/api/v1/lab/status`. Engagement allow-lists can be read with `GET /api/v1/engagements/{id}/allow-list` and updated with the same `{kind, value}` target shape used by lab module starts.
+
 The backend currently delivers guarded module start and stop commands to the sensor-agent over the mTLS WebSocket and records all success and refusal outcomes in audit logs. Sensor-agent module execution remains capability-gated and does not run offensive tooling unless the Pi-side implementation for that module is added later.
 
 ## Engagement reports

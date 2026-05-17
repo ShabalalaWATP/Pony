@@ -68,3 +68,13 @@ async def test_set_channel_requires_sensor_capability(backend_client: BackendCli
     )
 
     assert response.status_code == 409
+
+
+async def test_set_channel_band_exports_literal_enum(backend_client: BackendClient) -> None:
+    """OpenAPI exposes channel bands as a finite enum for generated clients."""
+
+    response = await backend_client.client.get("/openapi.json")
+    band = response.json()["components"]["schemas"]["SetChannelRequest"]["properties"]["band"]
+
+    assert response.status_code == 200
+    assert band["enum"] == ["2.4", "5", "6"]

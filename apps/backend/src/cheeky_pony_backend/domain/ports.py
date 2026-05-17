@@ -12,6 +12,7 @@ from cheeky_pony_shared import (
     Alert,
     AlertRule,
     AlertSeverity,
+    AllowedTarget,
     AuditLog,
     Client,
     Engagement,
@@ -144,6 +145,9 @@ class Store(Protocol):
     async def create_engagement(self, engagement: Engagement) -> Engagement:
         """Persist an engagement."""
 
+    async def list_engagements(self, limit: int, offset: int) -> tuple[list[Engagement], int]:
+        """List engagements."""
+
     async def get_engagement(self, engagement_id: str) -> Engagement | None:
         """Return an engagement by id."""
 
@@ -155,6 +159,17 @@ class Store(Protocol):
 
     async def allow_target(self, engagement_id: str, kind: TargetKind, value: str) -> None:
         """Allow a target for an engagement."""
+
+    async def list_allowed_targets(
+        self,
+        engagement_id: str,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[AllowedTarget], int]:
+        """List allowed targets for an engagement."""
+
+    async def remove_allowed_target(self, engagement_id: str, kind: TargetKind, value: str) -> None:
+        """Remove an allowed target from an engagement."""
 
     async def target_allowed(self, engagement_id: str, kind: TargetKind, value: str) -> bool:
         """Return whether a target is allowed."""

@@ -499,7 +499,20 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List Engagements
+         * @description List engagements.
+         *
+         *     Args:
+         *         _: Current user.
+         *         store: Application store.
+         *         limit: Page size.
+         *         offset: Page offset.
+         *
+         *     Returns:
+         *         Paginated engagements.
+         */
+        get: operations["list_engagements_api_v1_engagements_get"];
         put?: never;
         /**
          * Create Engagement
@@ -507,8 +520,9 @@ export interface paths {
          *
          *     Args:
          *         payload: Engagement payload.
-         *         _: Current admin with verified TOTP.
+         *         user: Current admin with verified TOTP.
          *         store: Application store.
+         *         audit: Audit logger.
          *
          *     Returns:
          *         Created engagement.
@@ -554,7 +568,21 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List Allowed Targets
+         * @description List targets allowed for an engagement.
+         *
+         *     Args:
+         *         engagement_id: Engagement identifier.
+         *         _: Current user.
+         *         store: Application store.
+         *         limit: Page size.
+         *         offset: Page offset.
+         *
+         *     Returns:
+         *         Paginated allowed targets.
+         */
+        get: operations["list_allowed_targets_api_v1_engagements__engagement_id__allow_list_get"];
         put?: never;
         /**
          * Allow Target
@@ -563,11 +591,23 @@ export interface paths {
          *     Args:
          *         engagement_id: Engagement identifier.
          *         payload: Target payload.
-         *         _: Current admin with verified TOTP.
+         *         user: Current admin with verified TOTP.
          *         store: Application store.
+         *         audit: Audit logger.
          */
         post: operations["allow_target_api_v1_engagements__engagement_id__allow_list_post"];
-        delete?: never;
+        /**
+         * Remove Allowed Target
+         * @description Remove a target from an engagement allow-list.
+         *
+         *     Args:
+         *         engagement_id: Engagement identifier.
+         *         payload: Target payload.
+         *         user: Current admin with verified TOTP.
+         *         store: Application store.
+         *         audit: Audit logger.
+         */
+        delete: operations["remove_allowed_target_api_v1_engagements__engagement_id__allow_list_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -693,6 +733,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/engagements/{engagement_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume Engagement
+         * @description Resume an ended engagement when no other engagement is active.
+         *
+         *     Args:
+         *         engagement_id: Engagement identifier.
+         *         user: Current admin with verified TOTP.
+         *         store: Application store.
+         *         audit: Audit logger.
+         *
+         *     Returns:
+         *         Resumed engagement.
+         */
+        post: operations["resume_engagement_api_v1_engagements__engagement_id__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events": {
         parameters: {
             query?: never;
@@ -771,6 +840,34 @@ export interface paths {
          *         Paginated active lab commands.
          */
         get: operations["list_active_lab_commands_api_v1_lab_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lab/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Lab Status
+         * @description Return the current active-lab gate status.
+         *
+         *     Args:
+         *         user: Current user.
+         *         store: Application store.
+         *         settings: Runtime settings.
+         *
+         *     Returns:
+         *         Lab mode, acknowledgement, and admin 2FA status.
+         */
+        get: operations["get_lab_status_api_v1_lab_status_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1250,6 +1347,15 @@ export interface components {
             /** Value */
             value: string;
         };
+        /**
+         * AllowedTarget
+         * @description Engagement allow-list entry.
+         */
+        AllowedTarget: {
+            kind: components["schemas"]["TargetKind"];
+            /** Value */
+            value: string;
+        };
         /** ApiPage[AccessPoint] */
         ApiPage_AccessPoint_: {
             /** Items */
@@ -1283,6 +1389,17 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** ApiPage[AllowedTarget] */
+        ApiPage_AllowedTarget_: {
+            /** Items */
+            items: components["schemas"]["AllowedTarget"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /** ApiPage[AuditLog] */
         ApiPage_AuditLog_: {
             /** Items */
@@ -1298,6 +1415,17 @@ export interface components {
         ApiPage_Client_: {
             /** Items */
             items: components["schemas"]["Client"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** ApiPage[Engagement] */
+        ApiPage_Engagement_: {
+            /** Items */
+            items: components["schemas"]["Engagement"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -1515,6 +1643,18 @@ export interface components {
             started_at: string;
         };
         /**
+         * LabStatusResponse
+         * @description Current lab gate status for operator UI banners.
+         */
+        LabStatusResponse: {
+            /** Acknowledgement On File */
+            acknowledgement_on_file: boolean;
+            /** Is Admin 2Fa */
+            is_admin_2fa: boolean;
+            /** Lab Mode */
+            lab_mode: boolean;
+        };
+        /**
          * LabTarget
          * @description Active lab command target.
          */
@@ -1678,8 +1818,11 @@ export interface components {
          * @description Set-channel command body.
          */
         SetChannelRequest: {
-            /** Band */
-            band: string;
+            /**
+             * Band
+             * @enum {string}
+             */
+            band: "2.4" | "5" | "6";
             /** Channel */
             channel: number;
         };
@@ -2317,6 +2460,38 @@ export interface operations {
             };
         };
     };
+    list_engagements_api_v1_engagements_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiPage_Engagement_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_engagement_api_v1_engagements_post: {
         parameters: {
             query?: never;
@@ -2370,7 +2545,74 @@ export interface operations {
             };
         };
     };
+    list_allowed_targets_api_v1_engagements__engagement_id__allow_list_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                engagement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiPage_AllowedTarget_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     allow_target_api_v1_engagements__engagement_id__allow_list_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AllowTargetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_allowed_target_api_v1_engagements__engagement_id__allow_list_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -2533,6 +2775,37 @@ export interface operations {
             };
         };
     };
+    resume_engagement_api_v1_engagements__engagement_id__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Engagement"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_events_api_v1_events_get: {
         parameters: {
             query?: {
@@ -2624,6 +2897,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_lab_status_api_v1_lab_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabStatusResponse"];
                 };
             };
         };
