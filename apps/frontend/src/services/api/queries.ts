@@ -11,6 +11,16 @@ type AlertRule = components["schemas"]["AlertRule"];
 type AlertSeverity = components["schemas"]["AlertSeverity"];
 type AlertRuleCreateRequest = components["schemas"]["AlertRuleCreateRequest"];
 type AlertRuleUpdateRequest = components["schemas"]["AlertRuleUpdateRequest"];
+type SensorCommandAcceptedResponse = components["schemas"]["SensorCommandAcceptedResponse"];
+
+/** Bands the backend's `SetChannelRequest` accepts. */
+export type ChannelBand = "2.4" | "5" | "6";
+
+export interface SetChannelArgs {
+  id: string;
+  channel: number;
+  band: ChannelBand;
+}
 
 interface Pagination {
   limit?: number;
@@ -209,6 +219,43 @@ export function useDeleteAlertRule() {
   });
 }
 
+/**
+ * Send a sensor-lifecycle command. The backend returns 202 + a
+ * `command_id`; the actual outcome arrives later on the operator
+ * WebSocket as a `command_result` event. Each helper hits a different
+ * sub-route but otherwise has the same shape.
+ *
+ * All three endpoints require admin + recent 2FA + CSRF — surfaced as
+ * an `ApiError(403)` so the UI can fall back to an explanatory message.
+ */
+export function useRestartSensor() {
+  return useMutation<SensorCommandAcceptedResponse, ApiError, string>({
+    mutationFn: (id) =>
+      apiClient.post<SensorCommandAcceptedResponse>(
+        `/sensors/${encodeURIComponent(id)}/commands/restart`,
+      ),
+  });
+}
+
+export function useUpdateSensor() {
+  return useMutation<SensorCommandAcceptedResponse, ApiError, string>({
+    mutationFn: (id) =>
+      apiClient.post<SensorCommandAcceptedResponse>(
+        `/sensors/${encodeURIComponent(id)}/commands/update`,
+      ),
+  });
+}
+
+export function useSetSensorChannel() {
+  return useMutation<SensorCommandAcceptedResponse, ApiError, SetChannelArgs>({
+    mutationFn: ({ id, channel, band }) =>
+      apiClient.post<SensorCommandAcceptedResponse>(
+        `/sensors/${encodeURIComponent(id)}/commands/set-channel`,
+        { channel, band },
+      ),
+  });
+}
+
 export type {
   Page,
   Sensor,
@@ -220,4 +267,5 @@ export type {
   AlertSeverity,
   AlertRuleCreateRequest,
   AlertRuleUpdateRequest,
+  SensorCommandAcceptedResponse,
 };
