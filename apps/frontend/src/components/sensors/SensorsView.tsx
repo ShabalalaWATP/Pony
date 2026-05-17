@@ -3,6 +3,7 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
+import { DetailRow, DetailSection } from "@/components/ui/DetailGrid";
 import { Drawer } from "@/components/ui/Drawer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/domain/EmptyState";
@@ -10,6 +11,12 @@ import { LiveDot } from "@/components/domain/LiveDot";
 import { RelativeTime } from "@/components/domain/RelativeTime";
 import { useSensorsList, type Sensor } from "@/services/api/queries";
 
+/**
+ * Derive a sensor's live/stale/offline status from its last-seen
+ * timestamp. Thresholds match the live-data UX rules in the design spec
+ * (§9): <30s = live, <5m = stale, otherwise offline. Revoked sensors
+ * are always offline.
+ */
 function sensorStatus(s: Sensor): "live" | "stale" | "offline" {
   if (s.revoked) return "offline";
   if (!s.last_seen) return "offline";
@@ -71,6 +78,12 @@ const columns: ColumnDef<Sensor, unknown>[] = [
   },
 ];
 
+/**
+ * Sensors list view: paginated table of every sensor registered with
+ * the backend, plus a deep-linkable detail drawer driven by `?id=`.
+ * Gracefully degrades when the operator lacks admin + recent TOTP
+ * (backend returns 403) by rendering an explanatory empty state.
+ */
 export function SensorsView(): JSX.Element {
   const navigate = useNavigate();
   const search: { id?: string; q?: string } = useSearch({ strict: false });
@@ -153,28 +166,31 @@ export function SensorsView(): JSX.Element {
 function SensorDetail({ sensor }: { sensor: Sensor }): JSX.Element {
   return (
     <div className="flex flex-col gap-5">
-      <Section label="Identity">
-        <Row k="ID" v={<span className="font-mono text-xs text-fg-80">{sensor.id}</span>} />
-        <Row k="Name" v={sensor.name} />
-        <Row
-          k="Tailnet IP"
-          v={<span className="font-mono text-xs text-fg-80">{sensor.tailnet_ip}</span>}
+      <DetailSection label="Identity">
+        <DetailRow
+          label="ID"
+          value={<span className="font-mono text-xs text-fg-80">{sensor.id}</span>}
         />
-        <Row
-          k="Version"
-          v={<span className="font-mono text-xs text-fg-80">{sensor.version}</span>}
+        <DetailRow label="Name" value={sensor.name} />
+        <DetailRow
+          label="Tailnet IP"
+          value={<span className="font-mono text-xs text-fg-80">{sensor.tailnet_ip}</span>}
         />
-        <Row
-          k="Revoked"
-          v={
+        <DetailRow
+          label="Version"
+          value={<span className="font-mono text-xs text-fg-80">{sensor.version}</span>}
+        />
+        <DetailRow
+          label="Revoked"
+          value={
             <Badge tone={sensor.revoked ? "red" : "green"} outline>
               {sensor.revoked ? "yes" : "no"}
             </Badge>
           }
         />
-      </Section>
+      </DetailSection>
 
-      <Section label="Capabilities">
+      <DetailSection label="Capabilities">
         <div className="flex flex-wrap gap-1.5">
           {(sensor.capabilities ?? []).map((c) => (
             <Badge key={c} tone="neutral" outline>
@@ -185,9 +201,9 @@ function SensorDetail({ sensor }: { sensor: Sensor }): JSX.Element {
             <span className="text-xs text-fg-60">No capabilities advertised yet.</span>
           )}
         </div>
-      </Section>
+      </DetailSection>
 
-      <Section label="Last seen">
+      <DetailSection label="Last seen">
         <div className="text-sm text-fg-100">
           {sensor.last_seen ? (
             <RelativeTime value={sensor.last_seen} />
@@ -195,32 +211,14 @@ function SensorDetail({ sensor }: { sensor: Sensor }): JSX.Element {
             <span className="text-fg-40">never</span>
           )}
         </div>
-      </Section>
+      </DetailSection>
 
-      <Section label="Coming in Stage 7">
+      <DetailSection label="Coming in Stage 7">
         <p className="text-xs text-fg-60">
           Live event console, channel hop schedule, and 24-hour uptime sparkline land alongside the
           active-module gating work.
         </p>
-      </Section>
-    </div>
-  );
-}
-
-function Section({ label, children }: { label: string; children: React.ReactNode }): JSX.Element {
-  return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-2xs uppercase tracking-wide text-fg-60">{label}</h3>
-      {children}
-    </section>
-  );
-}
-
-function Row({ k, v }: { k: string; v: React.ReactNode }): JSX.Element {
-  return (
-    <div className="grid grid-cols-[100px_1fr] gap-3 text-sm">
-      <div className="text-xs text-fg-60">{k}</div>
-      <div className="text-fg-100">{v}</div>
+      </DetailSection>
     </div>
   );
 }

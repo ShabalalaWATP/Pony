@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { EmptyState } from "@/components/domain/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { latestRssi } from "@/lib/signal-helpers";
 import { useAccessPointsList, type AccessPoint } from "@/services/api/queries";
 
 /**
@@ -23,13 +24,6 @@ const BUCKETS: { label: string; lo: number; hi: number }[] = [
   { label: "−65…−55", lo: -65, hi: -55 },
   { label: "−55…−30", lo: -55, hi: -30 },
 ];
-
-function latestRssi(ap: AccessPoint): number | null {
-  const samples = ap.signal_history ?? [];
-  if (samples.length === 0) return null;
-  const last = samples[samples.length - 1];
-  return last && typeof last.rssi_dbm === "number" ? last.rssi_dbm : null;
-}
 
 interface ChartDatum {
   label: string;

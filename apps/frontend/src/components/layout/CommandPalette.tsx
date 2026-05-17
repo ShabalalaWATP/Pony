@@ -1,214 +1,22 @@
 import { Command } from "cmdk";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  Activity,
-  Beaker,
-  Bell,
-  Command as CommandIcon,
-  FileText,
-  Keyboard,
-  type LucideIcon,
-  Map as MapIcon,
-  PanelLeftClose,
-  Radar,
-  Router as RouterIcon,
-  Settings,
-  ShieldAlert,
-  Smartphone,
-  Wifi,
-} from "lucide-react";
-import { useEffect } from "react";
-import { useUIStore } from "@/stores/useUIStore";
-import { useLabModeStore } from "@/stores/useLabModeStore";
+import { Command as CommandIcon } from "lucide-react";
+import { useEffect, useMemo } from "react";
 import { Kbd } from "@/components/ui/Kbd";
 import { cn } from "@/lib/cn";
-
-interface PaletteItem {
-  id: string;
-  label: string;
-  hint?: string;
-  Icon: LucideIcon;
-  group: "Navigate" | "Verbs" | "Lab";
-  perform: (ctx: PaletteContext) => void;
-}
-
-interface PaletteContext {
-  navigate: ReturnType<typeof useNavigate>;
-  ui: ReturnType<typeof useUIStore.getState>;
-  lab: ReturnType<typeof useLabModeStore.getState>;
-  close: () => void;
-}
-
-const ITEMS: PaletteItem[] = [
-  {
-    id: "go-overview",
-    label: "Go to Overview",
-    hint: "g o",
-    Icon: Activity,
-    group: "Navigate",
-    perform: ({ navigate, close }) => {
-      void navigate({ to: "/" });
-      close();
-    },
-  },
-  {
-    id: "go-sensors",
-    label: "Go to Sensors",
-    hint: "g s",
-    Icon: RouterIcon,
-    group: "Navigate",
-    perform: ({ navigate, close }) => {
-      void navigate({ to: "/sensors" });
-      close();
-    },
-  },
-  {
-    id: "go-networks",
-    label: "Go to Networks",
-    hint: "g n",
-    Icon: Wifi,
-    group: "Navigate",
-    perform: ({ navigate, close }) => {
-      void navigate({ to: "/networks" });
-      close();
-    },
-  },
-  {
-    id: "go-devices",
-    label: "Go to Devices",
-    hint: "g d",
-    Icon: Smartphone,
-    group: "Navigate",
-    perform: ({ navigate, close }) => {
-      void navigate({ to: "/devices" });
-      close();
-    },
-  },
-  {
-    id: "go-events",
-    label: "Go to Events",
-    hint: "g e",
-    Icon: FileText,
-    group: "Navigate",
-    perform: ({ navigate, close }) => {
-      void navigate({ to: "/events" });
-      close();
-    },
-  },
-  {
-    id: "go-alerts",
-    label: "Go to Alerts",
-    hint: "g a",
-    Icon: Bell,
-    group: "Navigate",
-    perform: ({ navigate, close }) => {
-      void navigate({ to: "/alerts" });
-      close();
-    },
-  },
-  {
-    id: "go-map",
-    label: "Go to Map",
-    Icon: MapIcon,
-    group: "Navigate",
-    perform: ({ navigate, close }) => {
-      void navigate({ to: "/map" });
-      close();
-    },
-  },
-  {
-    id: "go-engagements",
-    label: "Go to Engagements",
-    Icon: ShieldAlert,
-    group: "Navigate",
-    perform: ({ navigate, close }) => {
-      void navigate({ to: "/engagements" });
-      close();
-    },
-  },
-  {
-    id: "go-lab",
-    label: "Go to Lab",
-    hint: "g l",
-    Icon: Beaker,
-    group: "Navigate",
-    perform: ({ navigate, close }) => {
-      void navigate({ to: "/lab" });
-      close();
-    },
-  },
-  {
-    id: "go-audit",
-    label: "Go to Audit Log",
-    Icon: FileText,
-    group: "Navigate",
-    perform: ({ navigate, close }) => {
-      void navigate({ to: "/audit" });
-      close();
-    },
-  },
-  {
-    id: "go-settings",
-    label: "Go to Settings",
-    Icon: Settings,
-    group: "Navigate",
-    perform: ({ navigate, close }) => {
-      void navigate({ to: "/settings/account" });
-      close();
-    },
-  },
-  {
-    id: "go-design-system",
-    label: "Open Design System",
-    Icon: Radar,
-    group: "Navigate",
-    perform: ({ navigate, close }) => {
-      void navigate({ to: "/design-system" });
-      close();
-    },
-  },
-
-  {
-    id: "toggle-sidebar",
-    label: "Toggle sidebar",
-    hint: "[ / ]",
-    Icon: PanelLeftClose,
-    group: "Verbs",
-    perform: ({ ui, close }) => {
-      ui.toggleSidebar();
-      close();
-    },
-  },
-  {
-    id: "open-cheat-sheet",
-    label: "Show keyboard shortcuts",
-    hint: "?",
-    Icon: Keyboard,
-    group: "Verbs",
-    perform: ({ ui, close }) => {
-      ui.openCheatSheet();
-      close();
-    },
-  },
-
-  {
-    id: "toggle-lab-preview",
-    label: "Toggle Lab Mode chrome preview",
-    Icon: Beaker,
-    group: "Lab",
-    perform: ({ lab, close }) => {
-      lab.togglePreview();
-      close();
-    },
-  },
-];
+import { useLabModeStore } from "@/stores/useLabModeStore";
+import { useUIStore } from "@/stores/useUIStore";
+import { PALETTE_ITEMS, type PaletteContext } from "./commandPaletteItems";
 
 /**
  * Global command palette (⌘K / Ctrl+K).
  *
- * Pure navigation + UI verbs in Stage 2; recent items, sensor jumps,
- * and mutating verbs (with inline confirm per design spec §7) land in
- * later stages.
+ * Renders the configured `PALETTE_ITEMS` — to add a new entry, edit the
+ * registry file; the component itself stays untouched (open/closed).
+ *
+ * Closes on Esc, on backdrop click, and after any successful command
+ * dispatch. Recent items, sensor jumps, and mutating verbs (with the
+ * inline confirm per design spec §7) arrive in later stages.
  */
 export function CommandPalette(): JSX.Element {
   const open = useUIStore((s) => s.commandPaletteOpen);
@@ -227,6 +35,8 @@ export function CommandPalette(): JSX.Element {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, close]);
 
+  const groups = useMemo(() => Array.from(new Set(PALETTE_ITEMS.map((i) => i.group))), []);
+
   if (!open) return <></>;
 
   const ctx: PaletteContext = {
@@ -236,11 +46,9 @@ export function CommandPalette(): JSX.Element {
     close,
   };
 
-  const groups = Array.from(new Set(ITEMS.map((i) => i.group)));
-
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-bg-0/60 backdrop-blur-md px-4 pt-[12vh]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-bg-0/60 px-4 pt-[12vh] backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-label="Command palette"
@@ -273,7 +81,7 @@ export function CommandPalette(): JSX.Element {
               heading={group}
               className="px-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-2xs [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-fg-60"
             >
-              {ITEMS.filter((i) => i.group === group).map((item) => (
+              {PALETTE_ITEMS.filter((i) => i.group === group).map((item) => (
                 <Command.Item
                   key={item.id}
                   value={`${item.group} ${item.label}`}
