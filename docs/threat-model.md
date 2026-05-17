@@ -1,4 +1,4 @@
-# Threat Model v0.1
+# Threat Model v0.2
 
 Method: STRIDE per major component.
 
@@ -67,4 +67,9 @@ Method: STRIDE per major component.
 
 ## Active Modules
 
-Active modules are not implemented in milestones 0-2. The gate service is present so future attack surface must pass lab mode, acknowledgement, and engagement allow-list checks before execution.
+- Spoofing: lab start and stop routes require an authenticated admin with a recent TOTP verification and CSRF; sensor delivery still rides the authenticated mTLS sensor WebSocket.
+- Tampering: every start request is validated by Pydantic, module names are enumerated, targets are typed, and commands are sent as shared `SensorCommand` models rather than shell strings.
+- Repudiation: every success, refusal, stop request, and sensor command result writes an audit entry with actor, target, timestamps, outcome, and a command-scoped raw-output reference.
+- Information disclosure: sensitive parameter keys such as credentials, tokens, secrets, keys, and handshakes are redacted before audit storage; plaintext captured credentials must not be accepted by this command plane.
+- Denial of service: active commands are tracked in the broker and removed on stop, failed start acknowledgement, or engagement end; ending an engagement cancels scoped active commands.
+- Elevation of privilege: the gate stack fails closed unless `LAB_MODE=true`, an `authorized_operator` acknowledgement exists, the requested engagement is active, and the target is present in that engagement allow-list.

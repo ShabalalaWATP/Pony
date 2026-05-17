@@ -520,6 +520,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/engagements/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Active Engagement
+         * @description Return the active engagement.
+         *
+         *     Args:
+         *         _: Current user.
+         *         store: Application store.
+         *
+         *     Returns:
+         *         Active engagement.
+         */
+        get: operations["get_active_engagement_api_v1_engagements_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/engagements/{engagement_id}/allow-list": {
         parameters: {
             query?: never;
@@ -540,6 +567,34 @@ export interface paths {
          *         store: Application store.
          */
         post: operations["allow_target_api_v1_engagements__engagement_id__allow_list_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/engagements/{engagement_id}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End Engagement
+         * @description End an engagement and cancel scoped lab commands.
+         *
+         *     Args:
+         *         engagement_id: Engagement identifier.
+         *         user: Current admin with verified TOTP.
+         *         store: Application store.
+         *         audit: Audit logger.
+         *         command_broker: Sensor command broker.
+         *         operator_broker: Operator broker.
+         */
+        post: operations["end_engagement_api_v1_engagements__engagement_id__end_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -597,6 +652,97 @@ export interface paths {
         get: operations["get_event_api_v1_events__event_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lab/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Active Lab Commands
+         * @description List active lab commands.
+         *
+         *     Args:
+         *         _: Current user.
+         *         broker: Sensor command broker.
+         *         limit: Page size.
+         *         offset: Page offset.
+         *
+         *     Returns:
+         *         Paginated active lab commands.
+         */
+        get: operations["list_active_lab_commands_api_v1_lab_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lab/{module}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Lab Module
+         * @description Start one gated active lab module.
+         *
+         *     Args:
+         *         module: Active lab module.
+         *         payload: Start request payload.
+         *         user: Current user.
+         *         store: Application store.
+         *         audit: Audit logger.
+         *         command_broker: Sensor command broker.
+         *         operator_broker: Operator broker.
+         *         settings: Runtime settings.
+         *
+         *     Returns:
+         *         Accepted command identifier and start timestamp.
+         */
+        post: operations["start_lab_module_api_v1_lab__module__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/lab/{module}/stop/{command_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop Lab Module
+         * @description Stop one gated active lab module.
+         *
+         *     Args:
+         *         module: Active lab module.
+         *         command_id: Active lab command identifier.
+         *         user: Current user.
+         *         store: Application store.
+         *         audit: Audit logger.
+         *         command_broker: Sensor command broker.
+         *         settings: Runtime settings.
+         */
+        post: operations["stop_lab_module_api_v1_lab__module__stop__command_id__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1078,6 +1224,17 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** ApiPage[LabActiveCommand] */
+        ApiPage_LabActiveCommand_: {
+            /** Items */
+            items: components["schemas"]["LabActiveCommand"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /** ApiPage[Sensor] */
         ApiPage_Sensor_: {
             /** Items */
@@ -1211,6 +1368,68 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * LabActiveCommand
+         * @description Active lab command dashboard item.
+         */
+        LabActiveCommand: {
+            /** Command Id */
+            command_id: string;
+            /** Engagement Id */
+            engagement_id: string;
+            module: components["schemas"]["LabModule"];
+            /** Sensor Id */
+            sensor_id: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            target: components["schemas"]["LabTarget"];
+        };
+        /**
+         * LabModule
+         * @description Supported active lab modules.
+         * @enum {string}
+         */
+        LabModule: "rogue-ap" | "deauth" | "evil-twin" | "captive-portal" | "mitm";
+        /**
+         * LabModuleStartRequest
+         * @description Active lab module start request.
+         */
+        LabModuleStartRequest: {
+            /** Engagement Id */
+            engagement_id: string;
+            /** Parameters */
+            parameters?: {
+                [key: string]: unknown;
+            };
+            /** Sensor Id */
+            sensor_id: string;
+            target: components["schemas"]["LabTarget"];
+        };
+        /**
+         * LabModuleStartResponse
+         * @description Active lab module start response.
+         */
+        LabModuleStartResponse: {
+            /** Command Id */
+            command_id: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+        };
+        /**
+         * LabTarget
+         * @description Active lab command target.
+         */
+        LabTarget: {
+            kind: components["schemas"]["TargetKind"];
+            /** Value */
+            value: string;
         };
         /**
          * LoginRequest
@@ -1990,6 +2209,26 @@ export interface operations {
             };
         };
     };
+    get_active_engagement_api_v1_engagements_active_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Engagement"];
+                };
+            };
+        };
+    };
     allow_target_api_v1_engagements__engagement_id__allow_list_post: {
         parameters: {
             query?: never;
@@ -2004,6 +2243,35 @@ export interface operations {
                 "application/json": components["schemas"]["AllowTargetRequest"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    end_engagement_api_v1_engagements__engagement_id__end_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             204: {
@@ -2074,6 +2342,103 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Event"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_active_lab_commands_api_v1_lab_active_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiPage_LabActiveCommand_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_lab_module_api_v1_lab__module__start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                module: components["schemas"]["LabModule"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LabModuleStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabModuleStartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_lab_module_api_v1_lab__module__stop__command_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                module: components["schemas"]["LabModule"];
+                command_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

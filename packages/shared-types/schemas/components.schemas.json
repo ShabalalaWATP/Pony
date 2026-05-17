@@ -391,6 +391,7 @@
     "type": "string"
   },
   "AllowTargetRequest": {
+    "additionalProperties": false,
     "description": "Allow-list target request.",
     "properties": {
       "kind": {
@@ -624,6 +625,42 @@
       "offset"
     ],
     "title": "ApiPage[Event]",
+    "type": "object"
+  },
+  "ApiPage_LabActiveCommand_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/LabActiveCommand"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[LabActiveCommand]",
     "type": "object"
   },
   "ApiPage_Sensor_": {
@@ -864,6 +901,7 @@
     "type": "object"
   },
   "EngagementCreateRequest": {
+    "additionalProperties": false,
     "description": "Engagement creation request.",
     "properties": {
       "name": {
@@ -950,6 +988,130 @@
       }
     },
     "title": "HTTPValidationError",
+    "type": "object"
+  },
+  "LabActiveCommand": {
+    "description": "Active lab command dashboard item.",
+    "properties": {
+      "command_id": {
+        "title": "Command Id",
+        "type": "string"
+      },
+      "engagement_id": {
+        "title": "Engagement Id",
+        "type": "string"
+      },
+      "module": {
+        "$ref": "#/components/schemas/LabModule"
+      },
+      "sensor_id": {
+        "title": "Sensor Id",
+        "type": "string"
+      },
+      "started_at": {
+        "format": "date-time",
+        "title": "Started At",
+        "type": "string"
+      },
+      "target": {
+        "$ref": "#/components/schemas/LabTarget"
+      }
+    },
+    "required": [
+      "command_id",
+      "module",
+      "sensor_id",
+      "engagement_id",
+      "target",
+      "started_at"
+    ],
+    "title": "LabActiveCommand",
+    "type": "object"
+  },
+  "LabModule": {
+    "description": "Supported active lab modules.",
+    "enum": [
+      "rogue-ap",
+      "deauth",
+      "evil-twin",
+      "captive-portal",
+      "mitm"
+    ],
+    "title": "LabModule",
+    "type": "string"
+  },
+  "LabModuleStartRequest": {
+    "additionalProperties": false,
+    "description": "Active lab module start request.",
+    "properties": {
+      "engagement_id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Engagement Id",
+        "type": "string"
+      },
+      "parameters": {
+        "additionalProperties": true,
+        "title": "Parameters",
+        "type": "object"
+      },
+      "sensor_id": {
+        "maxLength": 96,
+        "minLength": 1,
+        "title": "Sensor Id",
+        "type": "string"
+      },
+      "target": {
+        "$ref": "#/components/schemas/LabTarget"
+      }
+    },
+    "required": [
+      "sensor_id",
+      "engagement_id",
+      "target"
+    ],
+    "title": "LabModuleStartRequest",
+    "type": "object"
+  },
+  "LabModuleStartResponse": {
+    "description": "Active lab module start response.",
+    "properties": {
+      "command_id": {
+        "title": "Command Id",
+        "type": "string"
+      },
+      "started_at": {
+        "format": "date-time",
+        "title": "Started At",
+        "type": "string"
+      }
+    },
+    "required": [
+      "command_id",
+      "started_at"
+    ],
+    "title": "LabModuleStartResponse",
+    "type": "object"
+  },
+  "LabTarget": {
+    "additionalProperties": false,
+    "description": "Active lab command target.",
+    "properties": {
+      "kind": {
+        "$ref": "#/components/schemas/TargetKind"
+      },
+      "value": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Value",
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind",
+      "value"
+    ],
+    "title": "LabTarget",
     "type": "object"
   },
   "LoginRequest": {

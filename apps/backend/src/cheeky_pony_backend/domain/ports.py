@@ -143,6 +143,15 @@ class Store(Protocol):
     async def create_engagement(self, engagement: Engagement) -> Engagement:
         """Persist an engagement."""
 
+    async def get_engagement(self, engagement_id: str) -> Engagement | None:
+        """Return an engagement by id."""
+
+    async def get_active_engagement(self) -> Engagement | None:
+        """Return the active engagement when one exists."""
+
+    async def update_engagement(self, engagement: Engagement) -> Engagement:
+        """Persist updated engagement fields."""
+
     async def allow_target(self, engagement_id: str, kind: TargetKind, value: str) -> None:
         """Allow a target for an engagement."""
 
