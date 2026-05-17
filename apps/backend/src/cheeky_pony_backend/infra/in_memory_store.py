@@ -7,6 +7,7 @@ import asyncio
 
 from cheeky_pony_backend.domain.reports import ReportRecord
 from cheeky_pony_backend.domain.users import UserRecord
+from cheeky_pony_backend.infra.in_memory_users import InMemoryUserStoreMixin
 from cheeky_pony_shared import (
     AccessPoint,
     Alert,
@@ -23,7 +24,7 @@ from cheeky_pony_shared import (
 )
 
 
-class InMemoryStore:
+class InMemoryStore(InMemoryUserStoreMixin):
     """Async in-memory implementation of the application store."""
 
     def __init__(self) -> None:
@@ -43,35 +44,6 @@ class InMemoryStore:
 
     async def ensure_indexes(self) -> None:
         """No-op for in-memory storage."""
-
-    async def count_users(self) -> int:
-        """Return the number of users."""
-
-        return len(self.users)
-
-    async def create_user(self, user: UserRecord) -> UserRecord:
-        """Persist a user."""
-
-        async with self._lock:
-            self.users[user.id] = user
-        return user
-
-    async def get_user_by_email(self, email: str) -> UserRecord | None:
-        """Look up a user by email."""
-
-        return next((user for user in self.users.values() if user.email == email), None)
-
-    async def get_user(self, user_id: str) -> UserRecord | None:
-        """Look up a user by id."""
-
-        return self.users.get(user_id)
-
-    async def update_user(self, user: UserRecord) -> UserRecord:
-        """Persist updated user fields."""
-
-        async with self._lock:
-            self.users[user.id] = user
-        return user
 
     async def create_sensor(self, sensor: Sensor) -> Sensor:
         """Persist a sensor."""

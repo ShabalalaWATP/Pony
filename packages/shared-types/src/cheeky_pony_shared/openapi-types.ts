@@ -20,6 +20,7 @@ export interface components {
     "ApiPage_Event_": unknown;
     "ApiPage_LabActiveCommand_": unknown;
     "ApiPage_Sensor_": unknown;
+    "ApiPage_UserPublic_": unknown;
     "AuditLog": unknown;
     "Client": unknown;
     "Engagement": unknown;
@@ -53,6 +54,7 @@ export interface components {
     "TotpSetupResponse": unknown;
     "TotpVerifyRequest": unknown;
     "UserPublic": unknown;
+    "UserUpdateRequest": unknown;
     "ValidationError": unknown;
   };
 }
@@ -76,6 +78,7 @@ export interface paths {
   "/api/v1/devices/{mac}": Record<string, unknown>;
   "/api/v1/engagements": Record<string, unknown>;
   "/api/v1/engagements/active": Record<string, unknown>;
+  "/api/v1/engagements/{engagement_id}": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/allow-list": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/end": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/reports": Record<string, unknown>;
@@ -95,6 +98,8 @@ export interface paths {
   "/api/v1/sensors/{sensor_id}/commands/update": Record<string, unknown>;
   "/api/v1/sensors/{sensor_id}/revoke": Record<string, unknown>;
   "/api/v1/system/acknowledgements": Record<string, unknown>;
+  "/api/v1/users": Record<string, unknown>;
+  "/api/v1/users/{user_id}": Record<string, unknown>;
   "/health": Record<string, unknown>;
   "/metrics": Record<string, unknown>;
 }

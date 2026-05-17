@@ -564,6 +564,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/engagements/{engagement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Engagement
+         * @description Return a single engagement by id.
+         *
+         *     Args:
+         *         engagement_id: Engagement identifier.
+         *         _: Current user.
+         *         store: Application store.
+         *
+         *     Returns:
+         *         Matching engagement.
+         */
+        get: operations["get_engagement_api_v1_engagements__engagement_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/engagements/{engagement_id}/allow-list": {
         parameters: {
             query?: never;
@@ -1153,6 +1181,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Users
+         * @description List users for admin settings.
+         *
+         *     Args:
+         *         _: Current admin with verified TOTP.
+         *         store: Application store.
+         *         limit: Page size.
+         *         offset: Page offset.
+         *
+         *     Returns:
+         *         Paginated public users.
+         */
+        get: operations["list_users_api_v1_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update User
+         * @description Update roles or reset TOTP for one user.
+         *
+         *     Args:
+         *         user_id: Target user identifier.
+         *         payload: Requested update.
+         *         actor: Current admin with verified TOTP.
+         *         store: Application store.
+         *         audit: Audit logger.
+         *
+         *     Returns:
+         *         Updated public user.
+         */
+        patch: operations["update_user_api_v1_users__user_id__patch"];
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1462,6 +1549,17 @@ export interface components {
         ApiPage_Sensor_: {
             /** Items */
             items: components["schemas"]["Sensor"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** ApiPage[UserPublic] */
+        ApiPage_UserPublic_: {
+            /** Items */
+            items: components["schemas"]["UserPublic"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -1901,6 +1999,19 @@ export interface components {
              * @default false
              */
             totp_enabled: boolean;
+        };
+        /**
+         * UserUpdateRequest
+         * @description Admin user update request.
+         */
+        UserUpdateRequest: {
+            /**
+             * Reset Totp
+             * @default false
+             */
+            reset_totp: boolean;
+            /** Roles */
+            roles?: ("admin" | "operator")[] | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -2546,6 +2657,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Engagement"];
+                };
+            };
+        };
+    };
+    get_engagement_api_v1_engagements__engagement_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Engagement"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -3221,6 +3363,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SystemAcknowledgement"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_users_api_v1_users_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiPage_UserPublic_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_api_v1_users__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPublic"];
                 };
             };
             /** @description Validation Error */

@@ -21,6 +21,7 @@ from cheeky_pony_backend.api.v1 import (
     reports,
     sensors,
     system,
+    users,
 )
 from cheeky_pony_backend.api.ws import router as ws_router
 from cheeky_pony_backend.config import Settings, get_settings
@@ -129,6 +130,7 @@ def _install_routes(app: FastAPI) -> None:
     app.include_router(audit.router, prefix="/api/v1")
     app.include_router(system.router, prefix="/api/v1")
     app.include_router(engagements.router, prefix="/api/v1")
+    app.include_router(users.router, prefix="/api/v1")
     app.include_router(ws_router)
 
 

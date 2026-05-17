@@ -29,6 +29,15 @@ Method: STRIDE per major component.
 - Denial of service: regex predicates are length-limited and invalid expressions fail closed without firing.
 - Elevation of privilege: non-admin users can list and acknowledge alerts but cannot create, modify, or delete rules.
 
+## Privileged User Mutation
+
+- Spoofing: user listing and mutation require a signed access-token cookie for an admin with a recent TOTP verification.
+- Tampering: `PATCH /api/v1/users/{id}` accepts only the enumerated `operator` and `admin` roles and rejects unknown role strings with `422`.
+- Repudiation: every accepted user mutation and business-rule denial writes a `user.update` audit entry with sanitized requested changes.
+- Information disclosure: user list and update responses return `UserPublic` only and never include password hashes, TOTP secrets, or refresh-token versions.
+- Denial of service: user listing is bounded by the standard pagination contract and a maximum page size of 500.
+- Elevation of privilege: the store boundary protects the last active admin from self-demotion while replacing roles or resetting TOTP state.
+
 ## Sensor Gateway
 
 - Spoofing: sensor WebSocket accepts only authenticated sensor identity from the mTLS termination layer.
