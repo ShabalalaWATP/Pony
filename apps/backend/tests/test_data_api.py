@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 from conftest import BackendClient
 from helpers import create_verified_admin
@@ -49,6 +51,40 @@ async def test_device_and_event_lists_are_authenticated(backend_client: BackendC
     assert client_detail.status_code == 200
     assert event_detail.status_code == 200
     assert missing_ap.status_code == 404
+
+
+async def test_access_point_clients_are_paginated_and_sorted(
+    backend_client: BackendClient,
+) -> None:
+    """Access point detail clients are filtered by BSSID and newest first."""
+
+    await create_verified_admin(backend_client)
+    bssid = "AA:BB:CC:DD:EE:FF"
+    await backend_client.store.upsert_access_point(AccessPoint(bssid=bssid, ssid="Lab"))
+    await backend_client.store.upsert_client(
+        Client(
+            mac="11:22:33:44:55:66",
+            associated_bssid=bssid,
+            last_seen=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+    )
+    await backend_client.store.upsert_client(
+        Client(
+            mac="22:33:44:55:66:77",
+            associated_bssid=bssid,
+            last_seen=datetime(2026, 1, 2, tzinfo=UTC),
+        )
+    )
+    await backend_client.store.upsert_client(Client(mac="33:44:55:66:77:88"))
+
+    response = await backend_client.client.get(f"/api/v1/access_points/{bssid}/clients")
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 2
+    assert [item["mac"] for item in response.json()["items"]] == [
+        "22:33:44:55:66:77",
+        "11:22:33:44:55:66",
+    ]
 
 
 async def test_authorized_acknowledgement_requires_exact_statement(

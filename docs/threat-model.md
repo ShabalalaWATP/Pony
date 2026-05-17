@@ -5,11 +5,20 @@ Method: STRIDE per major component.
 ## Backend API
 
 - Spoofing: JWT cookies are signed, HTTP-only, SameSite=strict, and state-changing browser flows require CSRF headers.
-- Tampering: Pydantic v2 validates inputs; repository boundaries own persistence writes.
-- Repudiation: active gates and state-changing admin flows append audit entries.
-- Information disclosure: strict CORS and CSP headers reduce browser exfiltration paths.
+- Tampering: Pydantic v2 validates inputs; repository boundaries own persistence writes, including AP geolocation fields.
+- Repudiation: active gates and state-changing admin flows append audit entries; logout records the actor id.
+- Information disclosure: strict CORS and CSP headers reduce browser exfiltration paths; server-side AP coordinates are authenticated API data and must not be exposed on public routes.
 - Denial of service: auth endpoints are rate-limited in-process for development and designed for Redis-backed limits.
 - Elevation of privilege: admin actions require admin role plus a verified TOTP session.
+
+## Operator Realtime Channel
+
+- Spoofing: operator WebSockets require a valid signed access-token cookie before accept.
+- Tampering: outbound topic payloads are built from validated shared models before broadcast.
+- Repudiation: realtime delivery is derived from persisted event, device, and sensor records.
+- Information disclosure: broadcasts are limited to authenticated operators and inherit strict cookie/CORS posture.
+- Denial of service: disconnected sockets are dropped from the in-process broker after failed sends.
+- Elevation of privilege: the channel does not accept operator commands; state changes remain on CSRF-protected HTTP endpoints.
 
 ## Sensor Gateway
 

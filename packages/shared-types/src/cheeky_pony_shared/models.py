@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -31,6 +31,7 @@ class SensorCapability(StrEnum):
     EVIL_TWIN = "evil_twin"
     CAPTIVE_PORTAL = "captive_portal"
     MITM = "mitm"
+    GEO = "geo"
 
 
 class EventKind(StrEnum):
@@ -108,6 +109,9 @@ class AccessPoint(StrictBase):
     signal_history: list[SignalSample] = Field(default_factory=list)
     vendor_oui: str | None = Field(default=None, max_length=128)
     flags: list[str] = Field(default_factory=list)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    location_source: Literal["sensor_gps", "wigle", "manual"] | None = None
 
 
 class Client(StrictBase):

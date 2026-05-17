@@ -33,6 +33,7 @@ class MongoStore:
         await self.db.events.create_index([("sensor_id", 1), ("occurred_at", -1)])
         await self.db.access_points.create_index("bssid", unique=True)
         await self.db.clients.create_index("mac", unique=True)
+        await self.db.clients.create_index([("associated_bssid", 1), ("last_seen", -1)])
         await self.db.audit_logs.create_index("occurred_at")
         await self.db.allow_list.create_index(
             [("engagement_id", 1), ("kind", 1), ("value", 1)],
@@ -91,6 +92,16 @@ class MongoStore:
 
         await self.db.sensors.update_one({"id": sensor_id}, {"$set": {"revoked": True}})
 
+    async def update_sensor(self, sensor: Sensor) -> Sensor:
+        """Persist updated sensor fields."""
+
+        await self.db.sensors.replace_one(
+            {"id": sensor.id},
+            sensor.model_dump(mode="json"),
+            upsert=True,
+        )
+        return sensor
+
     async def upsert_access_point(self, access_point: AccessPoint) -> AccessPoint:
         """Upsert an access point."""
 
@@ -135,6 +146,19 @@ class MongoStore:
 
         total = await self.db.clients.count_documents({})
         docs = self.db.clients.find({}).skip(offset).limit(limit)
+        return [Client.model_validate(doc) async for doc in docs], total
+
+    async def list_clients_for_access_point(
+        self,
+        bssid: str,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[Client], int]:
+        """List client devices associated to an access point."""
+
+        query = {"associated_bssid": bssid.upper()}
+        total = await self.db.clients.count_documents(query)
+        docs = self.db.clients.find(query).sort("last_seen", -1).skip(offset).limit(limit)
         return [Client.model_validate(doc) async for doc in docs], total
 
     async def get_client(self, mac: str) -> Client | None:

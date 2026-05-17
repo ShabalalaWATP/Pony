@@ -61,6 +61,31 @@ async def get_access_point(
     return item
 
 
+@router.get("/access_points/{bssid}/clients", response_model=ApiPage[Client])
+async def list_access_point_clients(
+    bssid: str,
+    _: Annotated[UserRecord, Depends(current_user)],
+    store: Annotated[Store, Depends(get_store)],
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+) -> ApiPage[Client]:
+    """List client devices associated with one access point.
+
+    Args:
+        bssid: Access point BSSID.
+        _: Current user.
+        store: Application store.
+        limit: Page size.
+        offset: Page offset.
+
+    Returns:
+        Paginated associated client list.
+    """
+
+    items, total = await store.list_clients_for_access_point(bssid, limit, offset)
+    return ApiPage[Client](items=items, total=total, limit=limit, offset=offset)
+
+
 @router.get("/devices", response_model=ApiPage[Client])
 async def list_clients(
     _: Annotated[UserRecord, Depends(current_user)],

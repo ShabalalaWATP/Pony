@@ -137,3 +137,30 @@ async def test_refresh_rotates_session_tokens(backend_client: BackendClient) -> 
 
     assert response.status_code == 200
     assert "csrf_token" in response.json()
+
+
+async def test_logout_clears_session_cookies_and_audits(
+    backend_client: BackendClient,
+) -> None:
+    """Logout clears browser cookies and appends an audit entry."""
+
+    csrf = await create_verified_admin(backend_client)
+
+    response = await backend_client.client.post(
+        "/api/v1/auth/logout",
+        headers={"x-csrf-token": csrf},
+    )
+
+    set_cookies = response.headers.get_list("set-cookie")
+    assert response.status_code == 204
+    assert _clears_cookie(set_cookies, "access_token")
+    assert _clears_cookie(set_cookies, "refresh_token")
+    assert _clears_cookie(set_cookies, "csrf_token")
+    assert backend_client.store.audit_logs[-1].action == "logout"
+
+    denied = await backend_client.client.get("/api/v1/audit")
+    assert denied.status_code == 401
+
+
+def _clears_cookie(set_cookies: list[str], name: str) -> bool:
+    return any(cookie.startswith(f"{name}=") and "Max-Age=0" in cookie for cookie in set_cookies)
