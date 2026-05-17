@@ -1,8 +1,9 @@
-import { Bell, PanelLeftClose, PanelLeftOpen, Search, UserCircle2 } from "lucide-react";
+import { Bell, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Kbd } from "@/components/ui/Kbd";
 import { Separator } from "@/components/ui/Separator";
 import { LiveDot } from "@/components/domain/LiveDot";
+import { UserMenu } from "@/components/auth/UserMenu";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { useUIStore } from "@/stores/useUIStore";
 import { useLabModeStore } from "@/stores/useLabModeStore";
@@ -53,9 +54,7 @@ export function Topbar(): JSX.Element {
         <Button variant="ghost" size="icon" aria-label="Notifications">
           <Bell className="size-4" aria-hidden="true" />
         </Button>
-        <Button variant="ghost" size="icon" aria-label="Account">
-          <UserCircle2 className="size-4" aria-hidden="true" />
-        </Button>
+        <UserMenu />
       </div>
 
       <div className="cp-scanline" aria-hidden="true" />

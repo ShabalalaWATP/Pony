@@ -1,10 +1,17 @@
 import "@testing-library/jest-dom/vitest";
-import { afterEach } from "vitest";
+import { afterAll, afterEach, beforeAll } from "vitest";
 import { cleanup } from "@testing-library/react";
+import { server } from "./msw/server";
 
+// One msw server for every test. Files that need bespoke handlers use
+// `server.use(...)` inside their own beforeEach. Unhandled requests fail
+// immediately so missing mocks surface as errors instead of hangs.
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   cleanup();
+  server.resetHandlers();
 });
+afterAll(() => server.close());
 
 const noop = (): void => undefined;
 
