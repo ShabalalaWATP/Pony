@@ -51,6 +51,9 @@ class Store(Protocol):
     async def revoke_sensor(self, sensor_id: str) -> None:
         """Mark a sensor as revoked."""
 
+    async def update_sensor(self, sensor: Sensor) -> Sensor:
+        """Persist updated sensor fields."""
+
     async def upsert_access_point(self, access_point: AccessPoint) -> AccessPoint:
         """Upsert an access point."""
 
@@ -68,6 +71,14 @@ class Store(Protocol):
 
     async def list_clients(self, limit: int, offset: int) -> tuple[list[Client], int]:
         """List client devices."""
+
+    async def list_clients_for_access_point(
+        self,
+        bssid: str,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[Client], int]:
+        """List client devices associated to an access point."""
 
     async def get_client(self, mac: str) -> Client | None:
         """Return a client by MAC."""

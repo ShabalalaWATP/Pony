@@ -57,6 +57,48 @@
         "title": "Last Seen",
         "type": "string"
       },
+      "latitude": {
+        "anyOf": [
+          {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Latitude"
+      },
+      "location_source": {
+        "anyOf": [
+          {
+            "enum": [
+              "sensor_gps",
+              "wigle",
+              "manual"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Location Source"
+      },
+      "longitude": {
+        "anyOf": [
+          {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Longitude"
+      },
       "signal_history": {
         "items": {
           "$ref": "#/components/schemas/SignalSample"
@@ -729,7 +771,8 @@
       "deauth",
       "evil_twin",
       "captive_portal",
-      "mitm"
+      "mitm",
+      "geo"
     ],
     "title": "SensorCapability",
     "type": "string"

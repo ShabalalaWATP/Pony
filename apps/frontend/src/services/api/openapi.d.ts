@@ -61,6 +61,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/access_points/{bssid}/clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Access Point Clients
+         * @description List client devices associated with one access point.
+         *
+         *     Args:
+         *         bssid: Access point BSSID.
+         *         _: Current user.
+         *         store: Application store.
+         *         limit: Page size.
+         *         offset: Page offset.
+         *
+         *     Returns:
+         *         Paginated associated client list.
+         */
+        get: operations["list_access_point_clients_api_v1_access_points__bssid__clients_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit": {
         parameters: {
             query?: never;
@@ -173,6 +203,32 @@ export interface paths {
          *         Public user and CSRF token.
          */
         post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Logout
+         * @description Clear browser session cookies and record a logout audit event.
+         *
+         *     Args:
+         *         response: FastAPI response.
+         *         user: Current authenticated user.
+         *         audit: Audit logger.
+         *         settings: Runtime settings.
+         */
+        post: operations["logout_api_v1_auth_logout_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -604,6 +660,12 @@ export interface components {
              * Format: date-time
              */
             last_seen?: string;
+            /** Latitude */
+            latitude?: number | null;
+            /** Location Source */
+            location_source?: ("sensor_gps" | "wigle" | "manual") | null;
+            /** Longitude */
+            longitude?: number | null;
             /** Signal History */
             signal_history?: components["schemas"]["SignalSample"][];
             /**
@@ -872,7 +934,7 @@ export interface components {
          * @description Capabilities advertised by a sensor.
          * @enum {string}
          */
-        SensorCapability: "passive_capture" | "channel_control" | "active_modules" | "rogue_ap" | "deauth" | "evil_twin" | "captive_portal" | "mitm";
+        SensorCapability: "passive_capture" | "channel_control" | "active_modules" | "rogue_ap" | "deauth" | "evil_twin" | "captive_portal" | "mitm" | "geo";
         /**
          * SensorRegisterRequest
          * @description Sensor registration payload.
@@ -1058,6 +1120,40 @@ export interface operations {
             };
         };
     };
+    list_access_point_clients_api_v1_access_points__bssid__clients_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                bssid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiPage_Client_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_audit_api_v1_audit_get: {
         parameters: {
             query?: {
@@ -1173,6 +1269,24 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    logout_api_v1_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

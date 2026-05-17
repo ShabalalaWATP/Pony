@@ -89,6 +89,13 @@ class InMemoryStore:
         if sensor is not None:
             self.sensors[sensor_id] = sensor.model_copy(update={"revoked": True})
 
+    async def update_sensor(self, sensor: Sensor) -> Sensor:
+        """Persist updated sensor fields."""
+
+        async with self._lock:
+            self.sensors[sensor.id] = sensor
+        return sensor
+
     async def upsert_access_point(self, access_point: AccessPoint) -> AccessPoint:
         """Upsert an access point."""
 
@@ -122,6 +129,23 @@ class InMemoryStore:
         """List client devices."""
 
         values = list(self.clients.values())
+        return values[offset : offset + limit], len(values)
+
+    async def list_clients_for_access_point(
+        self,
+        bssid: str,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[Client], int]:
+        """List client devices associated to an access point."""
+
+        normalized = bssid.upper()
+        values = [
+            client
+            for client in self.clients.values()
+            if client.associated_bssid and client.associated_bssid.upper() == normalized
+        ]
+        values.sort(key=lambda client: client.last_seen, reverse=True)
         return values[offset : offset + limit], len(values)
 
     async def get_client(self, mac: str) -> Client | None:

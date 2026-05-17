@@ -15,12 +15,14 @@ from cheeky_pony_backend.config import Settings, get_settings
 from cheeky_pony_backend.dependencies import (
     check_auth_rate_limit,
     current_user,
+    get_audit_logger,
     get_csrf_service,
     get_password_service,
     get_store,
     get_token_service,
     get_totp_service,
 )
+from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.security import CsrfService, PasswordService, TokenService, TotpService
@@ -185,8 +187,36 @@ async def refresh(
     csrf_token = csrf.create_token()
     _set_cookie(response, "access_token", tokens.create_access_token(user.id, csrf_token), settings)
     _set_cookie(response, "refresh_token", tokens.create_refresh_token(user.id), settings)
-    response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="strict")
+    _set_cookie(response, "csrf_token", csrf_token, settings, httponly=False)
     return LoginResponse(user=_public_user(user), csrf_token=csrf_token)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+    response: Response,
+    user: Annotated[UserRecord, Depends(current_user)],
+    audit: Annotated[AuditLogger, Depends(get_audit_logger)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> None:
+    """Clear browser session cookies and record a logout audit event.
+
+    Args:
+        response: FastAPI response.
+        user: Current authenticated user.
+        audit: Audit logger.
+        settings: Runtime settings.
+    """
+
+    _clear_cookie(response, "access_token", settings, httponly=True)
+    _clear_cookie(response, "refresh_token", settings, httponly=True)
+    _clear_cookie(response, "csrf_token", settings, httponly=False)
+    await audit.record(
+        actor_id=user.id,
+        action="logout",
+        target={},
+        parameters={},
+        outcome="ok",
+    )
 
 
 @router.post("/2fa/setup", response_model=TotpSetupResponse)
@@ -256,11 +286,31 @@ async def _optional_user(
     return await store.get_user(str(claims["sub"]))
 
 
-def _set_cookie(response: Response, name: str, value: str, settings: Settings) -> None:
+def _set_cookie(
+    response: Response,
+    name: str,
+    value: str,
+    settings: Settings,
+    httponly: bool = True,
+) -> None:
     response.set_cookie(
         name,
         value,
-        httponly=True,
+        httponly=httponly,
+        secure=settings.cookie_secure,
+        samesite="strict",
+    )
+
+
+def _clear_cookie(
+    response: Response,
+    name: str,
+    settings: Settings,
+    httponly: bool,
+) -> None:
+    response.delete_cookie(
+        name,
+        httponly=httponly,
         secure=settings.cookie_secure,
         samesite="strict",
     )

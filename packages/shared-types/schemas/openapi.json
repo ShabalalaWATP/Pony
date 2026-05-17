@@ -59,6 +59,48 @@
             "title": "Last Seen",
             "type": "string"
           },
+          "latitude": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -90.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude"
+          },
+          "location_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "sensor_gps",
+                  "wigle",
+                  "manual"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Source"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": -180.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude"
+          },
           "signal_history": {
             "items": {
               "$ref": "#/components/schemas/SignalSample"
@@ -731,7 +773,8 @@
           "deauth",
           "evil_twin",
           "captive_portal",
-          "mitm"
+          "mitm",
+          "geo"
         ],
         "title": "SensorCapability",
         "type": "string"
@@ -1095,6 +1138,72 @@
         ]
       }
     },
+    "/api/v1/access_points/{bssid}/clients": {
+      "get": {
+        "description": "List client devices associated with one access point.\n\nArgs:\n    bssid: Access point BSSID.\n    _: Current user.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated associated client list.",
+        "operationId": "list_access_point_clients_api_v1_access_points__bssid__clients_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bssid",
+            "required": true,
+            "schema": {
+              "title": "Bssid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_Client_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Access Point Clients",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
     "/api/v1/audit": {
       "get": {
         "description": "List audit entries.\n\nArgs:\n    _: Current admin with verified TOTP.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated audit entries.",
@@ -1253,6 +1362,21 @@
           }
         },
         "summary": "Login",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "description": "Clear browser session cookies and record a logout audit event.\n\nArgs:\n    response: FastAPI response.\n    user: Current authenticated user.\n    audit: Audit logger.\n    settings: Runtime settings.",
+        "operationId": "logout_api_v1_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Logout",
         "tags": [
           "auth"
         ]

@@ -36,10 +36,12 @@ export interface components {
 export interface paths {
   "/api/v1/access_points": Record<string, unknown>;
   "/api/v1/access_points/{bssid}": Record<string, unknown>;
+  "/api/v1/access_points/{bssid}/clients": Record<string, unknown>;
   "/api/v1/audit": Record<string, unknown>;
   "/api/v1/auth/2fa/setup": Record<string, unknown>;
   "/api/v1/auth/2fa/verify": Record<string, unknown>;
   "/api/v1/auth/login": Record<string, unknown>;
+  "/api/v1/auth/logout": Record<string, unknown>;
   "/api/v1/auth/refresh": Record<string, unknown>;
   "/api/v1/auth/register": Record<string, unknown>;
   "/api/v1/devices": Record<string, unknown>;
