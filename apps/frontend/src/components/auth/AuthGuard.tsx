@@ -1,7 +1,6 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
-import { Glyph } from "@/components/branding/Glyph";
 import { useCurrentUser } from "@/services/auth/hooks";
 
 interface AuthGuardProps {
@@ -10,8 +9,26 @@ interface AuthGuardProps {
 
 function LoadingShell(): JSX.Element {
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-bg-0">
-      <Glyph className="size-12 animate-pulse text-mode" />
+    <div
+      className="flex h-screen w-screen items-center justify-center bg-bg-0"
+      data-testid="auth-loading-shell"
+    >
+      {/*
+        Brand mark while we resolve the silent refresh. Uses the
+        small variant — at this size the wordmark below the pony
+        head stays legible without forcing a 512px asset on every
+        cold load.
+      */}
+      <img
+        src="/logo-192.png"
+        srcSet="/logo-192.png 192w, /logo-256.png 256w"
+        sizes="96px"
+        alt="Cheeky Pony"
+        width={96}
+        height={96}
+        className="size-24 animate-pulse select-none"
+        draggable={false}
+      />
     </div>
   );
 }
