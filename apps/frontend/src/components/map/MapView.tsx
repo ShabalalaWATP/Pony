@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/domain/EmptyState";
 import { MacAddress } from "@/components/domain/MacAddress";
 import { useAccessPointsList, type AccessPoint } from "@/services/api/queries";
-import { useMapPinsStore } from "@/stores/useMapPinsStore";
+import { type MapPin, useMapPinsStore } from "@/stores/useMapPinsStore";
 
 const MapCanvas = lazy(() => import("./MapCanvas").then((m) => ({ default: m.MapCanvas })));
 
@@ -20,16 +20,21 @@ interface Pending {
 /**
  * Map of operator-located access points.
  *
- * The backend doesn't expose AP coordinates yet — Stage 6 of the
- * backend plan adds GPS dongles to sensors. Until then the operator
- * places pins manually: pick an AP in the sidebar, click on the map.
- * Pins persist in localStorage keyed by BSSID so they survive reloads.
- * When the backend ships a geo endpoint, this view becomes a thin
- * overlay above the real source of truth.
+ * Two layers contribute markers, in precedence order:
+ *
+ *   1. **Operator pins** (localStorage, keyed by BSSID) — the operator
+ *      override. Always wins so manual corrections stick.
+ *   2. **Server-side coords** — APs with `latitude`/`longitude` set by
+ *      a GPS-capable sensor (or back-filled later by WiGLE etc.).
+ *
+ * Manual placement remains for APs the backend can't geolocate yet:
+ * select an AP in the sidebar, click on the map. Clicking a manual pin
+ * removes it; clicking a server-located pin is a no-op (there's
+ * nothing for the operator to remove — it's authoritative data).
  */
 export function MapView(): JSX.Element {
   const query = useAccessPointsList({ limit: 500 });
-  const pins = useMapPinsStore((s) => s.pins);
+  const manualPins = useMapPinsStore((s) => s.pins);
   const setPin = useMapPinsStore((s) => s.setPin);
   const removePin = useMapPinsStore((s) => s.removePin);
   const clear = useMapPinsStore((s) => s.clear);
@@ -49,31 +54,65 @@ export function MapView(): JSX.Element {
     );
   }, [items, filter]);
 
+  // Merge the two layers — manual pins always override server coords.
+  const { mergedPins, serverPlaced } = useMemo(() => {
+    const merged: Record<string, MapPin> = {};
+    const server = new Set<string>();
+    for (const ap of items) {
+      if (ap.latitude == null || ap.longitude == null) continue;
+      const key = ap.bssid.toLowerCase();
+      merged[key] = { lat: ap.latitude, lng: ap.longitude };
+      server.add(key);
+    }
+    for (const [bssid, pin] of Object.entries(manualPins)) {
+      merged[bssid] = pin;
+      server.delete(bssid); // operator override wins
+    }
+    return { mergedPins: merged, serverPlaced: server };
+  }, [items, manualPins]);
+
   const onMapClick = (lngLat: { lng: number; lat: number }): void => {
     if (!pending) return;
     setPin(pending.bssid, { lat: lngLat.lat, lng: lngLat.lng });
     setPending(null);
   };
   const onPinClick = (bssid: string): void => {
+    const key = bssid.toLowerCase();
+    if (serverPlaced.has(key)) return;
     if (window.confirm(`Remove pin for ${bssid}?`)) removePin(bssid);
   };
 
-  const pinCount = Object.keys(pins).length;
+  const manualCount = Object.keys(manualPins).length;
+  const serverCount = serverPlaced.size;
+  const pinCount = Object.keys(mergedPins).length;
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title="Map" total={pinCount}>
-        {pinCount > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (window.confirm("Remove every pin?")) clear();
-            }}
-          >
-            Clear all
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {serverCount > 0 && (
+            <Badge tone="accent" outline>
+              <MapPinIcon className="size-3" aria-hidden="true" />
+              {serverCount} from sensors
+            </Badge>
+          )}
+          {manualCount > 0 && (
+            <Badge tone="neutral" outline>
+              {manualCount} manual
+            </Badge>
+          )}
+          {manualCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (window.confirm("Remove every manual pin?")) clear();
+              }}
+            >
+              Clear manual pins
+            </Button>
+          )}
+        </div>
       </PageHeader>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[280px_1fr]">
@@ -90,14 +129,20 @@ export function MapView(): JSX.Element {
             {filtered.length === 0 && (
               <span className="px-1 py-3 text-xs text-fg-60">No matches.</span>
             )}
-            {filtered.map((ap) => (
-              <ApRow
-                key={ap.bssid}
-                ap={ap}
-                placed={Boolean(pins[ap.bssid.toLowerCase()])}
-                onPlace={() => setPending({ bssid: ap.bssid, label: ap.ssid ?? ap.bssid })}
-              />
-            ))}
+            {filtered.map((ap) => {
+              const key = ap.bssid.toLowerCase();
+              const placed = Boolean(mergedPins[key]);
+              const fromSensor = serverPlaced.has(key);
+              return (
+                <ApRow
+                  key={ap.bssid}
+                  ap={ap}
+                  placed={placed}
+                  fromSensor={fromSensor}
+                  onPlace={() => setPending({ bssid: ap.bssid, label: ap.ssid ?? ap.bssid })}
+                />
+              );
+            })}
           </div>
         </aside>
 
@@ -112,7 +157,7 @@ export function MapView(): JSX.Element {
           ) : (
             <Suspense fallback={<Skeleton className="h-full w-full" />}>
               <MapCanvas
-                pins={pins}
+                pins={mergedPins}
                 pending={pending}
                 onMapClick={onMapClick}
                 onPinClick={onPinClick}
@@ -136,10 +181,11 @@ export function MapView(): JSX.Element {
 interface ApRowProps {
   ap: AccessPoint;
   placed: boolean;
+  fromSensor: boolean;
   onPlace: () => void;
 }
 
-function ApRow({ ap, placed, onPlace }: ApRowProps): JSX.Element {
+function ApRow({ ap, placed, fromSensor, onPlace }: ApRowProps): JSX.Element {
   return (
     <button
       type="button"
@@ -152,9 +198,9 @@ function ApRow({ ap, placed, onPlace }: ApRowProps): JSX.Element {
           {ap.ssid ?? <span className="italic text-fg-40">&lt;hidden&gt;</span>}
         </span>
         {placed && (
-          <Badge tone="accent" outline>
+          <Badge tone={fromSensor ? "accent" : "neutral"} outline>
             <MapPinIcon className="size-3" aria-hidden="true" />
-            placed
+            {fromSensor ? "from sensor" : "placed"}
           </Badge>
         )}
       </div>

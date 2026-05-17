@@ -85,10 +85,15 @@ export const authHandlers = [
     return HttpResponse.json<UserPublic>({ ...fixtures.user, totp_enabled: true }, { status: 200 });
   }),
 
+  http.post("/api/v1/auth/logout", () => new HttpResponse(null, { status: 204 })),
+
   // Data endpoints — default empty pages so list pages don't 5xx in tests
   // that don't bother to override them.
   http.get("/api/v1/access_points", () =>
     HttpResponse.json({ items: [fixtures.accessPoint], total: 1, limit: 100, offset: 0 }),
+  ),
+  http.get("/api/v1/access_points/:bssid/clients", () =>
+    HttpResponse.json({ items: [fixtures.device], total: 1, limit: 100, offset: 0 }),
   ),
   http.get("/api/v1/devices", () =>
     HttpResponse.json({ items: [fixtures.device], total: 1, limit: 100, offset: 0 }),

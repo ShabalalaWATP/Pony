@@ -80,12 +80,54 @@ describe("useLogin", () => {
 });
 
 describe("useLogout", () => {
-  it("clears the currentUser cache", async () => {
+  it("POSTs /auth/logout and clears the currentUser cache + dependent server caches", async () => {
+    let logoutHit = false;
+    server.use(
+      http.post("/api/v1/auth/logout", () => {
+        logoutHit = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const { wrapper, qc } = wrapperFactory();
+    qc.setQueryData(AUTH_QUERY_KEY, { csrf_token: "x", user: fixtures.user });
+    qc.setQueryData(["sensors", { limit: 1, offset: 0 }], { items: [{ id: "s1" }] });
+    qc.setQueryData(["devices", { limit: 1, offset: 0 }], { items: [{ mac: "x" }] });
+    const { result } = renderHook(() => useLogout(), { wrapper });
+    result.current.mutate();
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(logoutHit).toBe(true);
+    expect(qc.getQueryData(AUTH_QUERY_KEY)).toBeNull();
+    expect(qc.getQueryData(["sensors", { limit: 1, offset: 0 }])).toBeUndefined();
+    expect(qc.getQueryData(["devices", { limit: 1, offset: 0 }])).toBeUndefined();
+  });
+
+  it("still clears local state when the backend returns 401 (session already gone)", async () => {
+    server.use(
+      http.post("/api/v1/auth/logout", () =>
+        HttpResponse.json({ detail: "Not auth" }, { status: 401 }),
+      ),
+    );
     const { wrapper, qc } = wrapperFactory();
     qc.setQueryData(AUTH_QUERY_KEY, { csrf_token: "x", user: fixtures.user });
     const { result } = renderHook(() => useLogout(), { wrapper });
     result.current.mutate();
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(qc.getQueryData(AUTH_QUERY_KEY)).toBeNull();
+  });
+
+  it("surfaces non-401 errors but still flushes local state", async () => {
+    server.use(
+      http.post("/api/v1/auth/logout", () =>
+        HttpResponse.json({ detail: "Boom" }, { status: 500 }),
+      ),
+    );
+    const { wrapper, qc } = wrapperFactory();
+    qc.setQueryData(AUTH_QUERY_KEY, { csrf_token: "x", user: fixtures.user });
+    const { result } = renderHook(() => useLogout(), { wrapper });
+    result.current.mutate();
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.status).toBe(500);
+    // onSettled still ran.
     expect(qc.getQueryData(AUTH_QUERY_KEY)).toBeNull();
   });
 });

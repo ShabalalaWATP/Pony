@@ -51,6 +51,32 @@ export function useAccessPointsList(pagination: Pagination = {}) {
   });
 }
 
+/**
+ * Clients currently (or recently) associated with a specific access
+ * point. Backend route: `GET /api/v1/access_points/{bssid}/clients`.
+ *
+ * The hook is keyed by lower-cased BSSID so the cache survives the
+ * MAC-case quirks seen in different vendor stacks. Disabled until a
+ * BSSID is supplied to avoid a wasted request the moment a drawer
+ * mounts before its row is selected.
+ */
+export function useApAssociatedClients(
+  bssid: string | null | undefined,
+  pagination: Pagination = {},
+) {
+  const { limit = 100, offset = 0 } = pagination;
+  const normalised = bssid?.toLowerCase() ?? "";
+  return useQuery<Page<Client>, ApiError>({
+    queryKey: ["access_points", normalised, "clients", { limit, offset }],
+    queryFn: () =>
+      apiClient.get<Page<Client>>(
+        withQuery(`/access_points/${encodeURIComponent(normalised)}/clients`, { limit, offset }),
+      ),
+    enabled: Boolean(normalised),
+    staleTime: PAGE_STALE_TIME,
+  });
+}
+
 export function useEventsList(pagination: Pagination = {}) {
   const { limit = 50, offset = 0 } = pagination;
   return useQuery<Page<Event>, ApiError>({

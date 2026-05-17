@@ -93,4 +93,69 @@ describe("MapView", () => {
       expect(screen.getAllByText(/placed/i).length).toBeGreaterThan(0);
     });
   });
+
+  it("merges server-side AP coordinates with manual pins, server-side counted separately", async () => {
+    useMapPinsStore.setState({ pins: {} });
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({
+          items: [
+            {
+              bssid: "aa:bb:cc:dd:ee:01",
+              ssid: "Alpha",
+              channel: 6,
+              signal_history: [],
+              latitude: 51.5,
+              longitude: -0.1,
+              location_source: "sensor_gps",
+            },
+            { bssid: "aa:bb:cc:dd:ee:02", ssid: "Bravo", channel: 11, signal_history: [] },
+          ],
+          total: 2,
+          limit: 500,
+          offset: 0,
+        }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<MapView />);
+    render(node);
+    await screen.findByText("Alpha");
+    // Map canvas stub gets one merged pin (Alpha's server coords).
+    expect(await screen.findByText(/1 pins/)).toBeInTheDocument();
+    // Page header surfaces the server-located count.
+    expect(await screen.findByText(/from sensors/i)).toBeInTheDocument();
+  });
+
+  it("operator pin overrides server coords for the same BSSID", async () => {
+    useMapPinsStore.setState({
+      pins: { "aa:bb:cc:dd:ee:01": { lat: 0, lng: 0 } },
+    });
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({
+          items: [
+            {
+              bssid: "aa:bb:cc:dd:ee:01",
+              ssid: "Alpha",
+              channel: 6,
+              signal_history: [],
+              latitude: 51.5,
+              longitude: -0.1,
+              location_source: "sensor_gps",
+            },
+          ],
+          total: 1,
+          limit: 500,
+          offset: 0,
+        }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<MapView />);
+    render(node);
+    await screen.findByText("Alpha");
+    // Override count visible in the page header.
+    expect(await screen.findByText(/1 manual/i)).toBeInTheDocument();
+    // …and "from sensors" badge is NOT shown (server count drops to 0).
+    expect(screen.queryByText(/from sensors/i)).toBeNull();
+  });
 });

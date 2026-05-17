@@ -45,17 +45,34 @@ export function useLogin() {
 }
 
 /**
- * Client-side logout. The backend currently doesn't expose `/auth/logout`,
- * so this clears local query state + leaves the cookies to expire.
- * Codex can wire a real revocation endpoint later — when they do, swap
- * the noop here for the `apiClient.post('/auth/logout')` call and the
- * UI will not change.
+ * Sign out the current operator.
+ *
+ * Calls `POST /api/v1/auth/logout`, which the backend uses to:
+ *   1. Invalidate the access + refresh tokens server-side.
+ *   2. Clear the `access_token`, `refresh_token`, and `csrf_token`
+ *      cookies (Set-Cookie with `Max-Age=0`).
+ *   3. Write an audit-log entry attributed to the actor.
+ *
+ * On the client we then clear the auth cache and remove every
+ * server-state query that depended on the session so the next route
+ * load starts cold. Any failure (network error, 401 from an already-
+ * expired session, etc.) still flushes the local cache — the operator
+ * shouldn't be stuck "signed in" client-side if the backend already
+ * thinks the session is gone.
  */
 export function useLogout() {
   const qc = useQueryClient();
-  return useMutation<null, ApiError, void>({
-    mutationFn: () => Promise.resolve(null),
-    onSuccess: () => {
+  return useMutation<void, ApiError, void>({
+    mutationFn: async () => {
+      try {
+        await apiClient.post<undefined>("/auth/logout");
+      } catch (err) {
+        // 401 here means the session is already gone — treat as success
+        // so the operator isn't blocked from clearing local state.
+        if (!(err instanceof ApiError) || err.status !== 401) throw err;
+      }
+    },
+    onSettled: () => {
       qc.setQueryData(AUTH_QUERY_KEY, null);
       qc.removeQueries({ queryKey: ["sensors"] });
       qc.removeQueries({ queryKey: ["devices"] });
