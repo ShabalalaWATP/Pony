@@ -13,7 +13,9 @@ build/
 .env.*
 !.env.example
 node_modules/
-pnpm-lock.yaml
+# `pnpm-lock.yaml` is tracked so dependency advisories (incl. nested
+# transitives like esbuild) stay reproducible across machines and
+# `pnpm audit` runs against a known tree.
 uv.lock
 .DS_Store
 *.pyc

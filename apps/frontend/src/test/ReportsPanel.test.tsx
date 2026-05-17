@@ -74,6 +74,29 @@ describe("ReportsPanel", () => {
     expect(link).toHaveAttribute("download");
   });
 
+  it("suppresses the download anchor when download_url is off-origin / unsafe", async () => {
+    server.use(
+      http.post("/api/v1/engagements/:id/reports", () =>
+        HttpResponse.json({ report_id: "evil1234567", status: "pending" }, { status: 202 }),
+      ),
+      http.get("/api/v1/engagements/:id/reports/:reportId", () =>
+        HttpResponse.json({
+          status: "ready",
+          download_url: "https://evil.example/leak.pdf",
+        }),
+      ),
+    );
+    const { node } = withQuery(<ReportsPanel engagement={engagement} />);
+    render(node);
+    await userEvent.click(screen.getByRole("button", { name: /^generate$/i }));
+    // Row reaches ready state, but no download link is rendered.
+    const row = await screen.findByTestId("report-row");
+    expect(row).toHaveAttribute("data-status", "ready");
+    expect(screen.queryByRole("link", { name: /download report evil/i })).toBeNull();
+    // A loud warning surfaces in place of the link.
+    expect(await screen.findByTestId("download-blocked")).toBeInTheDocument();
+  });
+
   it("surfaces the backend error string when status is failed", async () => {
     server.use(
       http.post("/api/v1/engagements/:id/reports", () =>

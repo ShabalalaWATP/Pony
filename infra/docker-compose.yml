@@ -38,8 +38,11 @@ services:
     build:
       context: ..
       dockerfile: infra/frontend-placeholder.Dockerfile
+    # The hardened image binds nginx on 8080 (>1024) so the
+    # unprivileged `nginx` user can listen without
+    # CAP_NET_BIND_SERVICE.
     ports:
-      - "5173:80"
+      - "5173:8080"
 
 volumes:
   mongo-data:

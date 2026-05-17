@@ -59,5 +59,7 @@ services:
     build:
       context: ..
       dockerfile: infra/frontend-placeholder.Dockerfile
+    # See infra/frontend/nginx.conf: nginx binds 8080 as the
+    # unprivileged `nginx` user.
     ports:
-      - "5173:80"
+      - "5173:8080"
