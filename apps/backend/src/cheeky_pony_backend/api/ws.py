@@ -3,15 +3,31 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from typing import Any
+
 import jwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
 from cheeky_pony_backend.config import Settings
 from cheeky_pony_backend.domain.alerts import AlertRuleEngine
+from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.infra.operator_broker import OperatorBroker
+from cheeky_pony_backend.infra.sensor_command_broker import (
+    SensorCommandBroker,
+    SensorCommandMetadata,
+)
 from cheeky_pony_backend.security import TokenService
-from cheeky_pony_shared import AccessPoint, Client, Event, EventKind, Sensor, SensorCapability
+from cheeky_pony_shared import (
+    AccessPoint,
+    AuditLog,
+    Client,
+    Event,
+    EventKind,
+    Sensor,
+    SensorCapability,
+)
 
 router = APIRouter(prefix="/ws", tags=["websocket"])
 
@@ -35,13 +51,18 @@ async def sensor_gateway(websocket: WebSocket) -> None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     broker: OperatorBroker = websocket.app.state.operator_broker
+    command_broker: SensorCommandBroker = websocket.app.state.sensor_command_broker
     await websocket.accept()
+    await command_broker.connect(sensor_id, websocket)
     try:
         while True:
             payload = await websocket.receive_json()
+            if await _handle_command_result(sensor_id, payload, store, broker, command_broker):
+                continue
             event = Event.model_validate(payload)
             await _persist_event(store, broker, event)
     except WebSocketDisconnect:
+        await command_broker.disconnect(sensor_id, websocket)
         return
 
 
@@ -158,3 +179,69 @@ def _capabilities_from_payload(value: object) -> list[SensorCapability] | None:
         except ValueError:
             continue
     return capabilities
+
+
+async def _handle_command_result(
+    sensor_id: str,
+    payload: object,
+    store: Store,
+    broker: OperatorBroker,
+    command_broker: SensorCommandBroker,
+) -> bool:
+    if not isinstance(payload, dict) or payload.get("kind") != "command_result":
+        return False
+    result = payload.get("payload")
+    if not isinstance(result, dict):
+        return True
+    command_id = str(result.get("command_id", ""))
+    if not command_id:
+        return True
+    metadata = await command_broker.complete(command_id)
+    if metadata is None:
+        return True
+    audit = await _audit_command_result(store, metadata, result)
+    await broker.broadcast(_command_result_message(sensor_id, metadata, result, audit))
+    return True
+
+
+async def _audit_command_result(
+    store: Store,
+    metadata: SensorCommandMetadata,
+    result: dict[Any, Any],
+) -> AuditLog:
+    finished_at = datetime.now(tz=UTC)
+    accepted = result.get("accepted") is True
+    return await AuditLogger(store).record(
+        metadata.actor_id,
+        f"sensors.commands.{metadata.command.value}.result",
+        {"sensor_id": metadata.sensor_id, "command_id": metadata.command_id},
+        {
+            "accepted": accepted,
+            "sensor_outcome": str(result.get("outcome", "")),
+            "start_audit_id": metadata.audit_id,
+        },
+        "ok" if accepted else "error",
+        started_at=metadata.started_at,
+        finished_at=finished_at,
+        raw_tool_output_ref=f"sensor-command:{metadata.command_id}",
+    )
+
+
+def _command_result_message(
+    sensor_id: str,
+    metadata: SensorCommandMetadata,
+    result: dict[Any, Any],
+    audit: AuditLog,
+) -> dict[str, Any]:
+    accepted = result.get("accepted") is True
+    finished_at = audit.finished_at or datetime.now(tz=UTC)
+    return {
+        "kind": "command_result",
+        "sensor_id": sensor_id,
+        "command_id": metadata.command_id,
+        "command": metadata.command.value,
+        "outcome": "ok" if accepted else "error",
+        "started_at": metadata.started_at.isoformat(),
+        "finished_at": finished_at.isoformat(),
+        "audit_id": audit.id,
+    }

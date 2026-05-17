@@ -12,6 +12,7 @@ from cheeky_pony_backend.config import Settings, get_settings
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.users import UserRecord
+from cheeky_pony_backend.infra.sensor_command_broker import SensorCommandBroker
 from cheeky_pony_backend.security import (
     CsrfService,
     PasswordService,
@@ -37,6 +38,19 @@ def get_store(request: Request) -> Store:
     """
 
     return cast(Store, request.app.state.store)
+
+
+def get_sensor_command_broker(request: Request) -> SensorCommandBroker:
+    """Return the sensor command broker from FastAPI state.
+
+    Args:
+        request: FastAPI request.
+
+    Returns:
+        Sensor command broker.
+    """
+
+    return cast(SensorCommandBroker, request.app.state.sensor_command_broker)
 
 
 def get_password_service() -> PasswordService:

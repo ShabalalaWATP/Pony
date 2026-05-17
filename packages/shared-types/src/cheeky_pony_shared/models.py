@@ -64,6 +64,8 @@ class TargetKind(StrEnum):
 class CommandKind(StrEnum):
     """Commands sent from backend to sensors."""
 
+    RESTART = "restart"
+    UPDATE = "update"
     START_CAPTURE = "start_capture"
     STOP_CAPTURE = "stop_capture"
     SET_CHANNEL = "set_channel"
