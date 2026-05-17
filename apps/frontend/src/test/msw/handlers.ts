@@ -149,12 +149,27 @@ export const authHandlers = [
   http.get("/api/v1/access_points", () =>
     HttpResponse.json({ items: [fixtures.accessPoint], total: 1, limit: 100, offset: 0 }),
   ),
+  http.get("/api/v1/access_points/:bssid", ({ params }) => {
+    if (
+      typeof params.bssid === "string" &&
+      params.bssid.toLowerCase() === fixtures.accessPoint.bssid
+    ) {
+      return HttpResponse.json(fixtures.accessPoint);
+    }
+    return HttpResponse.json({ detail: "access point not found" }, { status: 404 });
+  }),
   http.get("/api/v1/access_points/:bssid/clients", () =>
     HttpResponse.json({ items: [fixtures.device], total: 1, limit: 100, offset: 0 }),
   ),
   http.get("/api/v1/devices", () =>
     HttpResponse.json({ items: [fixtures.device], total: 1, limit: 100, offset: 0 }),
   ),
+  http.get("/api/v1/devices/:mac", ({ params }) => {
+    if (typeof params.mac === "string" && params.mac.toLowerCase() === fixtures.device.mac) {
+      return HttpResponse.json(fixtures.device);
+    }
+    return HttpResponse.json({ detail: "device not found" }, { status: 404 });
+  }),
   http.get("/api/v1/events", () =>
     HttpResponse.json({ items: [fixtures.event], total: 1, limit: 50, offset: 0 }),
   ),

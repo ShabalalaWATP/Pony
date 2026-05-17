@@ -2,16 +2,15 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { DataTable } from "@/components/ui/DataTable";
-import { DetailRow, DetailSection } from "@/components/ui/DetailGrid";
 import { Drawer } from "@/components/ui/Drawer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/domain/EmptyState";
 import { MacAddress } from "@/components/domain/MacAddress";
 import { RelativeTime } from "@/components/domain/RelativeTime";
 import { SignalBars } from "@/components/domain/SignalBars";
-import { SignalSparkline } from "@/components/domain/SignalSparkline";
-import { latestRssi, rssiSeries } from "@/lib/signal-helpers";
+import { latestRssi } from "@/lib/signal-helpers";
 import { useDevicesList, type Client } from "@/services/api/queries";
+import { DeviceDetail } from "./DeviceDetail";
 
 const columns: ColumnDef<Client, unknown>[] = [
   {
@@ -79,8 +78,9 @@ const columns: ColumnDef<Client, unknown>[] = [
 /**
  * Clients (WiFi devices) list view: every probe-emitting or
  * associated device the sensors have observed. Detail drawer is
- * deep-linkable via `?mac=`. Stage 6 (analysis pack) will add
- * per-AP association timelines and the watch-this-device rule helper.
+ * deep-linkable via `?mac=` and resolves through
+ * `GET /api/v1/devices/{mac}`, so a link from outside still loads
+ * even when the MAC isn't on the visible list page.
  */
 export function DevicesView(): JSX.Element {
   const navigate = useNavigate();
@@ -89,7 +89,7 @@ export function DevicesView(): JSX.Element {
   const [searchTerm, setSearchTerm] = useState(search.q ?? "");
 
   const items = useMemo(() => query.data?.items ?? [], [query.data?.items]);
-  const selected = useMemo(
+  const seed = useMemo(
     () => (search.mac ? items.find((c) => c.mac === search.mac) : undefined),
     [search.mac, items],
   );
@@ -130,107 +130,16 @@ export function DevicesView(): JSX.Element {
       />
 
       <Drawer
-        open={Boolean(selected)}
+        open={Boolean(search.mac)}
         onClose={close}
         title={
           <div className="flex items-center gap-3 truncate">
-            <MacAddress value={selected?.mac ?? search.mac ?? ""} />
+            <MacAddress value={seed?.mac ?? search.mac ?? ""} />
           </div>
         }
       >
-        {selected ? (
-          <DeviceDetail client={selected} />
-        ) : (
-          <EmptyState title="Device not in current page" />
-        )}
+        {search.mac ? <DeviceDetail mac={search.mac} seed={seed} /> : null}
       </Drawer>
-    </div>
-  );
-}
-
-function DeviceDetail({ client }: { client: Client }): JSX.Element {
-  const dbm = latestRssi(client);
-  const series = rssiSeries(client);
-  return (
-    <div className="flex flex-col gap-5">
-      <DetailSection label="Identity">
-        <DetailRow
-          label="MAC"
-          value={<MacAddress value={client.mac} vendor={client.vendor_oui ?? undefined} />}
-        />
-        <DetailRow
-          label="Vendor"
-          value={client.vendor_oui ?? <span className="text-fg-40">unknown</span>}
-        />
-        <DetailRow
-          label="Associated AP"
-          value={
-            client.associated_bssid ? (
-              <MacAddress value={client.associated_bssid} />
-            ) : (
-              <span className="text-fg-40">none</span>
-            )
-          }
-        />
-      </DetailSection>
-
-      <DetailSection label="Probes">
-        {(client.probes ?? []).length === 0 ? (
-          <span className="text-xs text-fg-60">No probes captured yet.</span>
-        ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {(client.probes ?? []).map((p) => (
-              <code
-                key={p}
-                className="rounded-xs border border-fg-20 bg-bg-inset px-1.5 py-0.5 font-mono text-2xs text-fg-80"
-              >
-                {p}
-              </code>
-            ))}
-          </div>
-        )}
-      </DetailSection>
-
-      <DetailSection label="Signal">
-        <div className="flex items-center gap-3">
-          {dbm !== null ? <SignalBars dbm={dbm} /> : <span className="text-fg-40">—</span>}
-        </div>
-        {series.length > 0 && (
-          <div className="rounded-sm border border-fg-20 bg-bg-inset p-3">
-            <SignalSparkline samples={series} width={420} height={48} />
-          </div>
-        )}
-      </DetailSection>
-
-      <DetailSection label="Activity">
-        <DetailRow
-          label="First seen"
-          value={
-            client.first_seen ? (
-              <RelativeTime value={client.first_seen} />
-            ) : (
-              <span className="text-fg-40">—</span>
-            )
-          }
-        />
-        <DetailRow
-          label="Last seen"
-          value={
-            client.last_seen ? (
-              <RelativeTime value={client.last_seen} />
-            ) : (
-              <span className="text-fg-40">—</span>
-            )
-          }
-        />
-      </DetailSection>
-
-      <DetailSection label="Coming in Stage 6">
-        <p className="text-xs text-fg-60">
-          Per-AP association timeline and a one-click "Watch this device" alert rule arrive with the
-          analysis pack.
-        </p>
-      </DetailSection>
     </div>
   );
 }

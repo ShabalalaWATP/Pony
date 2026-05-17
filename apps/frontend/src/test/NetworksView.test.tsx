@@ -182,6 +182,46 @@ describe("NetworksView", () => {
     expect(await screen.findByText(/no clients are currently associated/i)).toBeInTheDocument();
   });
 
+  it("deep-link to a BSSID outside the visible page loads from the detail endpoint", async () => {
+    server.use(
+      // List page intentionally does not contain the deep-linked BSSID.
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 500, offset: 0 }),
+      ),
+      http.get("/api/v1/access_points/:bssid", () =>
+        HttpResponse.json({
+          bssid: "aa:bb:cc:dd:ee:de",
+          ssid: "DeepLinkNet",
+          channel: 6,
+          encryption: ["WPA2"],
+          signal_history: [{ rssi_dbm: -50 }],
+        }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<NetworksView />, {
+      initialPath: "/networks?bssid=aa:bb:cc:dd:ee:de",
+    });
+    render(node);
+    expect(await screen.findByTestId("ap-detail")).toBeInTheDocument();
+    expect(screen.getByText("DeepLinkNet")).toBeInTheDocument();
+  });
+
+  it("deep-link to an unknown BSSID renders the 'not seen yet' state", async () => {
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 500, offset: 0 }),
+      ),
+      http.get("/api/v1/access_points/:bssid", () =>
+        HttpResponse.json({ detail: "not found" }, { status: 404 }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<NetworksView />, {
+      initialPath: "/networks?bssid=aa:bb:cc:dd:ee:ff",
+    });
+    render(node);
+    expect(await screen.findByText(/not seen yet/i)).toBeInTheDocument();
+  });
+
   it("filters by SSID", async () => {
     server.use(
       http.get("/api/v1/access_points", () =>
