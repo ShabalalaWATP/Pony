@@ -7,6 +7,7 @@ import jwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
 from cheeky_pony_backend.config import Settings
+from cheeky_pony_backend.domain.alerts import AlertRuleEngine
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.infra.operator_broker import OperatorBroker
 from cheeky_pony_backend.security import TokenService
@@ -98,6 +99,8 @@ async def _persist_event(store: Store, broker: OperatorBroker, event: Event) -> 
             await broker.broadcast(
                 {"kind": "sensors.update", "sensor": sensor.model_dump(mode="json")}
             )
+    for alert in await AlertRuleEngine(store).evaluate_event(event):
+        await broker.broadcast({"kind": "alerts.fire", "alert": alert.model_dump(mode="json")})
 
 
 async def _access_point_from_event(store: Store, event: Event) -> AccessPoint:

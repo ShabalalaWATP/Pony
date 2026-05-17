@@ -9,7 +9,7 @@ import uvicorn
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from cheeky_pony_backend.api.v1 import audit, auth, devices, engagements, sensors, system
+from cheeky_pony_backend.api.v1 import alerts, audit, auth, devices, engagements, sensors, system
 from cheeky_pony_backend.api.ws import router as ws_router
 from cheeky_pony_backend.config import Settings, get_settings
 from cheeky_pony_backend.domain.ports import Store
@@ -98,6 +98,7 @@ def _install_routes(app: FastAPI) -> None:
     app.include_router(auth.router, prefix="/api/v1")
     app.include_router(sensors.router, prefix="/api/v1")
     app.include_router(devices.router, prefix="/api/v1")
+    app.include_router(alerts.router, prefix="/api/v1")
     app.include_router(audit.router, prefix="/api/v1")
     app.include_router(system.router, prefix="/api/v1")
     app.include_router(engagements.router, prefix="/api/v1")

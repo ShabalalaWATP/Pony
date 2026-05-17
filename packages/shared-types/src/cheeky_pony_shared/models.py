@@ -150,6 +150,19 @@ class Alert(StrictBase):
     acked_at: datetime | None = None
 
 
+class AlertRule(StrictBase):
+    """Operator-managed alert rule evaluated against normalized events."""
+
+    id: str = Field(min_length=1, max_length=128)
+    name: str = Field(min_length=1, max_length=128)
+    description: str | None = Field(default=None, max_length=512)
+    severity: AlertSeverity
+    enabled: bool = True
+    predicate: dict[str, Any]
+    created_by: str = Field(min_length=1, max_length=128)
+    created_at: datetime = Field(default_factory=utc_now)
+
+
 class AuditLog(StrictBase):
     """Append-only audit log entry."""
 

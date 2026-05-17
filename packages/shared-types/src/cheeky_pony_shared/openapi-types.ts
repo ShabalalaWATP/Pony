@@ -3,8 +3,15 @@ export interface components {
   schemas: {
     "AccessPoint": unknown;
     "AcknowledgementRequest": unknown;
+    "Alert": unknown;
+    "AlertRule": unknown;
+    "AlertRuleCreateRequest": unknown;
+    "AlertRuleUpdateRequest": unknown;
+    "AlertSeverity": unknown;
     "AllowTargetRequest": unknown;
     "ApiPage_AccessPoint_": unknown;
+    "ApiPage_AlertRule_": unknown;
+    "ApiPage_Alert_": unknown;
     "ApiPage_AuditLog_": unknown;
     "ApiPage_Client_": unknown;
     "ApiPage_Event_": unknown;
@@ -37,6 +44,10 @@ export interface paths {
   "/api/v1/access_points": Record<string, unknown>;
   "/api/v1/access_points/{bssid}": Record<string, unknown>;
   "/api/v1/access_points/{bssid}/clients": Record<string, unknown>;
+  "/api/v1/alerts": Record<string, unknown>;
+  "/api/v1/alerts/rules": Record<string, unknown>;
+  "/api/v1/alerts/rules/{rule_id}": Record<string, unknown>;
+  "/api/v1/alerts/{alert_id}/ack": Record<string, unknown>;
   "/api/v1/audit": Record<string, unknown>;
   "/api/v1/auth/2fa/setup": Record<string, unknown>;
   "/api/v1/auth/2fa/verify": Record<string, unknown>;
