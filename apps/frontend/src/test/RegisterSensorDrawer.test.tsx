@@ -32,7 +32,6 @@ describe("RegisterSensorDrawer", () => {
     clipboardSpy.mockClear();
   });
   afterEach(() => {
-    // @ts-expect-error -- jsdom permits deleting the stubbed property
     delete (navigator as { clipboard?: unknown }).clipboard;
   });
 
@@ -146,10 +145,14 @@ describe("RegisterSensorDrawer", () => {
   });
 
   it("toggles capability checkboxes into the payload", async () => {
-    let receivedBody: { capabilities?: string[] } | null = null;
+    // Wrap in an object so TS's closure narrowing doesn't widen the
+    // captured value to `never` after the initial `null` literal —
+    // `tsc -b` (CI) treats the closure write as opaque, so reading
+    // `receivedBody.capabilities` directly off a `let` errors.
+    const captured: { body: { capabilities?: string[] } | null } = { body: null };
     server.use(
       http.post("/api/v1/sensors", async ({ request }) => {
-        receivedBody = (await request.json()) as { capabilities?: string[] };
+        captured.body = (await request.json()) as { capabilities?: string[] };
         return HttpResponse.json(fixtures.sensorRegister);
       }),
     );
@@ -159,7 +162,7 @@ describe("RegisterSensorDrawer", () => {
     await userEvent.click(screen.getByLabelText(/channel control/i));
     await userEvent.click(screen.getByLabelText(/^geo$/i));
     await userEvent.click(screen.getByRole("button", { name: /^register sensor$/i }));
-    await waitFor(() => expect(receivedBody).not.toBeNull());
-    expect(receivedBody?.capabilities).toEqual(["passive_capture", "channel_control", "geo"]);
+    await waitFor(() => expect(captured.body).not.toBeNull());
+    expect(captured.body?.capabilities).toEqual(["passive_capture", "channel_control", "geo"]);
   });
 });
