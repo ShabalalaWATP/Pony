@@ -18,7 +18,7 @@ describe("LabView", () => {
     expect(btn).toBeDisabled();
   });
 
-  it("renders the engagement panel + active commands when an engagement is live", async () => {
+  it("renders the engagement panel + active commands + reports panel when an engagement is live", async () => {
     server.use(
       http.get("/api/v1/engagements/active", () => HttpResponse.json(fixtures.engagement)),
       http.get("/api/v1/lab/active", () =>
@@ -38,6 +38,14 @@ describe("LabView", () => {
     expect(await screen.findByTestId("active-lab-commands")).toHaveTextContent(
       fixtures.labActiveCommand.target.value,
     );
+    expect(await screen.findByTestId("reports-panel")).toBeInTheDocument();
+  });
+
+  it("does NOT render the reports panel when no engagement is active", async () => {
+    const { node } = withQueryAndRouter(<LabView />, { initialPath: "/lab" });
+    render(node);
+    await screen.findByText(/no active engagement/i);
+    expect(screen.queryByTestId("reports-panel")).toBeNull();
   });
 
   it("opens the start dialog when a module card's Configure button is clicked", async () => {
