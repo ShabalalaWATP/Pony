@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 
+from cheeky_pony_backend.domain.reports import ReportRecord
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_shared import (
     AccessPoint,
@@ -37,6 +38,7 @@ class InMemoryStore:
         self.acknowledgements: dict[str, SystemAcknowledgement] = {}
         self.engagements: dict[str, Engagement] = {}
         self.allow_list: set[tuple[str, TargetKind, str]] = set()
+        self.reports: dict[str, ReportRecord] = {}
 
     async def ensure_indexes(self) -> None:
         """No-op for in-memory storage."""
@@ -292,6 +294,33 @@ class InMemoryStore:
         """Return whether a target is allowed."""
 
         return (engagement_id, kind, value.upper()) in self.allow_list
+
+    async def create_report(self, report: ReportRecord) -> ReportRecord:
+        """Persist a report request."""
+
+        async with self._lock:
+            self.reports[report.id] = report
+        return report
+
+    async def get_report(self, engagement_id: str, report_id: str) -> ReportRecord | None:
+        """Return a report by engagement and id."""
+
+        report = self.reports.get(report_id)
+        if report is None or report.engagement_id != engagement_id:
+            return None
+        return report
+
+    async def get_report_by_id(self, report_id: str) -> ReportRecord | None:
+        """Return a report by id."""
+
+        return self.reports.get(report_id)
+
+    async def update_report(self, report: ReportRecord) -> ReportRecord:
+        """Persist updated report fields."""
+
+        async with self._lock:
+            self.reports[report.id] = report
+        return report
 
 
 def _filter_alerts(

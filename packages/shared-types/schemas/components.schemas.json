@@ -1176,6 +1176,106 @@
     "title": "RegisterRequest",
     "type": "object"
   },
+  "ReportCreateRequest": {
+    "additionalProperties": false,
+    "description": "Report creation request.",
+    "properties": {
+      "format": {
+        "$ref": "#/components/schemas/ReportFormat"
+      },
+      "since": {
+        "format": "date-time",
+        "title": "Since",
+        "type": "string"
+      },
+      "until": {
+        "format": "date-time",
+        "title": "Until",
+        "type": "string"
+      }
+    },
+    "required": [
+      "format",
+      "since",
+      "until"
+    ],
+    "title": "ReportCreateRequest",
+    "type": "object"
+  },
+  "ReportCreateResponse": {
+    "description": "Report creation response.",
+    "properties": {
+      "report_id": {
+        "title": "Report Id",
+        "type": "string"
+      },
+      "status": {
+        "$ref": "#/components/schemas/ReportStatus"
+      }
+    },
+    "required": [
+      "report_id",
+      "status"
+    ],
+    "title": "ReportCreateResponse",
+    "type": "object"
+  },
+  "ReportFormat": {
+    "description": "Supported engagement report formats.",
+    "enum": [
+      "pdf",
+      "html",
+      "pcap",
+      "jsonl"
+    ],
+    "title": "ReportFormat",
+    "type": "string"
+  },
+  "ReportStatus": {
+    "description": "Engagement report generation states.",
+    "enum": [
+      "pending",
+      "ready",
+      "failed"
+    ],
+    "title": "ReportStatus",
+    "type": "string"
+  },
+  "ReportStatusResponse": {
+    "description": "Report status response.",
+    "properties": {
+      "download_url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Download Url"
+      },
+      "error": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Error"
+      },
+      "status": {
+        "$ref": "#/components/schemas/ReportStatus"
+      }
+    },
+    "required": [
+      "status"
+    ],
+    "title": "ReportStatusResponse",
+    "type": "object"
+  },
   "Sensor": {
     "additionalProperties": false,
     "description": "Registered sensor identity and health metadata.",

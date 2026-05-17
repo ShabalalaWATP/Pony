@@ -7,6 +7,7 @@ from typing import Any
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
+from cheeky_pony_backend.domain.reports import ReportRecord
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_shared import (
     AccessPoint,
@@ -44,6 +45,7 @@ class MongoStore:
             [("engagement_id", 1), ("kind", 1), ("value", 1)],
             unique=True,
         )
+        await self.db.reports.create_index([("engagement_id", 1), ("id", 1)], unique=True)
 
     async def count_users(self) -> int:
         """Return the number of users."""
@@ -336,6 +338,37 @@ class MongoStore:
             )
             > 0
         )
+
+    async def create_report(self, report: ReportRecord) -> ReportRecord:
+        """Persist a report request."""
+
+        await self.db.reports.insert_one(report.model_dump(mode="json"))
+        return report
+
+    async def get_report(self, engagement_id: str, report_id: str) -> ReportRecord | None:
+        """Return a report by engagement and id."""
+
+        data = await self.db.reports.find_one(
+            {"engagement_id": engagement_id, "id": report_id},
+            {"_id": False},
+        )
+        return ReportRecord.model_validate(data) if data else None
+
+    async def get_report_by_id(self, report_id: str) -> ReportRecord | None:
+        """Return a report by id."""
+
+        data = await self.db.reports.find_one({"id": report_id}, {"_id": False})
+        return ReportRecord.model_validate(data) if data else None
+
+    async def update_report(self, report: ReportRecord) -> ReportRecord:
+        """Persist updated report fields."""
+
+        await self.db.reports.replace_one(
+            {"id": report.id},
+            report.model_dump(mode="json"),
+            upsert=True,
+        )
+        return report
 
 
 def _alert_query(

@@ -32,6 +32,11 @@ export interface components {
     "LoginRequest": unknown;
     "LoginResponse": unknown;
     "RegisterRequest": unknown;
+    "ReportCreateRequest": unknown;
+    "ReportCreateResponse": unknown;
+    "ReportFormat": unknown;
+    "ReportStatus": unknown;
+    "ReportStatusResponse": unknown;
     "Sensor": unknown;
     "SensorCapability": unknown;
     "SensorCommandAcceptedResponse": unknown;
@@ -69,6 +74,9 @@ export interface paths {
   "/api/v1/engagements/active": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/allow-list": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/end": Record<string, unknown>;
+  "/api/v1/engagements/{engagement_id}/reports": Record<string, unknown>;
+  "/api/v1/engagements/{engagement_id}/reports/{report_id}": Record<string, unknown>;
+  "/api/v1/engagements/{engagement_id}/reports/{report_id}/download": Record<string, unknown>;
   "/api/v1/events": Record<string, unknown>;
   "/api/v1/events/{event_id}": Record<string, unknown>;
   "/api/v1/lab/active": Record<string, unknown>;

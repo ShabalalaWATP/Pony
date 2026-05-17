@@ -1,4 +1,4 @@
-# Threat Model v0.2
+# Threat Model v0.3
 
 Method: STRIDE per major component.
 
@@ -73,3 +73,12 @@ Method: STRIDE per major component.
 - Information disclosure: sensitive parameter keys such as credentials, tokens, secrets, keys, and handshakes are redacted before audit storage; plaintext captured credentials must not be accepted by this command plane.
 - Denial of service: active commands are tracked in the broker and removed on stop, failed start acknowledgement, or engagement end; ending an engagement cancels scoped active commands.
 - Elevation of privilege: the gate stack fails closed unless `LAB_MODE=true`, an `authorized_operator` acknowledgement exists, the requested engagement is active, and the target is present in that engagement allow-list.
+
+## Reporting and Export
+
+- Spoofing: report creation, status, and download routes require an authenticated session; downloads also require a signed per-report token.
+- Tampering: report requests are Pydantic-validated, including format and time range, before persistence or worker generation.
+- Repudiation: report creation appends an audit entry with actor, engagement, report id, requested format, and time window.
+- Information disclosure: download tokens are HMAC-signed and short-lived; audit exports omit raw tool output references and generated artifacts stay behind authenticated routes.
+- Denial of service: v1 report generation caps event, alert, and audit source reads to bounded pages while async worker wiring is introduced.
+- Elevation of privilege: reports are scoped to an existing engagement and cannot be fetched by id without matching the engagement path.
