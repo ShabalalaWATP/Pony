@@ -1,12 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { StubView } from "@/views/StubView";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
+/** Deep-link helper — redirects to the lab hub with the MITM module pre-selected. */
 export const Route = createFileRoute("/_shell/lab/mitm")({
-  component: () => (
-    <StubView
-      title="MITM"
-      stage={7}
-      description="Bettercap-driven MITM panel with per-flow audit, kill-switch, and engagement-scoped logging."
-    />
-  ),
+  beforeLoad: () => {
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
+    throw redirect({ to: "/lab", search: { module: "mitm" } });
+  },
 });
