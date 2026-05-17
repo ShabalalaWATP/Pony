@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -131,6 +133,42 @@ def test_sensor_gateway_broadcasts_alert_fire() -> None:
     assert alert_message["alert"]["severity"] == "high"
 
 
+def test_sensor_command_endpoint_sends_and_broadcasts_result() -> None:
+    """Lifecycle command endpoints send commands and broadcast sensor completion."""
+
+    settings, app, store = _app_with_command_sensor_and_admin()
+    token = TokenService(settings).create_access_token("user-1", "csrf")
+
+    with TestClient(app) as client:
+        client.cookies.set("access_token", token)
+        with client.websocket_connect("/ws/operator") as operator:
+            assert operator.receive_json()["kind"] == "connected"
+            with client.websocket_connect(
+                "/ws/sensor-gateway?sensor_id=pi-1",
+                headers={"x-client-cert-subject": "CN=pi-1"},
+            ) as sensor:
+                response = client.post(
+                    "/api/v1/sensors/pi-1/commands/set-channel",
+                    headers={"x-csrf-token": "csrf"},
+                    json={"channel": 44, "band": "5"},
+                )
+                command = sensor.receive_json()
+                sensor.send_json(_command_result_payload(response.json()["command_id"]))
+                result = operator.receive_json()
+
+    assert response.status_code == 202
+    assert command["kind"] == "set_channel"
+    assert command["parameters"] == {"channel": 44, "band": "5"}
+    assert result["kind"] == "command_result"
+    assert result["command"] == "set_channel"
+    assert result["outcome"] == "ok"
+    assert result["audit_id"] == store.audit_logs[-1].id
+    assert [log.action for log in store.audit_logs] == [
+        "sensors.commands.set_channel",
+        "sensors.commands.set_channel.result",
+    ]
+
+
 def _app_with_geo_sensor_and_user() -> tuple[Settings, FastAPI]:
     settings = _settings()
     store = InMemoryStore()
@@ -157,6 +195,35 @@ def _app_with_geo_sensor_and_user() -> tuple[Settings, FastAPI]:
         )
     )
     return settings, app
+
+
+def _app_with_command_sensor_and_admin() -> tuple[Settings, FastAPI, InMemoryStore]:
+    settings = _settings()
+    store = InMemoryStore()
+    app = create_app(settings, store)
+    _run(
+        store.create_sensor(
+            Sensor(
+                id="pi-1",
+                name="Pi",
+                tailnet_ip="100.64.0.1",
+                version="0.1.0",
+                capabilities=[SensorCapability.CHANNEL_CONTROL],
+            )
+        )
+    )
+    _run(
+        store.create_user(
+            UserRecord(
+                id="user-1",
+                email="admin@example.com",
+                password_hash="hash",
+                roles=["admin"],
+                totp_verified_at=datetime.now(tz=UTC),
+            )
+        )
+    )
+    return settings, app, store
 
 
 def _app_with_alert_rule() -> tuple[Settings, FastAPI]:
@@ -229,6 +296,13 @@ def _free_ap_event_payload() -> dict[str, object]:
             "ssid": "Free Lab",
             "channel": 6,
         },
+    }
+
+
+def _command_result_payload(command_id: str) -> dict[str, object]:
+    return {
+        "kind": "command_result",
+        "payload": {"command_id": command_id, "accepted": True, "outcome": "channel_set"},
     }
 
 

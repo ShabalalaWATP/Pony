@@ -14,8 +14,8 @@ Method: STRIDE per major component.
 ## Operator Realtime Channel
 
 - Spoofing: operator WebSockets require a valid signed access-token cookie before accept.
-- Tampering: outbound topic payloads are built from validated shared models before broadcast, including alert notifications.
-- Repudiation: realtime delivery is derived from persisted event, device, sensor, and alert records.
+- Tampering: outbound topic payloads are built from validated shared models before broadcast, including alert notifications and command results.
+- Repudiation: realtime delivery is derived from persisted event, device, sensor, alert, and command audit records.
 - Information disclosure: broadcasts are limited to authenticated operators and inherit strict cookie/CORS posture; alert payloads carry entity references rather than raw capture material.
 - Denial of service: disconnected sockets are dropped from the in-process broker after failed sends.
 - Elevation of privilege: the channel does not accept operator commands; state changes remain on CSRF-protected HTTP endpoints.
@@ -32,11 +32,20 @@ Method: STRIDE per major component.
 ## Sensor Gateway
 
 - Spoofing: sensor WebSocket accepts only authenticated sensor identity from the mTLS termination layer.
-- Tampering: event payloads are normalized into shared Pydantic models before persistence.
-- Repudiation: sensor commands and active rejections are auditable.
+- Tampering: event payloads and command-result envelopes are normalized before persistence or operator fan-out.
+- Repudiation: sensor commands write queue and completion audit entries linked by command id.
 - Information disclosure: Pi-to-PC link is intended for Tailscale and mTLS.
 - Denial of service: reconnect logic uses exponential backoff with jitter.
 - Elevation of privilege: local commands use argument lists and narrowly scoped subprocess wrappers.
+
+## Sensor Lifecycle Commands
+
+- Spoofing: lifecycle command endpoints require an authenticated admin with recent TOTP and CSRF.
+- Tampering: command bodies are Pydantic-validated and delivered as shared `SensorCommand` models over the mTLS sensor channel.
+- Repudiation: every queued command and sensor completion result appends an audit entry; raw tool output is referenced by command id rather than stored in audit fields.
+- Information disclosure: operator WebSocket command results expose outcome metadata only, not raw tool output.
+- Denial of service: commands are queued in-process for disconnected sensors and disconnected WebSockets are removed after failed sends.
+- Elevation of privilege: `set_channel` requires the sensor to advertise channel-control capability; Pi-side execution uses `create_subprocess_exec` argument lists.
 
 ## MongoDB and Redis
 

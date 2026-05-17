@@ -1092,7 +1092,22 @@
     "title": "SensorCapability",
     "type": "string"
   },
+  "SensorCommandAcceptedResponse": {
+    "description": "Sensor command acceptance response.",
+    "properties": {
+      "command_id": {
+        "title": "Command Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "command_id"
+    ],
+    "title": "SensorCommandAcceptedResponse",
+    "type": "object"
+  },
   "SensorRegisterRequest": {
+    "additionalProperties": false,
     "description": "Sensor registration payload.",
     "properties": {
       "capabilities": {
@@ -1162,6 +1177,29 @@
       "ca_certificate_pem"
     ],
     "title": "SensorRegisterResponse",
+    "type": "object"
+  },
+  "SetChannelRequest": {
+    "additionalProperties": false,
+    "description": "Set-channel command body.",
+    "properties": {
+      "band": {
+        "pattern": "^(2\\.4|5|6)$",
+        "title": "Band",
+        "type": "string"
+      },
+      "channel": {
+        "maximum": 196.0,
+        "minimum": 1.0,
+        "title": "Channel",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "channel",
+      "band"
+    ],
+    "title": "SetChannelRequest",
     "type": "object"
   },
   "SignalSample": {

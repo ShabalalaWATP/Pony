@@ -28,8 +28,10 @@ export interface components {
     "RegisterRequest": unknown;
     "Sensor": unknown;
     "SensorCapability": unknown;
+    "SensorCommandAcceptedResponse": unknown;
     "SensorRegisterRequest": unknown;
     "SensorRegisterResponse": unknown;
+    "SetChannelRequest": unknown;
     "SignalSample": unknown;
     "SystemAcknowledgement": unknown;
     "TargetKind": unknown;
@@ -63,6 +65,9 @@ export interface paths {
   "/api/v1/events/{event_id}": Record<string, unknown>;
   "/api/v1/sensors": Record<string, unknown>;
   "/api/v1/sensors/{sensor_id}": Record<string, unknown>;
+  "/api/v1/sensors/{sensor_id}/commands/restart": Record<string, unknown>;
+  "/api/v1/sensors/{sensor_id}/commands/set-channel": Record<string, unknown>;
+  "/api/v1/sensors/{sensor_id}/commands/update": Record<string, unknown>;
   "/api/v1/sensors/{sensor_id}/revoke": Record<string, unknown>;
   "/api/v1/system/acknowledgements": Record<string, unknown>;
   "/health": Record<string, unknown>;

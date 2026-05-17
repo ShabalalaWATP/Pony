@@ -1094,7 +1094,22 @@
         "title": "SensorCapability",
         "type": "string"
       },
+      "SensorCommandAcceptedResponse": {
+        "description": "Sensor command acceptance response.",
+        "properties": {
+          "command_id": {
+            "title": "Command Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id"
+        ],
+        "title": "SensorCommandAcceptedResponse",
+        "type": "object"
+      },
       "SensorRegisterRequest": {
+        "additionalProperties": false,
         "description": "Sensor registration payload.",
         "properties": {
           "capabilities": {
@@ -1164,6 +1179,29 @@
           "ca_certificate_pem"
         ],
         "title": "SensorRegisterResponse",
+        "type": "object"
+      },
+      "SetChannelRequest": {
+        "additionalProperties": false,
+        "description": "Set-channel command body.",
+        "properties": {
+          "band": {
+            "pattern": "^(2\\.4|5|6)$",
+            "title": "Band",
+            "type": "string"
+          },
+          "channel": {
+            "maximum": 196.0,
+            "minimum": 1.0,
+            "title": "Channel",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel",
+          "band"
+        ],
+        "title": "SetChannelRequest",
         "type": "object"
       },
       "SignalSample": {
@@ -2461,6 +2499,145 @@
           }
         },
         "summary": "Get Sensor",
+        "tags": [
+          "sensors"
+        ]
+      }
+    },
+    "/api/v1/sensors/{sensor_id}/commands/restart": {
+      "post": {
+        "description": "Queue a sensor restart command.\n\nArgs:\n    sensor_id: Sensor identifier.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n    broker: Sensor command broker.\n\nReturns:\n    Accepted command identifier.",
+        "operationId": "restart_sensor_api_v1_sensors__sensor_id__commands_restart_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sensor_id",
+            "required": true,
+            "schema": {
+              "title": "Sensor Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorCommandAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Restart Sensor",
+        "tags": [
+          "sensors"
+        ]
+      }
+    },
+    "/api/v1/sensors/{sensor_id}/commands/set-channel": {
+      "post": {
+        "description": "Queue a sensor channel-change command.\n\nArgs:\n    sensor_id: Sensor identifier.\n    payload: Channel payload.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n    broker: Sensor command broker.\n\nReturns:\n    Accepted command identifier.",
+        "operationId": "set_sensor_channel_api_v1_sensors__sensor_id__commands_set_channel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sensor_id",
+            "required": true,
+            "schema": {
+              "title": "Sensor Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetChannelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorCommandAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Sensor Channel",
+        "tags": [
+          "sensors"
+        ]
+      }
+    },
+    "/api/v1/sensors/{sensor_id}/commands/update": {
+      "post": {
+        "description": "Queue a sensor update command.\n\nArgs:\n    sensor_id: Sensor identifier.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n    broker: Sensor command broker.\n\nReturns:\n    Accepted command identifier.",
+        "operationId": "update_sensor_agent_api_v1_sensors__sensor_id__commands_update_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sensor_id",
+            "required": true,
+            "schema": {
+              "title": "Sensor Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorCommandAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Sensor Agent",
         "tags": [
           "sensors"
         ]
