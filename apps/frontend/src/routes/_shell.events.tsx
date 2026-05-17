@@ -1,12 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { StubView } from "@/views/StubView";
+import { EventsView } from "@/components/events/EventsView";
+
+interface EventsSearch {
+  id?: string;
+  q?: string;
+  /** Comma-separated EventKind values; absent = all kinds. */
+  kinds?: string;
+}
 
 export const Route = createFileRoute("/_shell/events")({
-  component: () => (
-    <StubView
-      title="Events"
-      stage={4}
-      description="Virtualised log of raw events with filter chips and fresh-data halos on insert."
-    />
-  ),
+  validateSearch: (search: Record<string, unknown>): EventsSearch => ({
+    id: typeof search.id === "string" ? search.id : undefined,
+    q: typeof search.q === "string" ? search.q : undefined,
+    kinds: typeof search.kinds === "string" ? search.kinds : undefined,
+  }),
+  component: EventsView,
 });
