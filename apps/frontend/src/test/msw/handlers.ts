@@ -215,6 +215,17 @@ export const authHandlers = [
   http.post("/api/v1/engagements/:id/end", () => new HttpResponse(null, { status: 204 })),
   http.post("/api/v1/engagements/:id/resume", () => HttpResponse.json(fixtures.engagement)),
   http.get("/api/v1/lab/status", () => HttpResponse.json(fixtures.labStatus)),
+  // One-time authorized-operator acknowledgement. Default returns the
+  // SystemAcknowledgement shape; SystemView tests that need a 403 or
+  // a duplicate-record case override with server.use(...).
+  http.post("/api/v1/system/acknowledgements", () =>
+    HttpResponse.json({
+      kind: "authorized_operator",
+      accepted_by: fixtures.user.id,
+      accepted_at: "2026-05-17T10:00:00Z",
+      statement_hash: "sha256:test",
+    }),
+  ),
   http.get("/api/v1/lab/active", () =>
     HttpResponse.json({ items: [], total: 0, limit: 100, offset: 0 }),
   ),

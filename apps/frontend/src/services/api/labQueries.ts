@@ -16,6 +16,8 @@ type ReportCreateResponse = components["schemas"]["ReportCreateResponse"];
 type ReportStatusResponse = components["schemas"]["ReportStatusResponse"];
 type ReportFormat = components["schemas"]["ReportFormat"];
 type ReportStatus = components["schemas"]["ReportStatus"];
+type AcknowledgementRequest = components["schemas"]["AcknowledgementRequest"];
+type SystemAcknowledgement = components["schemas"]["SystemAcknowledgement"];
 
 interface Page<T> {
   items: T[];
@@ -185,6 +187,24 @@ export function useLabStatus() {
   });
 }
 
+/**
+ * One-time Authorized-Operator acknowledgement. Backend gates this on
+ * admin + recent 2FA + CSRF and records a `SystemAcknowledgement`
+ * with `accepted_by` + `accepted_at` + a hash of the typed statement.
+ * On success we invalidate `LAB_STATUS_KEY` so the gate banner on
+ * `/lab` and `/settings/system` flips its acknowledgement row to
+ * green without a manual reload.
+ */
+export function useAcknowledgeOperator() {
+  const qc = useQueryClient();
+  return useMutation<SystemAcknowledgement, ApiError, AcknowledgementRequest>({
+    mutationFn: (body) => apiClient.post<SystemAcknowledgement>("/system/acknowledgements", body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: LAB_STATUS_KEY });
+    },
+  });
+}
+
 /** Page of currently-running lab commands across the tailnet. */
 export function useActiveLabCommands() {
   return useQuery<Page<LabActiveCommand>, ApiError>({
@@ -298,4 +318,6 @@ export type {
   ReportStatusResponse,
   ReportFormat,
   ReportStatus,
+  AcknowledgementRequest,
+  SystemAcknowledgement,
 };

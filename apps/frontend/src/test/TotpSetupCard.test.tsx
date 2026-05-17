@@ -26,4 +26,16 @@ describe("TotpSetupCard", () => {
     expect(await screen.findByLabelText("TOTP QR code")).toBeInTheDocument();
     expect(screen.getByText(/JBSWY3DPEHPK3PXP/i)).toBeInTheDocument();
   });
+
+  it("exposes a Re-enrol button on the active card and re-enters setup on click", async () => {
+    const { node } = withQueryAndRouter(
+      <TotpSetupCard user={{ ...fixtures.user, totp_enabled: true }} />,
+    );
+    render(node);
+    const reenrol = await screen.findByRole("button", {
+      name: /re-enrol two-factor authentication/i,
+    });
+    fireEvent.click(reenrol);
+    expect(await screen.findByLabelText("TOTP QR code")).toBeInTheDocument();
+  });
 });
