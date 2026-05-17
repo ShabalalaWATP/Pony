@@ -16,23 +16,23 @@ The operator dashboard is built independently from the backend (Codex) and the s
 
 ## Decision
 
-| Concern              | Choice                                                                  |
-| -------------------- | ----------------------------------------------------------------------- |
-| Build tool           | **Vite 6** — fast HMR, esbuild + Rollup pipeline, first-class Tailwind 4 |
-| Framework            | **React 19**                                                            |
-| Language             | **TypeScript 5.7** in `strict` mode + `noUncheckedIndexedAccess`         |
-| Styling              | **Tailwind 4** via `@tailwindcss/vite`; tokens in CSS `@theme`           |
+| Concern              | Choice                                                                                                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Build tool           | **Vite 6** — fast HMR, esbuild + Rollup pipeline, first-class Tailwind 4                                                                        |
+| Framework            | **React 19**                                                                                                                                    |
+| Language             | **TypeScript 5.7** in `strict` mode + `noUncheckedIndexedAccess`                                                                                |
+| Styling              | **Tailwind 4** via `@tailwindcss/vite`; tokens in CSS `@theme`                                                                                  |
 | Component primitives | Hand-rolled in `components/ui/`, built on **Radix Primitives** (Tooltip, Slot) + `class-variance-authority`. No shadcn CLI — we own the source. |
-| Icons                | **lucide-react** (single OSS pack, ESM tree-shakes well)                 |
-| Fonts                | `@fontsource-variable/{geist,geist-mono,space-grotesk}` — self-hosted   |
-| Server state         | **TanStack Query** (added Stage 2)                                      |
-| Routing              | **TanStack Router** (added Stage 2)                                     |
-| UI state             | **Zustand** (added Stage 2)                                             |
-| Test runner          | **Vitest** with `@testing-library/react` + `jsdom`                       |
-| Coverage             | **v8** provider; 85% lines / functions / statements gate                |
-| Lint                 | **ESLint 9 flat config** + `typescript-eslint` (type-checked rules)      |
-| Format               | **Prettier 3** — config shared with the repo root                       |
-| API types            | Generated from `packages/shared-types/schemas/openapi.json` via `openapi-typescript`; committed to the repo |
+| Icons                | **lucide-react** (single OSS pack, ESM tree-shakes well)                                                                                        |
+| Fonts                | `@fontsource-variable/{geist,geist-mono,space-grotesk}` — self-hosted                                                                           |
+| Server state         | **TanStack Query** (added Stage 2)                                                                                                              |
+| Routing              | **TanStack Router** (added Stage 2)                                                                                                             |
+| UI state             | **Zustand** (added Stage 2)                                                                                                                     |
+| Test runner          | **Vitest** with `@testing-library/react` + `jsdom`                                                                                              |
+| Coverage             | **v8** provider; 85% lines / functions / statements gate                                                                                        |
+| Lint                 | **ESLint 9 flat config** + `typescript-eslint` (type-checked rules)                                                                             |
+| Format               | **Prettier 3** — config shared with the repo root                                                                                               |
+| API types            | Generated from `packages/shared-types/schemas/openapi.json` via `openapi-typescript`; committed to the repo                                     |
 
 ## Rationale
 
@@ -45,13 +45,20 @@ The operator dashboard is built independently from the backend (Codex) and the s
 ## Consequences
 
 - The frontend ships an opinionated visual identity and a clear component contract — see `/design-system` for the live showcase.
-- Stage 2+ will layer the router, auth flows, and live-data plumbing on this foundation without revisiting the build chain.
+- Later frontend stages layer the router, auth flows, live-data plumbing, alerts, lab, and reporting surfaces on this foundation without revisiting the build chain.
 - `pnpm-lock.yaml` lives at the workspace root. When backend deps change in parallel, the agent that merges second rebases and regenerates the lockfile via `pnpm install`.
 - The frontend job in `.github/workflows/lint-test.yml` runs alongside the existing `python` job and is independent — neither blocks the other.
+
+## Current implementation note
+
+As of 2026-05-17, frontend stages 1-6 are merged. The stack above now powers the
+operator shell, auth/TOTP, overview, sensors, networks, devices, alerts,
+engagements, lab, reporting, route generation, API type generation, and frontend
+security hardening. Vite 6 and Vitest 3 are the active dependency baseline.
 
 ## Alternatives considered
 
 - **Next.js 15**: rejected (no SSR/RSC need, larger surface area).
 - **Astro / Remix**: rejected (same reason).
 - **CSS-in-JS (Stitches, vanilla-extract)**: rejected — Tailwind 4 with `@theme` gives us tokens + utilities + tree-shaking without adding a runtime.
-- **Chart libraries**: deferred — we render light SVG sparklines ourselves in Stage 1; Recharts and Visx come in Stage 4 when richer charts are needed.
+- **Chart libraries**: initially deferred for Stage 1; Recharts is now used for richer post-foundation charts.
