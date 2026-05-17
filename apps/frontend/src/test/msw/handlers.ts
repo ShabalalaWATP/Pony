@@ -204,6 +204,10 @@ export const authHandlers = [
   http.get("/api/v1/engagements", () =>
     HttpResponse.json({ items: [fixtures.engagement], total: 1, limit: 100, offset: 0 }),
   ),
+  // POST /engagements default returns the fixture so the create-drawer
+  // flow can land an Engagement; tests that need a 403 / validation
+  // error override per-case via server.use(...).
+  http.post("/api/v1/engagements", () => HttpResponse.json(fixtures.engagement)),
   http.get("/api/v1/engagements/active", () =>
     HttpResponse.json({ detail: "no active engagement" }, { status: 404 }),
   ),
