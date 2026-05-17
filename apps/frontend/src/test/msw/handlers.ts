@@ -14,6 +14,8 @@ type LabActiveCommand = components["schemas"]["LabActiveCommand"];
 type LabStatusResponse = components["schemas"]["LabStatusResponse"];
 type AllowedTarget = components["schemas"]["AllowedTarget"];
 type AuditLog = components["schemas"]["AuditLog"];
+type Sensor = components["schemas"]["Sensor"];
+type SensorRegisterResponse = components["schemas"]["SensorRegisterResponse"];
 
 export const fixtures = {
   user: {
@@ -86,6 +88,31 @@ export const fixtures = {
     kind: "bssid",
     value: "aa:bb:cc:dd:ee:01",
   } satisfies AllowedTarget,
+  sensor: {
+    id: "pi-test-01",
+    name: "Test Pi",
+    tailnet_ip: "100.64.0.10",
+    version: "0.1.0",
+    capabilities: ["passive_capture", "channel_control"],
+    last_seen: "2026-05-17T10:00:00Z",
+    revoked: false,
+  } satisfies Sensor,
+  sensorRegister: {
+    ca_certificate_pem: "-----BEGIN CERTIFICATE-----\nMIIBCAEXAMPLECA\n-----END CERTIFICATE-----\n",
+    client_certificate_pem:
+      "-----BEGIN CERTIFICATE-----\nMIIBCAEXAMPLECLIENT\n-----END CERTIFICATE-----\n",
+    client_private_key_pem:
+      "-----BEGIN PRIVATE KEY-----\nMIIBCAEXAMPLEKEY\n-----END PRIVATE KEY-----\n",
+    sensor: {
+      id: "pi-test-01",
+      name: "Test Pi",
+      tailnet_ip: "100.64.0.10",
+      version: "0.1.0",
+      capabilities: ["passive_capture"],
+      last_seen: null,
+      revoked: false,
+    },
+  } satisfies SensorRegisterResponse,
   auditEntry: {
     id: "audit-1",
     actor_id: "operator@cheeky.local",
@@ -185,6 +212,11 @@ export const authHandlers = [
   http.get("/api/v1/sensors", () =>
     HttpResponse.json({ detail: "Admin role with recent TOTP required" }, { status: 403 }),
   ),
+  // Register / revoke are admin+2FA-gated; defaults return success so
+  // happy-path drawer tests don't need an override. 403 cases override
+  // with `server.use(...)`.
+  http.post("/api/v1/sensors", () => HttpResponse.json(fixtures.sensorRegister, { status: 200 })),
+  http.post("/api/v1/sensors/:sensorId/revoke", () => new HttpResponse(null, { status: 204 })),
 
   // Alerts contract surfaces — defaults are populated so OverviewRecentAlerts
   // shows a row; tests override per-case as needed.
