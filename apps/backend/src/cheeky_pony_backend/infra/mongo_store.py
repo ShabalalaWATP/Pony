@@ -10,6 +10,9 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_shared import (
     AccessPoint,
+    Alert,
+    AlertRule,
+    AlertSeverity,
     AuditLog,
     Client,
     Engagement,
@@ -34,6 +37,8 @@ class MongoStore:
         await self.db.access_points.create_index("bssid", unique=True)
         await self.db.clients.create_index("mac", unique=True)
         await self.db.clients.create_index([("associated_bssid", 1), ("last_seen", -1)])
+        await self.db.alerts.create_index([("severity", 1), ("acked_at", 1)])
+        await self.db.alert_rules.create_index("enabled")
         await self.db.audit_logs.create_index("occurred_at")
         await self.db.allow_list.create_index(
             [("engagement_id", 1), ("kind", 1), ("value", 1)],
@@ -180,6 +185,84 @@ class MongoStore:
         data = await self.db.events.find_one({"id": event_id})
         return Event.model_validate(data) if data else None
 
+    async def insert_alert(self, alert: Alert) -> Alert:
+        """Persist an alert."""
+
+        await self.db.alerts.insert_one(alert.model_dump(mode="json"))
+        return alert
+
+    async def list_alerts(
+        self,
+        limit: int,
+        offset: int,
+        severities: list[AlertSeverity] | None,
+        acked: bool | None,
+    ) -> tuple[list[Alert], int]:
+        """List alerts."""
+
+        query = _alert_query(severities, acked)
+        total = await self.db.alerts.count_documents(query)
+        docs = self.db.alerts.find(query, {"_id": False}).sort("_id", -1).skip(offset).limit(limit)
+        return [Alert.model_validate(doc) async for doc in docs], total
+
+    async def get_alert(self, alert_id: str) -> Alert | None:
+        """Return an alert by id."""
+
+        data = await self.db.alerts.find_one({"id": alert_id}, {"_id": False})
+        return Alert.model_validate(data) if data else None
+
+    async def update_alert(self, alert: Alert) -> Alert:
+        """Persist updated alert fields."""
+
+        await self.db.alerts.replace_one(
+            {"id": alert.id},
+            alert.model_dump(mode="json"),
+            upsert=True,
+        )
+        return alert
+
+    async def create_alert_rule(self, rule: AlertRule) -> AlertRule:
+        """Persist an alert rule."""
+
+        await self.db.alert_rules.insert_one(rule.model_dump(mode="json"))
+        return rule
+
+    async def list_alert_rules(self, limit: int, offset: int) -> tuple[list[AlertRule], int]:
+        """List alert rules."""
+
+        total = await self.db.alert_rules.count_documents({})
+        docs = (
+            self.db.alert_rules.find({}, {"_id": False}).sort("_id", -1).skip(offset).limit(limit)
+        )
+        return [AlertRule.model_validate(doc) async for doc in docs], total
+
+    async def list_enabled_alert_rules(self) -> list[AlertRule]:
+        """Return enabled alert rules."""
+
+        docs = self.db.alert_rules.find({"enabled": True}, {"_id": False})
+        return [AlertRule.model_validate(doc) async for doc in docs]
+
+    async def get_alert_rule(self, rule_id: str) -> AlertRule | None:
+        """Return an alert rule by id."""
+
+        data = await self.db.alert_rules.find_one({"id": rule_id}, {"_id": False})
+        return AlertRule.model_validate(data) if data else None
+
+    async def update_alert_rule(self, rule: AlertRule) -> AlertRule:
+        """Persist updated alert rule fields."""
+
+        await self.db.alert_rules.replace_one(
+            {"id": rule.id},
+            rule.model_dump(mode="json"),
+            upsert=True,
+        )
+        return rule
+
+    async def delete_alert_rule(self, rule_id: str) -> None:
+        """Delete an alert rule."""
+
+        await self.db.alert_rules.delete_one({"id": rule_id})
+
     async def append_audit(self, audit_log: AuditLog) -> AuditLog:
         """Append an audit log."""
 
@@ -231,3 +314,17 @@ class MongoStore:
             )
             > 0
         )
+
+
+def _alert_query(
+    severities: list[AlertSeverity] | None,
+    acked: bool | None,
+) -> dict[str, Any]:
+    query: dict[str, Any] = {}
+    if severities:
+        query["severity"] = {"$in": [severity.value for severity in severities]}
+    if acked is True:
+        query["acked_at"] = {"$ne": None}
+    elif acked is False:
+        query["acked_at"] = None
+    return query

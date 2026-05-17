@@ -8,6 +8,9 @@ import asyncio
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_shared import (
     AccessPoint,
+    Alert,
+    AlertRule,
+    AlertSeverity,
     AuditLog,
     Client,
     Engagement,
@@ -28,6 +31,8 @@ class InMemoryStore:
         self.access_points: dict[str, AccessPoint] = {}
         self.clients: dict[str, Client] = {}
         self.events: list[Event] = []
+        self.alerts: dict[str, Alert] = {}
+        self.alert_rules: dict[str, AlertRule] = {}
         self.audit_logs: list[AuditLog] = []
         self.acknowledgements: dict[str, SystemAcknowledgement] = {}
         self.engagements: dict[str, Engagement] = {}
@@ -163,6 +168,74 @@ class InMemoryStore:
 
         return next((event for event in self.events if event.id == event_id), None)
 
+    async def insert_alert(self, alert: Alert) -> Alert:
+        """Persist an alert."""
+
+        async with self._lock:
+            self.alerts[alert.id] = alert
+        return alert
+
+    async def list_alerts(
+        self,
+        limit: int,
+        offset: int,
+        severities: list[AlertSeverity] | None,
+        acked: bool | None,
+    ) -> tuple[list[Alert], int]:
+        """List alerts."""
+
+        values = list(reversed(self.alerts.values()))
+        values = _filter_alerts(values, severities, acked)
+        return values[offset : offset + limit], len(values)
+
+    async def get_alert(self, alert_id: str) -> Alert | None:
+        """Return an alert by id."""
+
+        return self.alerts.get(alert_id)
+
+    async def update_alert(self, alert: Alert) -> Alert:
+        """Persist updated alert fields."""
+
+        async with self._lock:
+            self.alerts[alert.id] = alert
+        return alert
+
+    async def create_alert_rule(self, rule: AlertRule) -> AlertRule:
+        """Persist an alert rule."""
+
+        async with self._lock:
+            self.alert_rules[rule.id] = rule
+        return rule
+
+    async def list_alert_rules(self, limit: int, offset: int) -> tuple[list[AlertRule], int]:
+        """List alert rules."""
+
+        values = list(reversed(self.alert_rules.values()))
+        return values[offset : offset + limit], len(values)
+
+    async def list_enabled_alert_rules(self) -> list[AlertRule]:
+        """Return enabled alert rules."""
+
+        return [rule for rule in self.alert_rules.values() if rule.enabled]
+
+    async def get_alert_rule(self, rule_id: str) -> AlertRule | None:
+        """Return an alert rule by id."""
+
+        return self.alert_rules.get(rule_id)
+
+    async def update_alert_rule(self, rule: AlertRule) -> AlertRule:
+        """Persist updated alert rule fields."""
+
+        async with self._lock:
+            self.alert_rules[rule.id] = rule
+        return rule
+
+    async def delete_alert_rule(self, rule_id: str) -> None:
+        """Delete an alert rule."""
+
+        async with self._lock:
+            self.alert_rules.pop(rule_id, None)
+
     async def append_audit(self, audit_log: AuditLog) -> AuditLog:
         """Append an audit log."""
 
@@ -199,3 +272,17 @@ class InMemoryStore:
         """Return whether a target is allowed."""
 
         return (engagement_id, kind, value.upper()) in self.allow_list
+
+
+def _filter_alerts(
+    alerts: list[Alert],
+    severities: list[AlertSeverity] | None,
+    acked: bool | None,
+) -> list[Alert]:
+    severity_set = set(severities or [])
+    return [
+        alert
+        for alert in alerts
+        if (not severity_set or alert.severity in severity_set)
+        and (acked is None or (alert.acked_at is not None) == acked)
+    ]

@@ -91,6 +91,145 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Alerts
+         * @description List alerts with severity and acknowledgement filters.
+         *
+         *     Args:
+         *         _: Current user.
+         *         store: Application store.
+         *         severity: Optional repeated severity filter.
+         *         acked: Optional acknowledgement-state filter.
+         *         limit: Page size.
+         *         offset: Page offset.
+         *
+         *     Returns:
+         *         Paginated alert list.
+         */
+        get: operations["list_alerts_api_v1_alerts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Alert Rules
+         * @description List alert rules.
+         *
+         *     Args:
+         *         _: Current user.
+         *         store: Application store.
+         *         limit: Page size.
+         *         offset: Page offset.
+         *
+         *     Returns:
+         *         Paginated alert-rule list.
+         */
+        get: operations["list_alert_rules_api_v1_alerts_rules_get"];
+        put?: never;
+        /**
+         * Create Alert Rule
+         * @description Create an alert rule.
+         *
+         *     Args:
+         *         payload: Rule payload.
+         *         user: Current admin with verified TOTP.
+         *         store: Application store.
+         *         audit: Audit logger.
+         *
+         *     Returns:
+         *         Created alert rule.
+         */
+        post: operations["create_alert_rule_api_v1_alerts_rules_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/rules/{rule_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Alert Rule
+         * @description Delete an alert rule.
+         *
+         *     Args:
+         *         rule_id: Alert rule identifier.
+         *         user: Current admin with verified TOTP.
+         *         store: Application store.
+         *         audit: Audit logger.
+         */
+        delete: operations["delete_alert_rule_api_v1_alerts_rules__rule_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Alert Rule
+         * @description Update an alert rule.
+         *
+         *     Args:
+         *         rule_id: Alert rule identifier.
+         *         payload: Rule update payload.
+         *         user: Current admin with verified TOTP.
+         *         store: Application store.
+         *         audit: Audit logger.
+         *
+         *     Returns:
+         *         Updated alert rule.
+         */
+        patch: operations["update_alert_rule_api_v1_alerts_rules__rule_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/alerts/{alert_id}/ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ack Alert
+         * @description Acknowledge an alert.
+         *
+         *     Args:
+         *         alert_id: Alert identifier.
+         *         user: Current user.
+         *         store: Application store.
+         *         audit: Audit logger.
+         */
+        post: operations["ack_alert_api_v1_alerts__alert_id__ack_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit": {
         parameters: {
             query?: never;
@@ -685,6 +824,95 @@ export interface components {
             statement: string;
         };
         /**
+         * Alert
+         * @description Alert raised by rules or analysis workers.
+         */
+        Alert: {
+            /** Acked At */
+            acked_at?: string | null;
+            /** Acked By */
+            acked_by?: string | null;
+            /** Id */
+            id: string;
+            /** Related Entities */
+            related_entities?: string[];
+            /** Rule Id */
+            rule_id: string;
+            severity: components["schemas"]["AlertSeverity"];
+        };
+        /**
+         * AlertRule
+         * @description Operator-managed alert rule evaluated against normalized events.
+         */
+        AlertRule: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+            /** Created By */
+            created_by: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Predicate */
+            predicate: {
+                [key: string]: unknown;
+            };
+            severity: components["schemas"]["AlertSeverity"];
+        };
+        /**
+         * AlertRuleCreateRequest
+         * @description Alert rule creation request.
+         */
+        AlertRuleCreateRequest: {
+            /** Description */
+            description?: string | null;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /** Name */
+            name: string;
+            /** Predicate */
+            predicate: {
+                [key: string]: unknown;
+            };
+            severity: components["schemas"]["AlertSeverity"];
+        };
+        /**
+         * AlertRuleUpdateRequest
+         * @description Alert rule update request.
+         */
+        AlertRuleUpdateRequest: {
+            /** Description */
+            description?: string | null;
+            /** Enabled */
+            enabled?: boolean | null;
+            /** Name */
+            name?: string | null;
+            /** Predicate */
+            predicate?: {
+                [key: string]: unknown;
+            } | null;
+            severity?: components["schemas"]["AlertSeverity"] | null;
+        };
+        /**
+         * AlertSeverity
+         * @description Alert severity buckets.
+         * @enum {string}
+         */
+        AlertSeverity: "info" | "low" | "medium" | "high" | "critical";
+        /**
          * AllowTargetRequest
          * @description Allow-list target request.
          */
@@ -697,6 +925,28 @@ export interface components {
         ApiPage_AccessPoint_: {
             /** Items */
             items: components["schemas"]["AccessPoint"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** ApiPage[AlertRule] */
+        ApiPage_AlertRule_: {
+            /** Items */
+            items: components["schemas"]["AlertRule"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** ApiPage[Alert] */
+        ApiPage_Alert_: {
+            /** Items */
+            items: components["schemas"]["Alert"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -1142,6 +1392,198 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ApiPage_Client_"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_alerts_api_v1_alerts_get: {
+        parameters: {
+            query?: {
+                severity?: components["schemas"]["AlertSeverity"][] | null;
+                acked?: boolean | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiPage_Alert_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_alert_rules_api_v1_alerts_rules_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiPage_AlertRule_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_alert_rule_api_v1_alerts_rules_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlertRuleCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertRule"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_alert_rule_api_v1_alerts_rules__rule_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_alert_rule_api_v1_alerts_rules__rule_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rule_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlertRuleUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertRule"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ack_alert_api_v1_alerts__alert_id__ack_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
