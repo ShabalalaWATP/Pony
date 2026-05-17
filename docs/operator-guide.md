@@ -52,6 +52,54 @@ Sensors register through the backend, receive a client certificate, and connect 
 sensor id to the signed client-certificate headers and the stored certificate
 fingerprint.
 
+### Registering a new Pi
+
+1. On `/sensors`, click **New sensor** (or hit `/sensors?new=1`).
+2. Fill in the form: stable id, display name, tailnet IP, agent version, and
+   tick only the capabilities the Pi actually advertises.
+3. Submit. The backend mints a fresh CA + client certificate + private key and
+   returns them **once**. The drawer surfaces all three blocks; the private key
+   stays masked until you click **Reveal**.
+4. Copy each block (or use the copy button) to `/etc/cheeky-pony/` on the Pi.
+   The PEM material lives only in component state — closing the drawer wipes
+   it, and there is no API to re-fetch the private key. If you dismiss before
+   saving, the only path forward is to revoke and re-register.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as admin
+  participant FE as frontend
+  participant API as backend /sensors
+  participant DB as MongoDB
+  participant AUDIT as audit log
+
+  U->>FE: open /sensors → New sensor
+  FE->>FE: collect id, name, tailnet_ip,<br/>version, capabilities
+  U->>FE: submit
+  FE->>API: POST /api/v1/sensors<br/>(admin + recent TOTP + CSRF)
+  API->>API: mint CA + client cert<br/>+ private key
+  API->>DB: persist Sensor row +<br/>cert fingerprint (no key)
+  API->>AUDIT: sensor.register accepted
+  API-->>FE: 200 { ca_pem, cert_pem, key_pem, sensor }
+  FE->>U: cert reveal drawer<br/>(private key masked until Reveal)
+  U->>U: copy / save to<br/>/etc/cheeky-pony/ on Pi
+  U->>FE: close drawer
+  FE->>FE: wipe PEM material from<br/>component state (no localStorage)
+
+  Note over FE,API: re-opening the drawer starts blank.<br/>The key cannot be re-issued —<br/>only revoke + register again.
+```
+
+### Revoking a sensor
+
+In the sensor detail drawer, click **Revoke certificate…**, type the sensor id
+verbatim into the confirm input, and submit. The backend tears down the cert
+binding; the agent loses gateway access on its next reconnect. Already-revoked
+sensors render an inert chip instead of the revoke form, so the action is
+non-idempotent by design.
+
+### Lifecycle commands
+
 Sensor lifecycle commands are available to admins with recent TOTP:
 
 - `POST /api/v1/sensors/{id}/commands/restart`
