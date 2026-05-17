@@ -5,28 +5,55 @@ sensor streams normalized WiFi telemetry to a FastAPI backend, and the React ope
 console consumes the backend through OpenAPI-generated types and authenticated
 WebSockets.
 
+> **Authorized testing only.** Cheeky Pony is built for networks you own or have
+> written permission to assess. Active modules are default-deny and require a typed
+> legal acknowledgement on file — see `Security Posture` below and
+> [`SECURITY.md`](SECURITY.md).
+
+## Documentation map
+
+| What | Where |
+| --- | --- |
+| Day-to-day operator usage (auth, users, sensors, lab, alerts, reports) | [`docs/operator-guide.md`](docs/operator-guide.md) |
+| System topology, data flow, lab gates, login sequence (with diagrams) | [`docs/architecture.md`](docs/architecture.md) |
+| STRIDE threat model per component | [`docs/threat-model.md`](docs/threat-model.md) |
+| Frontend design spec (tokens, motion, components) | [`docs/frontend-design.md`](docs/frontend-design.md) |
+| Local development runbook | [`docs/runbooks/local-development.md`](docs/runbooks/local-development.md) |
+| Architecture Decision Records | [`docs/adr/`](docs/adr) |
+| Release-history / per-PR log | [`CHANGELOG.md`](CHANGELOG.md) |
+| Vulnerability reporting | [`SECURITY.md`](SECURITY.md) |
+| Codex brief (backend / infra) | [`AGENTS.md`](AGENTS.md) |
+| Claude Code brief (frontend) | [`CLAUDE.md`](CLAUDE.md) |
+
 ## Current Status
 
-The repository now contains the full foundation for passive monitoring plus the
-backend command plane needed by the frontend lab surfaces:
+The repository contains the full passive-monitoring path plus the backend command
+plane and every operator-facing route the frontend exposes:
 
-- monorepo guardrails, GitHub Actions quality/security gates, compose stacks, ADRs,
-  threat model, and runbooks
+- monorepo guardrails, GitHub Actions quality/security gates (lint, test, SAST,
+  SCA, DAST, CodeQL, gitleaks, AI review), compose stacks, ADRs, threat model,
+  and runbooks
 - Raspberry Pi `sensor-agent` v1 for passive Kismet ingestion, backend WebSocket
   streaming, command dispatch, reconnects, and local health endpoints
-- FastAPI backend with cookie auth, CSRF, TOTP step-up, sensors, APs, clients,
-  events, alerts, alert rules, audit, acknowledgements, engagements, reporting, and
-  operator/sensor WebSockets
+- FastAPI backend with cookie auth + CSRF + TOTP step-up, sensors register /
+  revoke / lifecycle, APs, clients, events, alerts + alert rules, audit (no
+  delete route), authorized-operator acknowledgements, engagements + allow-lists
+  + single-engagement read, admin user listing and mutation, reporting + signed
+  download URLs, and operator/sensor WebSockets
 - active lab command endpoints for `rogue-ap`, `deauth`, `evil-twin`,
-  `captive-portal`, and `mitm`, with default-deny gates and audit on both refusals
-  and accepted commands
-- React frontend stages 1-6: design system, shell, auth, overview, sensors,
-  networks, devices, alerts, lab/engagement panels, reporting surfaces, and
-  frontend security hardening
+  `captive-portal`, and `mitm`, with default-deny gates (see
+  [`docs/architecture.md`](docs/architecture.md#lab-gate-stack) for the gate
+  diagram) and audit on both refusals and accepted commands
+- React frontend: design system, shell, auth + TOTP step-up, overview, sensors
+  (register + revoke + lifecycle), networks + devices (with detail drawers
+  fetched on deep-link), events, alerts inbox + rule editor, lab + engagement
+  panels, engagement detail page, reporting surfaces, audit log view, admin
+  users management, and a coordinated frontend security hardening pass
 
 Backend/frontend coordination is through `packages/shared-types/`,
 `packages/shared-types/schemas/openapi.json`, and the committed generated frontend
-types in `apps/frontend/src/services/api/openapi.d.ts`.
+types in `apps/frontend/src/services/api/openapi.d.ts`. See
+[`CHANGELOG.md`](CHANGELOG.md) for the per-PR log.
 
 ## Local Setup
 

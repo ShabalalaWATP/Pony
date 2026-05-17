@@ -1,9 +1,62 @@
 # Changelog
 
+All notable PRs are recorded here. Entries are grouped by milestone or theme rather
+than by date because work lands as a fan-out of parallel PRs.
+
 ## Unreleased
 
-- Added single-engagement reads at `GET /api/v1/engagements/{engagement_id}` for
-  frontend deep links.
-- Added admin-only user listing and user mutation endpoints for `/settings/users`.
-- Added role allow-list validation, TOTP reset support, last-admin protection, and
-  audited user update denials.
+### Frontend stages 4–6 — final route wiring
+
+- **#33** Stage 6 — `/engagements/$id` detail view (metadata, scope rules, live
+  allow-list, lifecycle actions) and `/settings/users` admin view (role + TOTP
+  reset drawer, self-demotion warning, structured 409 last-admin copy).
+- **#31** Stage 5 — `/networks` and `/devices` detail drawers now fetch
+  `GET /access_points/{bssid}` and `GET /devices/{mac}` so deep-links resolve
+  even when the BSSID/MAC isn't on the visible list page. Seed → detail
+  upgrade pattern keeps row-click instant.
+- **#30** Stage 4 — `/sensors` register drawer (one-time cert reveal, private
+  key masked until reveal, in-memory only) and typed-confirm revoke action in
+  the sensor detail drawer.
+
+### Backend stage 6 endpoints
+
+- **#32** Single-engagement read at `GET /api/v1/engagements/{engagement_id}`
+  for the new detail view's deep-link path.
+- **#32** Admin-only user listing (`GET /api/v1/users`) and mutation
+  (`PATCH /api/v1/users/{user_id}`) with role allow-list validation
+  (`operator | admin`), TOTP reset support, last-admin protection (`409`),
+  and audited denials for every refusal path.
+
+### Frontend stages 1–3 — wire the dashboard against shipped endpoints
+
+- **#29** Stage 3 — create-engagement drawer with scope-rules editor, blank-row
+  drop, deep-link `?new=1` for shareable openings.
+- **#28** Stage 2 — settings hub: About, System (gate-status + typed
+  acknowledgement form), TOTP re-enrol flow.
+- **#27** Stage 1 — audit log view: action-prefix filter chips, outcome
+  tone-coded badges, 401/403 empty state.
+
+### Brand pass
+
+- **#26** Project glyph + wordmark wired into the app shell, login, and
+  loading screen. No third-party trademarks anywhere.
+
+### Hardening sweep
+
+- **#23 / #24** Coordinated backend + frontend security hardening pass. CSP /
+  CORP / COOP / Permissions / Referrer headers tightened; production secret
+  detection at startup; navigation + download URL boundary checks
+  (`safe-url.ts`) so the UI refuses anchors that aren't internal or
+  same-origin `/api/...`.
+- **#25** Post-hardening doc sync.
+- **#22** Test-suite cleanup pass (timer leaks, unused stubs).
+- **#21** Backend FastAPI startup hook modernised onto lifespan context
+  manager.
+
+### Earlier milestones
+
+- **#19 / #20** Stage 8 reporting + export wired against the backend M4
+  contract surfaces.
+- Stages 0–8 of the original milestone plan (bootstrap, sensor agent v1,
+  backend core, frontend shell, alerts, analysis pack, map + packet inspector,
+  active lab modules, reporting) — see `git log` for the full path.
