@@ -62,7 +62,7 @@ function wrap(qc: QueryClient): { wrapper: (p: { children: ReactNode }) => JSX.E
 }
 
 describe("useOperatorCacheInvalidations", () => {
-  it("invalidates access_points, devices, and sensors when their upsert topics fire", () => {
+  it("invalidates access_points, devices, sensors, and alerts when their topics fire", () => {
     const qc = new QueryClient();
     const invalidate = vi.spyOn(qc, "invalidateQueries");
     const client = new OperatorWebSocketClient();
@@ -76,6 +76,7 @@ describe("useOperatorCacheInvalidations", () => {
       FakeSocket.last!.emit({ kind: "aps.upsert", ap: { bssid: "aa:bb:cc:dd:ee:01" } });
       FakeSocket.last!.emit({ kind: "devices.upsert", client: { mac: "11:22:33:44:55:66" } });
       FakeSocket.last!.emit({ kind: "sensors.update", sensor: { id: "s1" } });
+      FakeSocket.last!.emit({ kind: "alerts.fire", alert: { id: "a1", severity: "high" } });
     });
     act(() => {
       vi.advanceTimersByTime(300);
@@ -85,6 +86,7 @@ describe("useOperatorCacheInvalidations", () => {
     expect(kinds).toContain("access_points");
     expect(kinds).toContain("devices");
     expect(kinds).toContain("sensors");
+    expect(kinds).toContain("alerts");
   });
 
   it("coalesces bursts on the same topic into a single invalidation per window", () => {

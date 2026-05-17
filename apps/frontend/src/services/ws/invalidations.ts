@@ -8,13 +8,15 @@ const TOPIC_TO_KEY: Record<string, readonly unknown[]> = {
   "aps.upsert": ["access_points"],
   "devices.upsert": ["devices"],
   "sensors.update": ["sensors"],
+  "alerts.fire": ["alerts"],
 };
 
 /**
- * Mount once in the app shell. Listens for the M2.1 operator-WS topics
- * (`aps.upsert`, `devices.upsert`, `sensors.update`) and invalidates the
- * matching TanStack Query caches so list views refetch in the
- * background without a full page reload.
+ * Mount once in the app shell. Listens for the operator-WS topics that
+ * carry list-changing events (`aps.upsert`, `devices.upsert`,
+ * `sensors.update`, `alerts.fire`) and invalidates the matching
+ * TanStack Query caches so list views refetch in the background
+ * without a full page reload.
  *
  * Bursty backends emit many upserts per second — we coalesce to one
  * invalidation per query-root per ~250ms window per topic so we don't

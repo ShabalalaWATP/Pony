@@ -2,7 +2,6 @@ import { HttpResponse, http } from "msw";
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { OverviewKPIs } from "@/components/overview/OverviewKPIs";
-import { OverviewRecentAlerts } from "@/components/overview/OverviewRecentAlerts";
 import { OverviewSignalHistogram } from "@/components/overview/OverviewSignalHistogram";
 import { fixtures } from "./msw/handlers";
 import { withQueryAndRouter } from "./helpers";
@@ -90,10 +89,6 @@ describe("OverviewSignalHistogram", () => {
   });
 });
 
-describe("OverviewRecentAlerts", () => {
-  it("renders the placeholder", () => {
-    render(<OverviewRecentAlerts />);
-    expect(screen.getByText(/no alerts surface yet/i)).toBeInTheDocument();
-    expect(screen.getByText(/backend pending/i)).toBeInTheDocument();
-  });
-});
+// OverviewRecentAlerts now has its own test file (OverviewRecentAlerts.test.tsx)
+// covering the real backend wiring, WS push, and ack flow. The placeholder test
+// that lived here is retired.

@@ -7,6 +7,8 @@ type UserPublic = components["schemas"]["UserPublic"];
 type AccessPoint = components["schemas"]["AccessPoint"];
 type Client = components["schemas"]["Client"];
 type Event = components["schemas"]["Event"];
+type Alert = components["schemas"]["Alert"];
+type AlertRule = components["schemas"]["AlertRule"];
 
 export const fixtures = {
   user: {
@@ -40,6 +42,22 @@ export const fixtures = {
     payload: { ssid: "TestNet", bssid: "a4:c3:f0:1d:88:0a" },
     occurred_at: "2026-05-17T10:00:00Z",
   } satisfies Event,
+  alert: {
+    id: "a1",
+    rule_id: "rule-rogue-ssid",
+    severity: "high",
+    related_entities: ["aa:bb:cc:dd:ee:01"],
+  } satisfies Alert,
+  alertRule: {
+    id: "rule-1",
+    name: "Free WiFi rogue SSID",
+    description: "Catch SSIDs matching ^Free.*",
+    severity: "high",
+    enabled: true,
+    predicate: { event_kind: "access_point_seen", match: { ssid: "^Free.*" } },
+    created_by: "operator@cheeky.local",
+    created_at: "2026-05-17T09:00:00Z",
+  } satisfies AlertRule,
 };
 
 export const authHandlers = [
@@ -107,6 +125,22 @@ export const authHandlers = [
   http.get("/api/v1/sensors", () =>
     HttpResponse.json({ detail: "Admin role with recent TOTP required" }, { status: 403 }),
   ),
+
+  // Alerts contract surfaces — defaults are populated so OverviewRecentAlerts
+  // shows a row; tests override per-case as needed.
+  http.get("/api/v1/alerts", () =>
+    HttpResponse.json({ items: [fixtures.alert], total: 1, limit: 100, offset: 0 }),
+  ),
+  http.post("/api/v1/alerts/:alertId/ack", () => new HttpResponse(null, { status: 204 })),
+  // Rule management is admin-gated server-side; default 403 mirrors that.
+  http.get("/api/v1/alerts/rules", () =>
+    HttpResponse.json({ detail: "Admin role with recent TOTP required" }, { status: 403 }),
+  ),
+  http.post("/api/v1/alerts/rules", () => HttpResponse.json(fixtures.alertRule, { status: 200 })),
+  http.patch("/api/v1/alerts/rules/:ruleId", () =>
+    HttpResponse.json(fixtures.alertRule, { status: 200 }),
+  ),
+  http.delete("/api/v1/alerts/rules/:ruleId", () => new HttpResponse(null, { status: 204 })),
 ];
 
 export const unauthenticatedHandlers = [

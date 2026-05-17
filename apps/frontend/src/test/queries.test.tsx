@@ -5,10 +5,16 @@ import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import {
   useAccessPointsList,
+  useAckAlert,
+  useAlertRulesList,
+  useAlertsList,
   useApAssociatedClients,
+  useCreateAlertRule,
+  useDeleteAlertRule,
   useDevicesList,
   useEventsList,
   useSensorsList,
+  useUpdateAlertRule,
 } from "@/services/api/queries";
 import { fixtures } from "./msw/handlers";
 import { server } from "./msw/server";
@@ -95,5 +101,109 @@ describe("HTTP query hooks", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error?.status).toBe(403);
     expect(calls).toBe(1);
+  });
+
+  it("useAlertsList sends repeated severity params and the acked filter", async () => {
+    let receivedSearch = "";
+    server.use(
+      http.get("/api/v1/alerts", ({ request }) => {
+        receivedSearch = new URL(request.url).search;
+        return HttpResponse.json({ items: [fixtures.alert], total: 1, limit: 100, offset: 0 });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(
+      () => useAlertsList({ severity: ["high", "critical"], acked: false, limit: 50 }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    // Repeated severity params come through as `severity=high&severity=critical`.
+    expect(receivedSearch.match(/severity=high/g)?.length).toBe(1);
+    expect(receivedSearch).toContain("severity=critical");
+    expect(receivedSearch).toContain("acked=false");
+    expect(receivedSearch).toContain("limit=50");
+  });
+
+  it("useAckAlert POSTs /alerts/{id}/ack and invalidates the alerts root key", async () => {
+    let hit = false;
+    server.use(
+      http.post("/api/v1/alerts/:id/ack", () => {
+        hit = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useAckAlert(), { wrapper });
+    result.current.mutate("alert-123");
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(hit).toBe(true);
+  });
+
+  it("useAlertRulesList returns 403 without retrying when admin-gated", async () => {
+    let calls = 0;
+    server.use(
+      http.get("/api/v1/alerts/rules", () => {
+        calls += 1;
+        return HttpResponse.json({ detail: "forbidden" }, { status: 403 });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useAlertRulesList(), { wrapper });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.status).toBe(403);
+    expect(calls).toBe(1);
+  });
+
+  it("useCreateAlertRule POSTs the new rule body", async () => {
+    let received: unknown = null;
+    server.use(
+      http.post("/api/v1/alerts/rules", async ({ request }) => {
+        received = await request.json();
+        return HttpResponse.json(fixtures.alertRule);
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useCreateAlertRule(), { wrapper });
+    result.current.mutate({
+      name: "T",
+      severity: "high",
+      enabled: true,
+      predicate: { event_kind: "access_point_seen" },
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(received).toMatchObject({ name: "T", severity: "high" });
+  });
+
+  it("useUpdateAlertRule PATCHes the target rule", async () => {
+    let path = "";
+    let received: unknown = null;
+    server.use(
+      http.patch("/api/v1/alerts/rules/:id", async ({ params, request }) => {
+        path = typeof params.id === "string" ? params.id : (params.id?.[0] ?? "");
+        received = await request.json();
+        return HttpResponse.json(fixtures.alertRule);
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useUpdateAlertRule(), { wrapper });
+    result.current.mutate({ id: "rule-9", patch: { enabled: false } });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(path).toBe("rule-9");
+    expect(received).toEqual({ enabled: false });
+  });
+
+  it("useDeleteAlertRule sends DELETE to the rule endpoint", async () => {
+    let path = "";
+    server.use(
+      http.delete("/api/v1/alerts/rules/:id", ({ params }) => {
+        path = typeof params.id === "string" ? params.id : (params.id?.[0] ?? "");
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useDeleteAlertRule(), { wrapper });
+    result.current.mutate("rule-99");
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(path).toBe("rule-99");
   });
 });
