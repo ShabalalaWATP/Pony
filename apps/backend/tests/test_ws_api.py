@@ -11,7 +11,7 @@ from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
 from cheeky_pony_backend.main import create_app
 from cheeky_pony_backend.security import TokenService
-from cheeky_pony_shared import Sensor, SensorCapability
+from cheeky_pony_shared import AlertRule, AlertSeverity, Sensor, SensorCapability
 
 
 def test_sensor_gateway_persists_access_point_event() -> None:
@@ -104,6 +104,33 @@ def test_sensor_gateway_broadcasts_operator_topics_and_geo() -> None:
     assert sensor_message["sensor"]["version"] == "0.2.0"
 
 
+def test_sensor_gateway_broadcasts_alert_fire() -> None:
+    """Matching alert rules emit alerts.fire to operators."""
+
+    settings, app = _app_with_alert_rule()
+    token = TokenService(settings).create_access_token("user-1", "csrf")
+
+    with TestClient(app) as client:
+        client.cookies.set("access_token", token)
+        with client.websocket_connect("/ws/operator") as operator:
+            assert operator.receive_json()["kind"] == "connected"
+            with client.websocket_connect(
+                "/ws/sensor-gateway?sensor_id=pi-1",
+                headers={"x-client-cert-subject": "CN=pi-1"},
+            ) as sensor:
+                sensor.send_json(_free_ap_event_payload())
+                messages = [operator.receive_json() for _ in range(3)]
+
+    alert_message = next(message for message in messages if message["kind"] == "alerts.fire")
+    assert {message["kind"] for message in messages} == {
+        "events.append",
+        "aps.upsert",
+        "alerts.fire",
+    }
+    assert alert_message["alert"]["rule_id"] == "rule-1"
+    assert alert_message["alert"]["severity"] == "high"
+
+
 def _app_with_geo_sensor_and_user() -> tuple[Settings, FastAPI]:
     settings = _settings()
     store = InMemoryStore()
@@ -132,6 +159,27 @@ def _app_with_geo_sensor_and_user() -> tuple[Settings, FastAPI]:
     return settings, app
 
 
+def _app_with_alert_rule() -> tuple[Settings, FastAPI]:
+    settings = _settings()
+    store = InMemoryStore()
+    app = create_app(settings, store)
+    _run(
+        store.create_sensor(Sensor(id="pi-1", name="Pi", tailnet_ip="100.64.0.1", version="0.1.0"))
+    )
+    _run(
+        store.create_user(
+            UserRecord(
+                id="user-1",
+                email="admin@example.com",
+                password_hash="hash",
+                roles=["admin"],
+            )
+        )
+    )
+    _run(store.create_alert_rule(_free_ssid_rule()))
+    return settings, app
+
+
 def _settings() -> Settings:
     return Settings(
         env="test",
@@ -147,6 +195,16 @@ def _run(awaitable):  # type: ignore[no-untyped-def]
     return asyncio.run(awaitable)
 
 
+def _free_ssid_rule() -> AlertRule:
+    return AlertRule(
+        id="rule-1",
+        name="Free SSID",
+        severity=AlertSeverity.HIGH,
+        predicate={"event_kind": "access_point_seen", "match": {"ssid": "^Free"}},
+        created_by="user-1",
+    )
+
+
 def _ap_event_payload() -> dict[str, object]:
     return {
         "id": "evt-ap",
@@ -157,6 +215,19 @@ def _ap_event_payload() -> dict[str, object]:
             "ssid": "Lab",
             "channel": 6,
             "location": {"lat": 51.5, "lng": -0.12},
+        },
+    }
+
+
+def _free_ap_event_payload() -> dict[str, object]:
+    return {
+        "id": "evt-free-ap",
+        "sensor_id": "pi-1",
+        "kind": "access_point_seen",
+        "payload": {
+            "bssid": "AA:BB:CC:DD:EE:FF",
+            "ssid": "Free Lab",
+            "channel": 6,
         },
     }
 

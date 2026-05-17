@@ -147,6 +147,249 @@
     "title": "AcknowledgementRequest",
     "type": "object"
   },
+  "Alert": {
+    "additionalProperties": false,
+    "description": "Alert raised by rules or analysis workers.",
+    "properties": {
+      "acked_at": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Acked At"
+      },
+      "acked_by": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Acked By"
+      },
+      "id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Id",
+        "type": "string"
+      },
+      "related_entities": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Related Entities",
+        "type": "array"
+      },
+      "rule_id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Rule Id",
+        "type": "string"
+      },
+      "severity": {
+        "$ref": "#/components/schemas/AlertSeverity"
+      }
+    },
+    "required": [
+      "id",
+      "rule_id",
+      "severity"
+    ],
+    "title": "Alert",
+    "type": "object"
+  },
+  "AlertRule": {
+    "additionalProperties": false,
+    "description": "Operator-managed alert rule evaluated against normalized events.",
+    "properties": {
+      "created_at": {
+        "format": "date-time",
+        "title": "Created At",
+        "type": "string"
+      },
+      "created_by": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Created By",
+        "type": "string"
+      },
+      "description": {
+        "anyOf": [
+          {
+            "maxLength": 512,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Description"
+      },
+      "enabled": {
+        "default": true,
+        "title": "Enabled",
+        "type": "boolean"
+      },
+      "id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Id",
+        "type": "string"
+      },
+      "name": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "predicate": {
+        "additionalProperties": true,
+        "title": "Predicate",
+        "type": "object"
+      },
+      "severity": {
+        "$ref": "#/components/schemas/AlertSeverity"
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "severity",
+      "predicate",
+      "created_by"
+    ],
+    "title": "AlertRule",
+    "type": "object"
+  },
+  "AlertRuleCreateRequest": {
+    "additionalProperties": false,
+    "description": "Alert rule creation request.",
+    "properties": {
+      "description": {
+        "anyOf": [
+          {
+            "maxLength": 512,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Description"
+      },
+      "enabled": {
+        "default": true,
+        "title": "Enabled",
+        "type": "boolean"
+      },
+      "name": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "predicate": {
+        "additionalProperties": true,
+        "title": "Predicate",
+        "type": "object"
+      },
+      "severity": {
+        "$ref": "#/components/schemas/AlertSeverity"
+      }
+    },
+    "required": [
+      "name",
+      "severity",
+      "predicate"
+    ],
+    "title": "AlertRuleCreateRequest",
+    "type": "object"
+  },
+  "AlertRuleUpdateRequest": {
+    "additionalProperties": false,
+    "description": "Alert rule update request.",
+    "properties": {
+      "description": {
+        "anyOf": [
+          {
+            "maxLength": 512,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Description"
+      },
+      "enabled": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Enabled"
+      },
+      "name": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name"
+      },
+      "predicate": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Predicate"
+      },
+      "severity": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/AlertSeverity"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "title": "AlertRuleUpdateRequest",
+    "type": "object"
+  },
+  "AlertSeverity": {
+    "description": "Alert severity buckets.",
+    "enum": [
+      "info",
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ],
+    "title": "AlertSeverity",
+    "type": "string"
+  },
   "AllowTargetRequest": {
     "description": "Allow-list target request.",
     "properties": {
@@ -201,6 +444,78 @@
       "offset"
     ],
     "title": "ApiPage[AccessPoint]",
+    "type": "object"
+  },
+  "ApiPage_AlertRule_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/AlertRule"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[AlertRule]",
+    "type": "object"
+  },
+  "ApiPage_Alert_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/Alert"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[Alert]",
     "type": "object"
   },
   "ApiPage_AuditLog_": {

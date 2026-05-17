@@ -14,11 +14,20 @@ Method: STRIDE per major component.
 ## Operator Realtime Channel
 
 - Spoofing: operator WebSockets require a valid signed access-token cookie before accept.
-- Tampering: outbound topic payloads are built from validated shared models before broadcast.
-- Repudiation: realtime delivery is derived from persisted event, device, and sensor records.
-- Information disclosure: broadcasts are limited to authenticated operators and inherit strict cookie/CORS posture.
+- Tampering: outbound topic payloads are built from validated shared models before broadcast, including alert notifications.
+- Repudiation: realtime delivery is derived from persisted event, device, sensor, and alert records.
+- Information disclosure: broadcasts are limited to authenticated operators and inherit strict cookie/CORS posture; alert payloads carry entity references rather than raw capture material.
 - Denial of service: disconnected sockets are dropped from the in-process broker after failed sends.
 - Elevation of privilege: the channel does not accept operator commands; state changes remain on CSRF-protected HTTP endpoints.
+
+## Alert Rules
+
+- Spoofing: alert rule mutations require an authenticated admin with a recent TOTP verification.
+- Tampering: predicates are constrained to the v1 JSON shape and are evaluated against normalized event models.
+- Repudiation: rule create, update, delete, and alert acknowledgement operations append audit entries.
+- Information disclosure: alert records expose severity and related entity identifiers only; predicate matches must not persist packet payloads or credentials.
+- Denial of service: regex predicates are length-limited and invalid expressions fail closed without firing.
+- Elevation of privilege: non-admin users can list and acknowledge alerts but cannot create, modify, or delete rules.
 
 ## Sensor Gateway
 
