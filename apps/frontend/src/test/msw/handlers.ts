@@ -141,6 +141,17 @@ export const authHandlers = [
     HttpResponse.json(fixtures.alertRule, { status: 200 }),
   ),
   http.delete("/api/v1/alerts/rules/:ruleId", () => new HttpResponse(null, { status: 204 })),
+
+  // Sensor lifecycle commands — defaults return 202 with a generated id.
+  http.post("/api/v1/sensors/:sensorId/commands/restart", () =>
+    HttpResponse.json({ command_id: "cmd-restart-test" }, { status: 202 }),
+  ),
+  http.post("/api/v1/sensors/:sensorId/commands/update", () =>
+    HttpResponse.json({ command_id: "cmd-update-test" }, { status: 202 }),
+  ),
+  http.post("/api/v1/sensors/:sensorId/commands/set-channel", () =>
+    HttpResponse.json({ command_id: "cmd-channel-test" }, { status: 202 }),
+  ),
 ];
 
 export const unauthenticatedHandlers = [
