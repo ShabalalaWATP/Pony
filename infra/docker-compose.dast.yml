@@ -31,6 +31,7 @@ services:
       CHEEKY_PONY_MONGO_DB: cheeky_pony_dast
       CHEEKY_PONY_REDIS_DSN: redis://redis:6379/0
       CHEEKY_PONY_JWT_SECRET: dast-only-change-me-dast-only-change-me
+      CHEEKY_PONY_SENSOR_GATEWAY_HEADER_SECRET: dast-sensor-header-secret-change-me-123
       CHEEKY_PONY_COOKIE_SECURE: "false"
       CHEEKY_PONY_CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000"]'
       CHEEKY_PONY_SEED_ADMIN_EMAIL: admin@example.com

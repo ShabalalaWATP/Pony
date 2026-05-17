@@ -1406,6 +1406,18 @@
             "title": "Capabilities",
             "type": "array"
           },
+          "client_cert_fingerprint_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Cert Fingerprint Sha256"
+          },
           "id": {
             "maxLength": 96,
             "minLength": 1,
@@ -2311,7 +2323,7 @@
     },
     "/api/v1/auth/2fa/setup": {
       "post": {
-        "description": "Create or return a TOTP secret for the current user.\n\nArgs:\n    user: Current user.\n    store: Application store.\n    totp: TOTP service.\n\nReturns:\n    TOTP setup data.",
+        "description": "Create or rotate a TOTP secret for the current user.\n\nArgs:\n    user: Current user.\n    store: Application store.\n    totp: TOTP service.\n    settings: Runtime settings.\n\nReturns:\n    TOTP setup data.",
         "operationId": "setup_totp_api_v1_auth_2fa_setup_post",
         "responses": {
           "200": {
@@ -2417,7 +2429,7 @@
     },
     "/api/v1/auth/logout": {
       "post": {
-        "description": "Clear browser session cookies and record a logout audit event.\n\nArgs:\n    response: FastAPI response.\n    user: Current authenticated user.\n    audit: Audit logger.\n    settings: Runtime settings.",
+        "description": "Clear browser session cookies and record a logout audit event.\n\nArgs:\n    response: FastAPI response.\n    user: Current authenticated user.\n    audit: Audit logger.\n    store: Application store.\n    settings: Runtime settings.",
         "operationId": "logout_api_v1_auth_logout_post",
         "responses": {
           "204": {
@@ -2454,7 +2466,7 @@
     },
     "/api/v1/auth/register": {
       "post": {
-        "description": "Register the first admin or an admin-created user.\n\nArgs:\n    payload: Registration payload.\n    request: FastAPI request.\n    store: Application store.\n    passwords: Password service.\n    tokens: Token service.\n\nReturns:\n    Created public user.",
+        "description": "Register the first admin or an admin-created user.\n\nArgs:\n    payload: Registration payload.\n    request: FastAPI request.\n    store: Application store.\n    passwords: Password service.\n    tokens: Token service.\n    settings: Runtime settings.\n\nReturns:\n    Created public user.",
         "operationId": "register_api_v1_auth_register_post",
         "requestBody": {
           "content": {

@@ -176,17 +176,21 @@ async def require_admin(user: Annotated[UserRecord, Depends(current_user)]) -> U
     return user
 
 
-async def require_admin_2fa(user: Annotated[UserRecord, Depends(require_admin)]) -> UserRecord:
+async def require_admin_2fa(
+    user: Annotated[UserRecord, Depends(require_admin)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> UserRecord:
     """Require admin role and verified TOTP.
 
     Args:
         user: Current admin user.
+        settings: Runtime settings.
 
     Returns:
         Current admin user with TOTP verification.
     """
 
-    if not user.has_recent_totp():
+    if not user.has_recent_totp(settings.totp_recent_minutes):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="totp_required")
     return user
 
