@@ -13,8 +13,11 @@ import {
   useDeleteAlertRule,
   useDevicesList,
   useEventsList,
+  useRestartSensor,
   useSensorsList,
+  useSetSensorChannel,
   useUpdateAlertRule,
+  useUpdateSensor,
 } from "@/services/api/queries";
 import { fixtures } from "./msw/handlers";
 import { server } from "./msw/server";
@@ -205,5 +208,67 @@ describe("HTTP query hooks", () => {
     result.current.mutate("rule-99");
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(path).toBe("rule-99");
+  });
+
+  it("useRestartSensor POSTs the restart sub-route and returns a command_id", async () => {
+    let path = "";
+    server.use(
+      http.post("/api/v1/sensors/:id/commands/restart", ({ params }) => {
+        path = typeof params.id === "string" ? params.id : (params.id?.[0] ?? "");
+        return HttpResponse.json({ command_id: "cmd-r-1" }, { status: 202 });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useRestartSensor(), { wrapper });
+    result.current.mutate("sensor-X");
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(path).toBe("sensor-X");
+    expect(result.current.data?.command_id).toBe("cmd-r-1");
+  });
+
+  it("useUpdateSensor POSTs the update sub-route", async () => {
+    let path = "";
+    server.use(
+      http.post("/api/v1/sensors/:id/commands/update", ({ params }) => {
+        path = typeof params.id === "string" ? params.id : (params.id?.[0] ?? "");
+        return HttpResponse.json({ command_id: "cmd-u-1" }, { status: 202 });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useUpdateSensor(), { wrapper });
+    result.current.mutate("sensor-Y");
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(path).toBe("sensor-Y");
+  });
+
+  it("useSetSensorChannel sends channel + band in the request body", async () => {
+    let body: unknown = null;
+    server.use(
+      http.post("/api/v1/sensors/:id/commands/set-channel", async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ command_id: "cmd-c-1" }, { status: 202 });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useSetSensorChannel(), { wrapper });
+    result.current.mutate({ id: "sensor-Z", channel: 36, band: "5" });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(body).toEqual({ channel: 36, band: "5" });
+  });
+
+  it("useRestartSensor surfaces 403 (admin + 2FA required) without retrying", async () => {
+    let calls = 0;
+    server.use(
+      http.post("/api/v1/sensors/:id/commands/restart", () => {
+        calls += 1;
+        return HttpResponse.json({ detail: "Admin + 2FA required" }, { status: 403 });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useRestartSensor(), { wrapper });
+    result.current.mutate("sensor-A");
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.status).toBe(403);
+    expect(calls).toBe(1);
   });
 });

@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/domain/EmptyState";
 import { LiveDot } from "@/components/domain/LiveDot";
 import { RelativeTime } from "@/components/domain/RelativeTime";
 import { useSensorsList, type Sensor } from "@/services/api/queries";
+import { SensorCommands } from "./SensorCommands";
 
 function hasGeo(sensor: Sensor): boolean {
   return (sensor.capabilities ?? []).includes("geo");
@@ -232,12 +233,7 @@ function SensorDetail({ sensor }: { sensor: Sensor }): JSX.Element {
         </div>
       </DetailSection>
 
-      <DetailSection label="Coming in Stage 7">
-        <p className="text-xs text-fg-60">
-          Live event console, channel hop schedule, and 24-hour uptime sparkline land alongside the
-          active-module gating work.
-        </p>
-      </DetailSection>
+      <SensorCommands sensor={sensor} />
     </div>
   );
 }
