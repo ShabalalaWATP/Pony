@@ -97,6 +97,12 @@ export const fixtures = {
     last_seen: "2026-05-17T10:00:00Z",
     revoked: false,
   } satisfies Sensor,
+  adminUser: {
+    id: "00000000-0000-0000-0000-0000000000ad",
+    email: "admin@cheeky.local",
+    roles: ["admin"],
+    totp_enabled: true,
+  } satisfies UserPublic,
   sensorRegister: {
     ca_certificate_pem: "-----BEGIN CERTIFICATE-----\nMIIBCAEXAMPLECA\n-----END CERTIFICATE-----\n",
     client_certificate_pem:
@@ -251,6 +257,30 @@ export const authHandlers = [
   http.get("/api/v1/engagements", () =>
     HttpResponse.json({ items: [fixtures.engagement], total: 1, limit: 100, offset: 0 }),
   ),
+  // Engagement detail — happy path for the fixture id, 404 otherwise.
+  http.get("/api/v1/engagements/:id", ({ params }) => {
+    if (params.id === fixtures.engagement.id) {
+      return HttpResponse.json(fixtures.engagement);
+    }
+    return HttpResponse.json({ detail: "engagement not found" }, { status: 404 });
+  }),
+  // Users list is admin+2FA gated — default 403 mirrors backend. Tests
+  // that need a populated list override with `server.use(...)`.
+  http.get("/api/v1/users", () =>
+    HttpResponse.json({ detail: "Admin role with recent TOTP required" }, { status: 403 }),
+  ),
+  // PATCH default returns the fixture user updated with the body's
+  // requested roles so the happy-path drawer test can land.
+  http.patch("/api/v1/users/:userId", async ({ request, params }) => {
+    const body = (await request.json()) as { roles?: string[] | null; reset_totp?: boolean };
+    const updated: UserPublic = {
+      ...fixtures.user,
+      id: typeof params.userId === "string" ? params.userId : fixtures.user.id,
+      roles: body.roles ?? fixtures.user.roles,
+      totp_enabled: body.reset_totp ? false : fixtures.user.totp_enabled,
+    };
+    return HttpResponse.json(updated);
+  }),
   // POST /engagements default returns the fixture so the create-drawer
   // flow can land an Engagement; tests that need a 403 / validation
   // error override per-case via server.use(...).
