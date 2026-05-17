@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import {
   isLabRefusal,
+  useAcknowledgeOperator,
   useActiveEngagement,
   useActiveLabCommands,
   useAddAllowListTarget,
@@ -321,5 +322,39 @@ describe("lab + engagement query hooks", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(path).toBe("eng-9");
     expect(body).toEqual({ kind: "ssid", value: "Office-WiFi" });
+  });
+
+  it("useAcknowledgeOperator POSTs the statement and returns the record", async () => {
+    let body: unknown = null;
+    server.use(
+      http.post("/api/v1/system/acknowledgements", async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({
+          kind: "authorized_operator",
+          accepted_by: "operator@cheeky.local",
+          accepted_at: "2026-05-17T10:00:00Z",
+          statement_hash: "sha256:abc",
+        });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useAcknowledgeOperator(), { wrapper });
+    result.current.mutate({ statement: "I am an authorised operator…" });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(body).toEqual({ statement: "I am an authorised operator…" });
+    expect(result.current.data?.kind).toBe("authorized_operator");
+  });
+
+  it("useAcknowledgeOperator surfaces 403 (admin/2FA missing)", async () => {
+    server.use(
+      http.post("/api/v1/system/acknowledgements", () =>
+        HttpResponse.json({ detail: "Admin role with recent TOTP required" }, { status: 403 }),
+      ),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useAcknowledgeOperator(), { wrapper });
+    result.current.mutate({ statement: "..." });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error?.status).toBe(403);
   });
 });

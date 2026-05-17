@@ -1,5 +1,5 @@
 import { QRCodeSVG } from "qrcode.react";
-import { Check, Copy, ShieldCheck } from "lucide-react";
+import { Check, Copy, RotateCw, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -22,6 +22,13 @@ interface TotpSetupCardProps {
  *
  * On success the parent `useCurrentUser` cache is updated by
  * `useVerify2FA` so the user's `totp_enabled` flips.
+ *
+ * Re-enrolment: when `totp_enabled` is already true, the active-state
+ * card surfaces a "Re-enrol" button. Clicking it kicks the same
+ * `setup.mutate()` flow with a fresh secret — useful when the
+ * operator loses their authenticator device or rotates secrets
+ * pre-emptively. The verify step then overwrites the server-side
+ * secret on success.
  */
 export function TotpSetupCard({ user }: TotpSetupCardProps): JSX.Element {
   const setup = useSetup2FA();
@@ -41,7 +48,10 @@ export function TotpSetupCard({ user }: TotpSetupCardProps): JSX.Element {
 
   if (user.totp_enabled && !setup.data) {
     return (
-      <div className="flex items-center gap-3 rounded-md border border-accent-green/40 bg-accent-green/10 px-4 py-3 text-sm text-accent-green">
+      <div
+        className="flex flex-wrap items-center gap-3 rounded-md border border-accent-green/40 bg-accent-green/10 px-4 py-3 text-sm text-accent-green"
+        data-testid="totp-active-card"
+      >
         <ShieldCheck className="size-4" aria-hidden="true" />
         <div className="flex-1">
           <div className="font-medium">Two-factor authentication is enabled.</div>
@@ -52,6 +62,21 @@ export function TotpSetupCard({ user }: TotpSetupCardProps): JSX.Element {
         <Badge tone="green" outline>
           Active
         </Badge>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setup.mutate()}
+          disabled={setup.isPending}
+          aria-label="Re-enrol two-factor authentication"
+        >
+          <RotateCw className="size-3.5" aria-hidden="true" />
+          {setup.isPending ? "Generating…" : "Re-enrol"}
+        </Button>
+        {setup.error && (
+          <div role="alert" className="w-full text-xs text-accent-red">
+            {setup.error.message}
+          </div>
+        )}
       </div>
     );
   }
