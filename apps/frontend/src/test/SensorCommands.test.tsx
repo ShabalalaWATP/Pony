@@ -1,5 +1,5 @@
 import { HttpResponse, http } from "msw";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SensorCommands } from "@/components/sensors/SensorCommands";
@@ -150,23 +150,25 @@ describe("SensorCommands", () => {
     FakeSocket.last!.open();
     await mount(baseSensor);
 
-    // Mismatched sensor — ignored.
-    FakeSocket.last!.emit({
-      kind: "command_result",
-      sensor_id: "other-sensor",
-      command_id: "cmd-other-99999999",
-      command: "restart",
-      outcome: "ok",
-      finished_at: new Date().toISOString(),
-    });
-    // Matching sensor — prepended.
-    FakeSocket.last!.emit({
-      kind: "command_result",
-      sensor_id: baseSensor.id,
-      command_id: "cmd-real-99999999",
-      command: "set_channel",
-      outcome: "ok",
-      finished_at: new Date().toISOString(),
+    act(() => {
+      // Mismatched sensor — ignored.
+      FakeSocket.last!.emit({
+        kind: "command_result",
+        sensor_id: "other-sensor",
+        command_id: "cmd-other-99999999",
+        command: "restart",
+        outcome: "ok",
+        finished_at: new Date().toISOString(),
+      });
+      // Matching sensor — prepended.
+      FakeSocket.last!.emit({
+        kind: "command_result",
+        sensor_id: baseSensor.id,
+        command_id: "cmd-real-99999999",
+        command: "set_channel",
+        outcome: "ok",
+        finished_at: new Date().toISOString(),
+      });
     });
 
     const list = await screen.findByTestId("sensor-command-feedback");
@@ -181,13 +183,15 @@ describe("SensorCommands", () => {
     client.connect();
     FakeSocket.last!.open();
     await mount(baseSensor);
-    FakeSocket.last!.emit({
-      kind: "command_result",
-      sensor_id: baseSensor.id,
-      command_id: "cmd-f-12345678",
-      command: "restart",
-      outcome: "failed",
-      finished_at: new Date().toISOString(),
+    act(() => {
+      FakeSocket.last!.emit({
+        kind: "command_result",
+        sensor_id: baseSensor.id,
+        command_id: "cmd-f-12345678",
+        command: "restart",
+        outcome: "failed",
+        finished_at: new Date().toISOString(),
+      });
     });
     const list = await screen.findByTestId("sensor-command-feedback");
     expect(list).toHaveTextContent("failed");

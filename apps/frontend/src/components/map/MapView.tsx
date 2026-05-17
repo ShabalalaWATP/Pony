@@ -186,14 +186,22 @@ interface ApRowProps {
 }
 
 function ApRow({ ap, placed, fromSensor, onPlace }: ApRowProps): JSX.Element {
+  // We can't wrap the whole row in a <button> — `MacAddress` already
+  // renders its own click-to-copy <button>, and nesting buttons is
+  // invalid HTML and triggers a React warning. Instead, the "place pin"
+  // affordance is the SSID line at the top of the row; the BSSID below
+  // keeps its own copy button at the leaf.
   return (
-    <button
-      type="button"
-      onClick={onPlace}
+    <div
       data-testid="map-ap-row"
-      className="flex flex-col gap-1 rounded-sm border border-fg-20 bg-bg-1 px-2 py-1.5 text-left hover:border-fg-40"
+      className="flex flex-col gap-1 rounded-sm border border-fg-20 bg-bg-1 px-2 py-1.5 hover:border-fg-40"
     >
-      <div className="flex items-center justify-between gap-2">
+      <button
+        type="button"
+        onClick={onPlace}
+        aria-label={`Place pin for ${ap.ssid ?? ap.bssid}`}
+        className="flex items-center justify-between gap-2 rounded-sm text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-mode"
+      >
         <span className="truncate text-sm text-fg-100">
           {ap.ssid ?? <span className="italic text-fg-40">&lt;hidden&gt;</span>}
         </span>
@@ -203,9 +211,9 @@ function ApRow({ ap, placed, fromSensor, onPlace }: ApRowProps): JSX.Element {
             {fromSensor ? "from sensor" : "placed"}
           </Badge>
         )}
-      </div>
+      </button>
       <MacAddress value={ap.bssid} vendor={ap.vendor_oui ?? undefined} truncate />
-    </button>
+    </div>
   );
 }
 
