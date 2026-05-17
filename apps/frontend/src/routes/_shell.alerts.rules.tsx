@@ -1,12 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { StubView } from "@/views/StubView";
+import { AlertRulesView } from "@/components/alerts/AlertRulesView";
 
 export const Route = createFileRoute("/_shell/alerts/rules")({
-  component: () => (
-    <StubView
-      title="Alert rules"
-      stage={4}
-      description="Define rules over the event stream — new SSID, signal threshold breach, probe-graph anomaly."
-    />
-  ),
+  component: AlertRulesView,
 });

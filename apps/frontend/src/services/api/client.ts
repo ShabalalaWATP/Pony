@@ -156,6 +156,5 @@ export const apiClient = {
     api<T>(path, { ...init, method: "PUT", body }),
   patch: <T>(path: string, body?: unknown, init?: RequestOptions) =>
     api<T>(path, { ...init, method: "PATCH", body }),
-  /** Only kept for future symmetry — the backend CORS allow-list rejects DELETE. */
   delete: <T>(path: string, init?: RequestOptions) => api<T>(path, { ...init, method: "DELETE" }),
 };
