@@ -137,15 +137,16 @@ Right drawer 480px (used for detail without losing list context)
 
 Breakpoints: `sm` 640 (min supported), `md` 768, `lg` 1024 (sidebar inline 56px), `xl` 1280 (sidebar 208px), `2xl` 1536. Below 640px we show a "not supported on mobile" interstitial.
 
-## 6. Components (Stage 1 inventory)
+## 6. Components
 
-Built and shipped in this PR:
+Current shared component inventory:
 
 - `components/branding/{Glyph, Wordmark}`
-- `components/ui/{Button, Input, Badge, Chip, Tooltip, Skeleton, Separator, Kbd}`
+- `components/ui/{Button, Input, Badge, Chip, Tooltip, Skeleton, Separator, Kbd, DataTable, Drawer, DetailGrid, PageHeader}`
 - `components/domain/{LiveDot, SignalBars, SignalSparkline, MacAddress, RelativeTime, EncryptionChip, AlertSeverityChip, StatTile, EmptyState, ChannelBadge}`
-
-Stage 2+ adds: `AppShell`, `Sidebar`, `Topbar`, `CommandPalette`, `Breadcrumbs`, `PageHeader`, `RightDrawer`, `DataTable`, `EventConsole`, `LabModeBanner`, `LoginForm`, `TotpInput`, `AuthGuard`, the per-route feature components.
+- `components/layout/{AppShell, Sidebar, Topbar, CommandPalette, Breadcrumbs, LabModeBanner}`
+- `components/auth/{LoginForm, TotpInput, TotpSetupCard, AuthGuard, UserMenu}`
+- route feature components for overview, sensors, networks, devices, events, alerts, engagements, lab, map, reports, and settings
 
 **File-size rule**: component file ≤ 400 lines; function ≤ 50 lines. Split before abstracting.
 
@@ -153,19 +154,19 @@ Stage 2+ adds: `AppShell`, `Sidebar`, `Topbar`, `CommandPalette`, `Breadcrumbs`,
 
 **Keyboard-first** — the product is operable without a mouse during an engagement:
 
-| Key                | Action                                |
-| ------------------ | ------------------------------------- |
-| `⌘K` / `Ctrl+K`    | Command palette                       |
-| `g o/s/n/d/e/a/l`  | Jump to route                         |
-| `[` / `]`          | Collapse / expand sidebar             |
-| `/`                | Focus the current page's search       |
-| `j` / `k`          | Move selection                        |
-| `Enter`            | Open selected row in drawer           |
-| `Esc`              | Close drawer / modal / palette        |
-| `?`                | Hotkey cheat-sheet overlay            |
-| `c`                | Copy selected row's primary id        |
-| `Shift+Click`      | Multi-select                          |
-| `⌘.` / `Ctrl+.`    | Acknowledge top alert                 |
+| Key               | Action                          |
+| ----------------- | ------------------------------- |
+| `⌘K` / `Ctrl+K`   | Command palette                 |
+| `g o/s/n/d/e/a/l` | Jump to route                   |
+| `[` / `]`         | Collapse / expand sidebar       |
+| `/`               | Focus the current page's search |
+| `j` / `k`         | Move selection                  |
+| `Enter`           | Open selected row in drawer     |
+| `Esc`             | Close drawer / modal / palette  |
+| `?`               | Hotkey cheat-sheet overlay      |
+| `c`               | Copy selected row's primary id  |
+| `Shift+Click`     | Multi-select                    |
+| `⌘.` / `Ctrl+.`   | Acknowledge top alert           |
 
 **Command palette** (cmdk) indexes routes, sensors, recent APs/devices, alert rules, and verbs. Mutating verbs require an inline confirm.
 
@@ -210,7 +211,7 @@ Stage 2+ adds: `AppShell`, `Sidebar`, `Topbar`, `CommandPalette`, `Breadcrumbs`,
 ```
 apps/frontend/src/
 ├── main.tsx                  # entry
-├── App.tsx                   # router root (Stage 1 renders /design-system directly)
+├── App.tsx                   # router root
 ├── routes/                   # per-route page components
 ├── components/{ui,domain,branding,layout,auth,…}/
 ├── hooks/
@@ -224,16 +225,30 @@ apps/frontend/src/
 
 No file over 400 lines, no function over 50.
 
-## 13. Build order (visible-slice-first)
+## 13. Implementation status
 
-1. **Stage 1 — Foundation** (this PR): Vite + TS + Tailwind 4, tokens, fonts, primitives, branding, `/design-system` showcase, OpenAPI types generated and committed, CI frontend job.
-2. **Stage 2 — Shell**: AppShell + Sidebar + Topbar + CommandPalette + TanStack Router + route stubs.
-3. **Stage 3 — Auth**: `/login`, TOTP, AuthGuard, session refresh, lab-mode store.
-4. **Stage 4 — Overview + live data**: operator WS client, `useLiveTopic`, KPI tiles, live event stream, signal histogram.
-5. **Stage 5 — Sensors + Networks + Devices**: list/drawer pairs. Closes milestone-3-equivalent scope.
+Merged frontend stages now cover the visible operator shell and the backend-backed
+surfaces required for normal workflows:
 
-Tests, Lighthouse, axe-core all enforced from Stage 1.
+1. **Foundation**: Vite, React, TypeScript, Tailwind 4, tokens, fonts, primitives,
+   branding, `/design-system`, committed OpenAPI types, and the frontend CI job.
+2. **Shell**: AppShell, Sidebar, Topbar, CommandPalette, TanStack Router, route
+   tree generation, and route-level stubs.
+3. **Auth**: `/login`, TOTP setup/verify, AuthGuard, session refresh, logout, and
+   lab-mode state.
+4. **Overview and realtime**: operator WebSocket client, topic invalidation, KPI
+   tiles, live event stream, recent alerts, and signal histogram.
+5. **Sensors, networks, devices, and map**: list/detail workflows, AP-associated
+   clients, server-side AP coordinates, and local manual map pins.
+6. **Alerts, engagements, lab, and reporting**: alert inbox/rules, engagement
+   allow-lists, active lab command panels, report requests/status/download safety,
+   and security hardening.
+
+The current dependency baseline is Vite 6, Vitest 3, React 19, TanStack Router and
+Query, Zustand, MapLibre, Recharts, Lucide, Radix primitives, and Tailwind 4.
 
 ## 14. Operator guide deliverable
 
-Every stage updates `docs/operator-guide.md` with annotated screenshots. PDF export is generated from this markdown in CI on tagged releases.
+User-facing behaviour updates must be reflected in `docs/operator-guide.md`.
+Screenshots and release PDF generation are release tasks, not required for every
+feature PR.
