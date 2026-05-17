@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { RelativeTime } from "@/components/domain/RelativeTime";
+import { safeDownloadUrl } from "@/lib/safe-url";
 import {
   type Engagement,
   type ReportFormat,
@@ -214,7 +215,11 @@ interface ReportRowItemProps {
 function ReportRowItem({ engagementId, row }: ReportRowItemProps): JSX.Element {
   const query = useReportStatus(engagementId, row.reportId);
   const status = query.data?.status ?? "pending";
-  const downloadUrl = query.data?.download_url;
+  // `download_url` is operator-facing — if a future backend change
+  // ever returns an off-origin or non-/api URL, the link drops out
+  // and the row stays at "ready" without a clickable download.
+  const downloadUrl = safeDownloadUrl(query.data?.download_url);
+  const downloadBlocked = status === "ready" && query.data?.download_url && !downloadUrl;
   const error = query.data?.error ?? query.error?.message;
 
   return (
@@ -245,6 +250,15 @@ function ReportRowItem({ engagementId, row }: ReportRowItemProps): JSX.Element {
           </a>
         ) : null}
       </span>
+      {downloadBlocked && (
+        <p
+          role="alert"
+          data-testid="download-blocked"
+          className="w-full text-2xs text-accent-amber"
+        >
+          Backend returned an unsafe download URL; download link suppressed. Check the audit log.
+        </p>
+      )}
       {status === "failed" && error && (
         <p role="alert" className="w-full text-2xs text-accent-red">
           {error}

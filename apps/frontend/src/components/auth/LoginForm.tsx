@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useLogin, useVerify2FA } from "@/services/auth/hooks";
 import { cn } from "@/lib/cn";
+import { sanitizeInternalPath } from "@/lib/safe-url";
 import { TotpInput } from "./TotpInput";
 
 type Phase = "credentials" | "totp";
@@ -17,7 +18,11 @@ interface LoginFormProps {
 export function LoginForm({ defaultNext = "/" }: LoginFormProps): JSX.Element {
   const navigate = useNavigate();
   const search = useSearch({ strict: false });
-  const next = search.next ?? defaultNext;
+  // `next` is operator-supplied via the `?next=` search param so it
+  // has to be sanitized before we hand it to `router.navigate`. An
+  // unsafe value (off-origin, `javascript:`, …) falls back to
+  // `defaultNext` so a successful login still lands on a real page.
+  const next = sanitizeInternalPath(search.next, defaultNext);
 
   const [phase, setPhase] = useState<Phase>("credentials");
   const [email, setEmail] = useState("");
