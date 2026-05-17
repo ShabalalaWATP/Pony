@@ -413,6 +413,27 @@
         "title": "AllowTargetRequest",
         "type": "object"
       },
+      "AllowedTarget": {
+        "additionalProperties": false,
+        "description": "Engagement allow-list entry.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/TargetKind"
+          },
+          "value": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value"
+        ],
+        "title": "AllowedTarget",
+        "type": "object"
+      },
       "ApiPage_AccessPoint_": {
         "additionalProperties": false,
         "properties": {
@@ -521,6 +542,42 @@
         "title": "ApiPage[Alert]",
         "type": "object"
       },
+      "ApiPage_AllowedTarget_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AllowedTarget"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[AllowedTarget]",
+        "type": "object"
+      },
       "ApiPage_AuditLog_": {
         "additionalProperties": false,
         "properties": {
@@ -591,6 +648,42 @@
           "offset"
         ],
         "title": "ApiPage[Client]",
+        "type": "object"
+      },
+      "ApiPage_Engagement_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Engagement"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[Engagement]",
         "type": "object"
       },
       "ApiPage_Event_": {
@@ -1095,6 +1188,30 @@
         "title": "LabModuleStartResponse",
         "type": "object"
       },
+      "LabStatusResponse": {
+        "description": "Current lab gate status for operator UI banners.",
+        "properties": {
+          "acknowledgement_on_file": {
+            "title": "Acknowledgement On File",
+            "type": "boolean"
+          },
+          "is_admin_2fa": {
+            "title": "Is Admin 2Fa",
+            "type": "boolean"
+          },
+          "lab_mode": {
+            "title": "Lab Mode",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "lab_mode",
+          "acknowledgement_on_file",
+          "is_admin_2fa"
+        ],
+        "title": "LabStatusResponse",
+        "type": "object"
+      },
       "LabTarget": {
         "additionalProperties": false,
         "description": "Active lab command target.",
@@ -1448,7 +1565,11 @@
         "description": "Set-channel command body.",
         "properties": {
           "band": {
-            "pattern": "^(2\\.4|5|6)$",
+            "enum": [
+              "2.4",
+              "5",
+              "6"
+            ],
             "title": "Band",
             "type": "string"
           },
@@ -2474,8 +2595,63 @@
       }
     },
     "/api/v1/engagements": {
+      "get": {
+        "description": "List engagements.\n\nArgs:\n    _: Current user.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated engagements.",
+        "operationId": "list_engagements_api_v1_engagements_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_Engagement_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Engagements",
+        "tags": [
+          "engagements"
+        ]
+      },
       "post": {
-        "description": "Create an engagement.\n\nArgs:\n    payload: Engagement payload.\n    _: Current admin with verified TOTP.\n    store: Application store.\n\nReturns:\n    Created engagement.",
+        "description": "Create an engagement.\n\nArgs:\n    payload: Engagement payload.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n\nReturns:\n    Created engagement.",
         "operationId": "create_engagement_api_v1_engagements_post",
         "requestBody": {
           "content": {
@@ -2538,8 +2714,116 @@
       }
     },
     "/api/v1/engagements/{engagement_id}/allow-list": {
+      "delete": {
+        "description": "Remove a target from an engagement allow-list.\n\nArgs:\n    engagement_id: Engagement identifier.\n    payload: Target payload.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.",
+        "operationId": "remove_allowed_target_api_v1_engagements__engagement_id__allow_list_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AllowTargetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Allowed Target",
+        "tags": [
+          "engagements"
+        ]
+      },
+      "get": {
+        "description": "List targets allowed for an engagement.\n\nArgs:\n    engagement_id: Engagement identifier.\n    _: Current user.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated allowed targets.",
+        "operationId": "list_allowed_targets_api_v1_engagements__engagement_id__allow_list_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_AllowedTarget_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Allowed Targets",
+        "tags": [
+          "engagements"
+        ]
+      },
       "post": {
-        "description": "Add a target to an engagement allow-list.\n\nArgs:\n    engagement_id: Engagement identifier.\n    payload: Target payload.\n    _: Current admin with verified TOTP.\n    store: Application store.",
+        "description": "Add a target to an engagement allow-list.\n\nArgs:\n    engagement_id: Engagement identifier.\n    payload: Target payload.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.",
         "operationId": "allow_target_api_v1_engagements__engagement_id__allow_list_post",
         "parameters": [
           {
@@ -2782,6 +3066,49 @@
         ]
       }
     },
+    "/api/v1/engagements/{engagement_id}/resume": {
+      "post": {
+        "description": "Resume an ended engagement when no other engagement is active.\n\nArgs:\n    engagement_id: Engagement identifier.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n\nReturns:\n    Resumed engagement.",
+        "operationId": "resume_engagement_api_v1_engagements__engagement_id__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Engagement"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resume Engagement",
+        "tags": [
+          "engagements"
+        ]
+      }
+    },
     "/api/v1/events": {
       "get": {
         "description": "List events.\n\nArgs:\n    _: Current user.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated event list.",
@@ -2934,6 +3261,28 @@
           }
         },
         "summary": "List Active Lab Commands",
+        "tags": [
+          "lab"
+        ]
+      }
+    },
+    "/api/v1/lab/status": {
+      "get": {
+        "description": "Return the current active-lab gate status.\n\nArgs:\n    user: Current user.\n    store: Application store.\n    settings: Runtime settings.\n\nReturns:\n    Lab mode, acknowledgement, and admin 2FA status.",
+        "operationId": "get_lab_status_api_v1_lab_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Lab Status",
         "tags": [
           "lab"
         ]

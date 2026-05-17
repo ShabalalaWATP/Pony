@@ -9,6 +9,7 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from cheeky_pony_backend.domain.reports import ReportRecord
 from cheeky_pony_backend.domain.users import UserRecord
+from cheeky_pony_backend.infra.mongo_engagements import MongoEngagementStoreMixin
 from cheeky_pony_shared import (
     AccessPoint,
     Alert,
@@ -16,15 +17,13 @@ from cheeky_pony_shared import (
     AlertSeverity,
     AuditLog,
     Client,
-    Engagement,
     Event,
     Sensor,
     SystemAcknowledgement,
-    TargetKind,
 )
 
 
-class MongoStore:
+class MongoStore(MongoEngagementStoreMixin):
     """MongoDB implementation of the application store."""
 
     def __init__(self, dsn: str, database_name: str) -> None:
@@ -291,53 +290,6 @@ class MongoStore:
         """Return whether an acknowledgement exists."""
 
         return await self.db.system_acknowledgements.count_documents({"kind": kind}) > 0
-
-    async def create_engagement(self, engagement: Engagement) -> Engagement:
-        """Persist an engagement."""
-
-        await self.db.engagements.insert_one(engagement.model_dump(mode="json"))
-        return engagement
-
-    async def get_engagement(self, engagement_id: str) -> Engagement | None:
-        """Return an engagement by id."""
-
-        data = await self.db.engagements.find_one({"id": engagement_id}, {"_id": False})
-        return Engagement.model_validate(data) if data else None
-
-    async def get_active_engagement(self) -> Engagement | None:
-        """Return the active engagement when one exists."""
-
-        data = await self.db.engagements.find_one({"ended_at": None}, {"_id": False})
-        return Engagement.model_validate(data) if data else None
-
-    async def update_engagement(self, engagement: Engagement) -> Engagement:
-        """Persist updated engagement fields."""
-
-        await self.db.engagements.replace_one(
-            {"id": engagement.id},
-            engagement.model_dump(mode="json"),
-            upsert=True,
-        )
-        return engagement
-
-    async def allow_target(self, engagement_id: str, kind: TargetKind, value: str) -> None:
-        """Allow a target for an engagement."""
-
-        await self.db.allow_list.update_one(
-            {"engagement_id": engagement_id, "kind": kind.value, "value": value.upper()},
-            {"$set": {"engagement_id": engagement_id, "kind": kind.value, "value": value.upper()}},
-            upsert=True,
-        )
-
-    async def target_allowed(self, engagement_id: str, kind: TargetKind, value: str) -> bool:
-        """Return whether a target is allowed."""
-
-        return (
-            await self.db.allow_list.count_documents(
-                {"engagement_id": engagement_id, "kind": kind.value, "value": value.upper()}
-            )
-            > 0
-        )
 
     async def create_report(self, report: ReportRecord) -> ReportRecord:
         """Persist a report request."""

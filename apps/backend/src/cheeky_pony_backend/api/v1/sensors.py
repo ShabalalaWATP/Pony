@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -62,7 +62,7 @@ class SetChannelRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     channel: int = Field(ge=1, le=196)
-    band: str = Field(pattern=r"^(2\.4|5|6)$")
+    band: Literal["2.4", "5", "6"]
 
 
 @router.post("", response_model=SensorRegisterResponse)

@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 
 from cheeky_pony_backend.dependencies import (
@@ -23,7 +23,14 @@ from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.infra.operator_broker import OperatorBroker
 from cheeky_pony_backend.infra.sensor_command_broker import SensorCommandBroker
-from cheeky_pony_shared import CommandKind, Engagement, SensorCommand, TargetKind
+from cheeky_pony_shared import (
+    AllowedTarget,
+    ApiPage,
+    CommandKind,
+    Engagement,
+    SensorCommand,
+    TargetKind,
+)
 
 router = APIRouter(prefix="/engagements", tags=["engagements"])
 
@@ -49,15 +56,17 @@ class AllowTargetRequest(BaseModel):
 @router.post("", response_model=Engagement)
 async def create_engagement(
     payload: EngagementCreateRequest,
-    _: Annotated[UserRecord, Depends(require_admin_2fa)],
+    user: Annotated[UserRecord, Depends(require_admin_2fa)],
     store: Annotated[Store, Depends(get_store)],
+    audit: Annotated[AuditLogger, Depends(get_audit_logger)],
 ) -> Engagement:
     """Create an engagement.
 
     Args:
         payload: Engagement payload.
-        _: Current admin with verified TOTP.
+        user: Current admin with verified TOTP.
         store: Application store.
+        audit: Audit logger.
 
     Returns:
         Created engagement.
@@ -66,7 +75,32 @@ async def create_engagement(
     if await store.get_active_engagement() is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="active_engagement_exists")
     engagement = Engagement(id=str(uuid4()), name=payload.name, scope_rules=payload.scope_rules)
-    return await store.create_engagement(engagement)
+    created = await store.create_engagement(engagement)
+    await audit.record(user.id, "engagement.create", {"engagement_id": created.id}, {}, "ok")
+    return created
+
+
+@router.get("", response_model=ApiPage[Engagement])
+async def list_engagements(
+    _: Annotated[UserRecord, Depends(current_user)],
+    store: Annotated[Store, Depends(get_store)],
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+) -> ApiPage[Engagement]:
+    """List engagements.
+
+    Args:
+        _: Current user.
+        store: Application store.
+        limit: Page size.
+        offset: Page offset.
+
+    Returns:
+        Paginated engagements.
+    """
+
+    items, total = await store.list_engagements(limit, offset)
+    return ApiPage[Engagement](items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/active", response_model=Engagement)
@@ -96,19 +130,112 @@ async def get_active_engagement(
 async def allow_target(
     engagement_id: str,
     payload: AllowTargetRequest,
-    _: Annotated[UserRecord, Depends(require_admin_2fa)],
+    user: Annotated[UserRecord, Depends(require_admin_2fa)],
     store: Annotated[Store, Depends(get_store)],
+    audit: Annotated[AuditLogger, Depends(get_audit_logger)],
 ) -> None:
     """Add a target to an engagement allow-list.
 
     Args:
         engagement_id: Engagement identifier.
         payload: Target payload.
-        _: Current admin with verified TOTP.
+        user: Current admin with verified TOTP.
         store: Application store.
+        audit: Audit logger.
     """
 
+    await _get_engagement_or_404(store, engagement_id)
     await store.allow_target(engagement_id, payload.kind, payload.value)
+    await audit.record(
+        user.id,
+        "engagement.allow_list.add",
+        {"engagement_id": engagement_id, "kind": payload.kind.value, "value": payload.value},
+        {},
+        "ok",
+    )
+
+
+@router.get("/{engagement_id}/allow-list", response_model=ApiPage[AllowedTarget])
+async def list_allowed_targets(
+    engagement_id: str,
+    _: Annotated[UserRecord, Depends(current_user)],
+    store: Annotated[Store, Depends(get_store)],
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+) -> ApiPage[AllowedTarget]:
+    """List targets allowed for an engagement.
+
+    Args:
+        engagement_id: Engagement identifier.
+        _: Current user.
+        store: Application store.
+        limit: Page size.
+        offset: Page offset.
+
+    Returns:
+        Paginated allowed targets.
+    """
+
+    await _get_engagement_or_404(store, engagement_id)
+    items, total = await store.list_allowed_targets(engagement_id, limit, offset)
+    return ApiPage[AllowedTarget](items=items, total=total, limit=limit, offset=offset)
+
+
+@router.delete("/{engagement_id}/allow-list", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_allowed_target(
+    engagement_id: str,
+    payload: AllowTargetRequest,
+    user: Annotated[UserRecord, Depends(require_admin_2fa)],
+    store: Annotated[Store, Depends(get_store)],
+    audit: Annotated[AuditLogger, Depends(get_audit_logger)],
+) -> None:
+    """Remove a target from an engagement allow-list.
+
+    Args:
+        engagement_id: Engagement identifier.
+        payload: Target payload.
+        user: Current admin with verified TOTP.
+        store: Application store.
+        audit: Audit logger.
+    """
+
+    await _get_engagement_or_404(store, engagement_id)
+    await store.remove_allowed_target(engagement_id, payload.kind, payload.value)
+    await audit.record(
+        user.id,
+        "engagement.allow_list.remove",
+        {"engagement_id": engagement_id, "kind": payload.kind.value, "value": payload.value},
+        {},
+        "ok",
+    )
+
+
+@router.post("/{engagement_id}/resume", response_model=Engagement)
+async def resume_engagement(
+    engagement_id: str,
+    user: Annotated[UserRecord, Depends(require_admin_2fa)],
+    store: Annotated[Store, Depends(get_store)],
+    audit: Annotated[AuditLogger, Depends(get_audit_logger)],
+) -> Engagement:
+    """Resume an ended engagement when no other engagement is active.
+
+    Args:
+        engagement_id: Engagement identifier.
+        user: Current admin with verified TOTP.
+        store: Application store.
+        audit: Audit logger.
+
+    Returns:
+        Resumed engagement.
+    """
+
+    engagement = await _get_engagement_or_404(store, engagement_id)
+    active = await store.get_active_engagement()
+    if active is not None and active.id != engagement_id:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="active_engagement_exists")
+    resumed = await store.update_engagement(engagement.model_copy(update={"ended_at": None}))
+    await audit.record(user.id, "engagement.resume", {"engagement_id": engagement_id}, {}, "ok")
+    return resumed
 
 
 @router.post("/{engagement_id}/end", status_code=status.HTTP_204_NO_CONTENT)
@@ -131,9 +258,7 @@ async def end_engagement(
         operator_broker: Operator broker.
     """
 
-    engagement = await store.get_engagement(engagement_id)
-    if engagement is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="engagement_not_found")
+    engagement = await _get_engagement_or_404(store, engagement_id)
     ended_at = datetime.now(tz=UTC)
     await store.update_engagement(engagement.model_copy(update={"ended_at": ended_at}))
     records = await command_broker.stop_lab_commands_for_engagement(engagement_id)
@@ -171,3 +296,10 @@ def _stop_module_command(command_id: str, module: str) -> SensorCommand:
         parameters={"module": module.replace("-", "_")},
         lab_mode=True,
     )
+
+
+async def _get_engagement_or_404(store: Store, engagement_id: str) -> Engagement:
+    engagement = await store.get_engagement(engagement_id)
+    if engagement is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="engagement_not_found")
+    return engagement

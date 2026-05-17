@@ -411,6 +411,27 @@
     "title": "AllowTargetRequest",
     "type": "object"
   },
+  "AllowedTarget": {
+    "additionalProperties": false,
+    "description": "Engagement allow-list entry.",
+    "properties": {
+      "kind": {
+        "$ref": "#/components/schemas/TargetKind"
+      },
+      "value": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Value",
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind",
+      "value"
+    ],
+    "title": "AllowedTarget",
+    "type": "object"
+  },
   "ApiPage_AccessPoint_": {
     "additionalProperties": false,
     "properties": {
@@ -519,6 +540,42 @@
     "title": "ApiPage[Alert]",
     "type": "object"
   },
+  "ApiPage_AllowedTarget_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/AllowedTarget"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[AllowedTarget]",
+    "type": "object"
+  },
   "ApiPage_AuditLog_": {
     "additionalProperties": false,
     "properties": {
@@ -589,6 +646,42 @@
       "offset"
     ],
     "title": "ApiPage[Client]",
+    "type": "object"
+  },
+  "ApiPage_Engagement_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/Engagement"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[Engagement]",
     "type": "object"
   },
   "ApiPage_Event_": {
@@ -1093,6 +1186,30 @@
     "title": "LabModuleStartResponse",
     "type": "object"
   },
+  "LabStatusResponse": {
+    "description": "Current lab gate status for operator UI banners.",
+    "properties": {
+      "acknowledgement_on_file": {
+        "title": "Acknowledgement On File",
+        "type": "boolean"
+      },
+      "is_admin_2fa": {
+        "title": "Is Admin 2Fa",
+        "type": "boolean"
+      },
+      "lab_mode": {
+        "title": "Lab Mode",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "lab_mode",
+      "acknowledgement_on_file",
+      "is_admin_2fa"
+    ],
+    "title": "LabStatusResponse",
+    "type": "object"
+  },
   "LabTarget": {
     "additionalProperties": false,
     "description": "Active lab command target.",
@@ -1446,7 +1563,11 @@
     "description": "Set-channel command body.",
     "properties": {
       "band": {
-        "pattern": "^(2\\.4|5|6)$",
+        "enum": [
+          "2.4",
+          "5",
+          "6"
+        ],
         "title": "Band",
         "type": "string"
       },

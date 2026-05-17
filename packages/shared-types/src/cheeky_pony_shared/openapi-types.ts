@@ -9,11 +9,14 @@ export interface components {
     "AlertRuleUpdateRequest": unknown;
     "AlertSeverity": unknown;
     "AllowTargetRequest": unknown;
+    "AllowedTarget": unknown;
     "ApiPage_AccessPoint_": unknown;
     "ApiPage_AlertRule_": unknown;
     "ApiPage_Alert_": unknown;
+    "ApiPage_AllowedTarget_": unknown;
     "ApiPage_AuditLog_": unknown;
     "ApiPage_Client_": unknown;
+    "ApiPage_Engagement_": unknown;
     "ApiPage_Event_": unknown;
     "ApiPage_LabActiveCommand_": unknown;
     "ApiPage_Sensor_": unknown;
@@ -28,6 +31,7 @@ export interface components {
     "LabModule": unknown;
     "LabModuleStartRequest": unknown;
     "LabModuleStartResponse": unknown;
+    "LabStatusResponse": unknown;
     "LabTarget": unknown;
     "LoginRequest": unknown;
     "LoginResponse": unknown;
@@ -77,9 +81,11 @@ export interface paths {
   "/api/v1/engagements/{engagement_id}/reports": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/reports/{report_id}": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/reports/{report_id}/download": Record<string, unknown>;
+  "/api/v1/engagements/{engagement_id}/resume": Record<string, unknown>;
   "/api/v1/events": Record<string, unknown>;
   "/api/v1/events/{event_id}": Record<string, unknown>;
   "/api/v1/lab/active": Record<string, unknown>;
+  "/api/v1/lab/status": Record<string, unknown>;
   "/api/v1/lab/{module}/start": Record<string, unknown>;
   "/api/v1/lab/{module}/stop/{command_id}": Record<string, unknown>;
   "/api/v1/sensors": Record<string, unknown>;
