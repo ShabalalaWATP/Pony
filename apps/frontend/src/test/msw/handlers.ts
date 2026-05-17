@@ -9,6 +9,8 @@ type Client = components["schemas"]["Client"];
 type Event = components["schemas"]["Event"];
 type Alert = components["schemas"]["Alert"];
 type AlertRule = components["schemas"]["AlertRule"];
+type Engagement = components["schemas"]["Engagement"];
+type LabActiveCommand = components["schemas"]["LabActiveCommand"];
 
 export const fixtures = {
   user: {
@@ -58,6 +60,20 @@ export const fixtures = {
     created_by: "operator@cheeky.local",
     created_at: "2026-05-17T09:00:00Z",
   } satisfies AlertRule,
+  engagement: {
+    id: "eng-1",
+    name: "Spring assessment 2026",
+    scope_rules: [],
+    started_at: "2026-05-17T08:00:00Z",
+  } satisfies Engagement,
+  labActiveCommand: {
+    command_id: "lab-cmd-1",
+    module: "rogue-ap",
+    sensor_id: "sensor-1",
+    engagement_id: "eng-1",
+    target: { kind: "bssid", value: "aa:bb:cc:dd:ee:01" },
+    started_at: "2026-05-17T10:00:00Z",
+  } satisfies LabActiveCommand,
 };
 
 export const authHandlers = [
@@ -152,6 +168,25 @@ export const authHandlers = [
   http.post("/api/v1/sensors/:sensorId/commands/set-channel", () =>
     HttpResponse.json({ command_id: "cmd-channel-test" }, { status: 202 }),
   ),
+
+  // Lab / engagements — defaults: no active engagement (404) so the
+  // lab UI shows the gate banner; tests with a real engagement
+  // override per-case.
+  http.get("/api/v1/engagements/active", () =>
+    HttpResponse.json({ detail: "no active engagement" }, { status: 404 }),
+  ),
+  http.post("/api/v1/engagements/:id/allow-list", () => new HttpResponse(null, { status: 204 })),
+  http.post("/api/v1/engagements/:id/end", () => new HttpResponse(null, { status: 204 })),
+  http.get("/api/v1/lab/active", () =>
+    HttpResponse.json({ items: [], total: 0, limit: 100, offset: 0 }),
+  ),
+  http.post("/api/v1/lab/:module/start", () =>
+    HttpResponse.json(
+      { command_id: "lab-cmd-test", started_at: "2026-05-17T10:00:00Z" },
+      { status: 202 },
+    ),
+  ),
+  http.post("/api/v1/lab/:module/stop/:commandId", () => new HttpResponse(null, { status: 204 })),
 ];
 
 export const unauthenticatedHandlers = [

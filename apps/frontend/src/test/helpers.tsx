@@ -59,3 +59,19 @@ export function withQueryAndRouter(
   );
   return { qc, node };
 }
+
+/**
+ * A QueryClient-only wrapper, no router. Use when the component under
+ * test reads from TanStack Query but does NOT touch router hooks
+ * (`useNavigate`, `useSearch`). Mounts synchronously, which means
+ * tests can use sync `screen.getBy*` queries straight after `render`
+ * without waiting for the router's first tick.
+ */
+export function withQuery(
+  ui: ReactNode,
+  opts: { qc?: QueryClient } = {},
+): { qc: QueryClient; node: JSX.Element } {
+  const qc = opts.qc ?? makeTestQueryClient();
+  const node = <QueryClientProvider client={qc}>{ui}</QueryClientProvider>;
+  return { qc, node };
+}
