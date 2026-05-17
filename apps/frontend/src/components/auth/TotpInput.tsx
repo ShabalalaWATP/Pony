@@ -20,9 +20,18 @@ interface TotpInputProps {
 }
 
 /**
- * 6/7/8-cell TOTP entry control. Each cell holds a single digit and auto-
- * advances; backspace on an empty cell jumps back; paste of a full code
- * fills all cells. Designed for keyboard-first operation per design spec §10.
+ * 6/7/8-cell TOTP entry control used by the login flow and `/settings/
+ * account` TOTP enrollment.
+ *
+ * - Each cell holds a single digit (non-digits silently rejected).
+ * - Typing auto-advances; backspace on an empty cell jumps to the
+ *   previous cell and clears it.
+ * - Arrow keys move between cells; paste of a full code fills every
+ *   cell at once.
+ * - `onComplete` fires the moment every cell has a digit — the
+ *   authenticator-app paste case is the common path.
+ *
+ * Designed for keyboard-first operation per design spec §10 / §11.
  */
 export function TotpInput({
   length = 6,

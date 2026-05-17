@@ -51,6 +51,13 @@ function buildCrumbs(pathname: string): Crumb[] {
   return crumbs;
 }
 
+/**
+ * Mono-font breadcrumb trail in the topbar. Reads the current path,
+ * splits on `/`, maps known segments through `TITLES` (e.g.
+ * `sensors` → "Sensors"), and falls back to the raw segment for
+ * dynamic ids. Every segment except the last is a `<Link>` so clicking
+ * any breadcrumb navigates up the tree.
+ */
 export function Breadcrumbs(): JSX.Element {
   const { location } = useRouterState();
   const crumbs = buildCrumbs(location.pathname);

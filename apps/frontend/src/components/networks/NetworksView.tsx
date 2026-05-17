@@ -2,6 +2,7 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { DataTable } from "@/components/ui/DataTable";
+import { DetailRow, DetailSection } from "@/components/ui/DetailGrid";
 import { Drawer } from "@/components/ui/Drawer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ChannelBadge } from "@/components/domain/ChannelBadge";
@@ -11,20 +12,8 @@ import { MacAddress } from "@/components/domain/MacAddress";
 import { RelativeTime } from "@/components/domain/RelativeTime";
 import { SignalBars } from "@/components/domain/SignalBars";
 import { SignalSparkline } from "@/components/domain/SignalSparkline";
+import { latestRssi, rssiSeries } from "@/lib/signal-helpers";
 import { useAccessPointsList, type AccessPoint } from "@/services/api/queries";
-
-function latestRssi(ap: AccessPoint): number | null {
-  const samples = ap.signal_history ?? [];
-  if (samples.length === 0) return null;
-  const last = samples[samples.length - 1];
-  return last && typeof last.rssi_dbm === "number" ? last.rssi_dbm : null;
-}
-
-function rssiSeries(ap: AccessPoint): number[] {
-  return (ap.signal_history ?? [])
-    .map((s) => s.rssi_dbm)
-    .filter((n): n is number => typeof n === "number");
-}
 
 const columns: ColumnDef<AccessPoint, unknown>[] = [
   {
@@ -93,6 +82,12 @@ const columns: ColumnDef<AccessPoint, unknown>[] = [
   },
 ];
 
+/**
+ * Access-points list view: every AP the sensors have observed, sortable
+ * by every column, with a deep-linkable detail drawer driven by
+ * `?bssid=`. Stage 6 (packet inspector) will add the associated-clients
+ * sub-list and the PCAP export action to the drawer.
+ */
 export function NetworksView(): JSX.Element {
   const navigate = useNavigate();
   const search: { bssid?: string; q?: string } = useSearch({ strict: false });
@@ -161,10 +156,10 @@ function NetworkDetail({ ap }: { ap: AccessPoint }): JSX.Element {
   const series = rssiSeries(ap);
   return (
     <div className="flex flex-col gap-5">
-      <Section label="Identity">
-        <Row
-          k="SSID"
-          v={
+      <DetailSection label="Identity">
+        <DetailRow
+          label="SSID"
+          value={
             ap.ssid ? (
               <span className="font-mono">{ap.ssid}</span>
             ) : (
@@ -172,14 +167,20 @@ function NetworkDetail({ ap }: { ap: AccessPoint }): JSX.Element {
             )
           }
         />
-        <Row k="BSSID" v={<MacAddress value={ap.bssid} vendor={ap.vendor_oui ?? undefined} />} />
-        <Row k="Vendor" v={ap.vendor_oui ?? <span className="text-fg-40">unknown</span>} />
-      </Section>
+        <DetailRow
+          label="BSSID"
+          value={<MacAddress value={ap.bssid} vendor={ap.vendor_oui ?? undefined} />}
+        />
+        <DetailRow
+          label="Vendor"
+          value={ap.vendor_oui ?? <span className="text-fg-40">unknown</span>}
+        />
+      </DetailSection>
 
-      <Section label="Radio">
-        <Row
-          k="Channel"
-          v={
+      <DetailSection label="Radio">
+        <DetailRow
+          label="Channel"
+          value={
             ap.channel ? (
               <ChannelBadge channel={ap.channel} band={ap.band ?? undefined} />
             ) : (
@@ -187,43 +188,28 @@ function NetworkDetail({ ap }: { ap: AccessPoint }): JSX.Element {
             )
           }
         />
-        <Row k="Encryption" v={<EncryptionChip encryption={ap.encryption?.[0] ?? "OPEN"} />} />
-        <Row
-          k="Latest RSSI"
-          v={dbm !== null ? <SignalBars dbm={dbm} /> : <span className="text-fg-40">—</span>}
+        <DetailRow
+          label="Encryption"
+          value={<EncryptionChip encryption={ap.encryption?.[0] ?? "OPEN"} />}
         />
-      </Section>
+        <DetailRow
+          label="Latest RSSI"
+          value={dbm !== null ? <SignalBars dbm={dbm} /> : <span className="text-fg-40">—</span>}
+        />
+      </DetailSection>
 
-      <Section label="Signal history">
+      <DetailSection label="Signal history">
         <div className="rounded-sm border border-fg-20 bg-bg-inset p-3">
           <SignalSparkline samples={series} width={420} height={48} />
         </div>
-      </Section>
+      </DetailSection>
 
-      <Section label="Coming in Stage 6/8">
+      <DetailSection label="Coming in Stage 6/8">
         <p className="text-xs text-fg-60">
           Associated clients sub-list, probe responses, raw frame samples and a PCAP export action
           arrive with the packet inspector + reporting work.
         </p>
-      </Section>
-    </div>
-  );
-}
-
-function Section({ label, children }: { label: string; children: React.ReactNode }): JSX.Element {
-  return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-2xs uppercase tracking-wide text-fg-60">{label}</h3>
-      {children}
-    </section>
-  );
-}
-
-function Row({ k, v }: { k: string; v: React.ReactNode }): JSX.Element {
-  return (
-    <div className="grid grid-cols-[100px_1fr] gap-3 text-sm">
-      <div className="text-xs text-fg-60">{k}</div>
-      <div className="text-fg-100">{v}</div>
+      </DetailSection>
     </div>
   );
 }

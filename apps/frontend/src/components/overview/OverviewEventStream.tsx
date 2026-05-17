@@ -57,6 +57,14 @@ function mergeEvents(entries: StreamEntry[], incoming: ApiEvent[]): StreamEntry[
   return [...fresh, ...entries].slice(0, STREAM_CAP);
 }
 
+/**
+ * Live operator event stream. Seeds from the `/api/v1/events` HTTP page
+ * on first load, then prepends fresh events received via the
+ * `events.append` (or `event`) topic on the operator WebSocket. Each
+ * insert gets the 1.5s cyan halo per design spec §9. The list is
+ * capped at `STREAM_CAP` rows; older events stay queryable from
+ * `/events`.
+ */
 export function OverviewEventStream(): JSX.Element {
   const { state } = useOperatorConnection();
   const query = useEventsList({ limit: STREAM_CAP });

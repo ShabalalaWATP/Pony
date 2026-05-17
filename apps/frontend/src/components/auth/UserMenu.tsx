@@ -10,6 +10,11 @@ interface UserMenuProps {
   user: UserPublic;
 }
 
+/**
+ * Concrete dropdown implementation. Split from `UserMenu` so the
+ * unauthenticated case can short-circuit to `null` without paying
+ * the cost of the menu's own state hooks.
+ */
 function UserMenuInner({ user }: UserMenuProps): JSX.Element {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
