@@ -125,6 +125,23 @@ describe("SensorsView", () => {
     expect(screen.getByText("bravo")).toBeInTheDocument();
   });
 
+  it("opens the register drawer when the New sensor button is clicked", async () => {
+    server.use(
+      http.get("/api/v1/sensors", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 500, offset: 0 }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<SensorsView />);
+    render(node);
+    await screen.findByTestId("sensors-new");
+    await userEvent.click(screen.getByTestId("sensors-new"));
+    expect(await screen.findByTestId("register-sensor-form")).toBeInTheDocument();
+  });
+
+  // Note: `?new=1` deep-link is exercised via the route file's
+  // `validateSearch`, which the test router doesn't apply — relying on
+  // the real route declaration to wire the param through.
+
   it("opens the detail drawer when a row is clicked", async () => {
     server.use(
       http.get("/api/v1/sensors", () =>

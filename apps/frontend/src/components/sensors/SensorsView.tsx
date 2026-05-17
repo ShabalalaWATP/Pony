@@ -1,8 +1,9 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { type ColumnDef } from "@tanstack/react-table";
-import { MapPin } from "lucide-react";
-import { useMemo, useState } from "react";
+import { MapPin, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailRow, DetailSection } from "@/components/ui/DetailGrid";
 import { Drawer } from "@/components/ui/Drawer";
@@ -11,6 +12,8 @@ import { EmptyState } from "@/components/domain/EmptyState";
 import { LiveDot } from "@/components/domain/LiveDot";
 import { RelativeTime } from "@/components/domain/RelativeTime";
 import { useSensorsList, type Sensor } from "@/services/api/queries";
+import { RegisterSensorDrawer } from "./RegisterSensorDrawer";
+import { RevokeSensorAction } from "./RevokeSensorAction";
 import { SensorCommands } from "./SensorCommands";
 
 function hasGeo(sensor: Sensor): boolean {
@@ -106,9 +109,20 @@ const columns: ColumnDef<Sensor, unknown>[] = [
  */
 export function SensorsView(): JSX.Element {
   const navigate = useNavigate();
-  const search: { id?: string; q?: string } = useSearch({ strict: false });
+  const search: { id?: string; q?: string; new?: string } = useSearch({ strict: false });
   const query = useSensorsList({ limit: 500 });
   const [searchTerm, setSearchTerm] = useState(search.q ?? "");
+  const [registerOpen, setRegisterOpen] = useState(false);
+
+  // `?new=1` deep-link opens the register drawer on mount. We mirror
+  // it into local state on first sight so closing the drawer doesn't
+  // immediately re-open it from the still-present search param.
+  useEffect(() => {
+    if (search.new === "1") {
+      setRegisterOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link runs once on mount
+  }, []);
 
   const items = useMemo(() => query.data?.items ?? [], [query.data?.items]);
   const selected = useMemo(
@@ -121,6 +135,12 @@ export function SensorsView(): JSX.Element {
   };
   const close = (): void => {
     void navigate({ to: "/sensors", search: { q: search.q } });
+  };
+  const closeRegister = (): void => {
+    setRegisterOpen(false);
+    if (search.new) {
+      void navigate({ to: "/sensors", search: { q: search.q, id: search.id } });
+    }
   };
 
   if (query.error?.status === 403) {
@@ -145,7 +165,18 @@ export function SensorsView(): JSX.Element {
           onChange: setSearchTerm,
           placeholder: "Filter by name, IP, capability…",
         }}
-      />
+      >
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          onClick={() => setRegisterOpen(true)}
+          data-testid="sensors-new"
+        >
+          <Plus className="size-3.5" aria-hidden="true" />
+          New sensor
+        </Button>
+      </PageHeader>
 
       <DataTable<Sensor>
         data={items}
@@ -179,6 +210,8 @@ export function SensorsView(): JSX.Element {
           <EmptyState title="Sensor not found in this page" />
         )}
       </Drawer>
+
+      <RegisterSensorDrawer open={registerOpen} onClose={closeRegister} />
     </div>
   );
 }
@@ -234,6 +267,7 @@ function SensorDetail({ sensor }: { sensor: Sensor }): JSX.Element {
       </DetailSection>
 
       <SensorCommands sensor={sensor} />
+      <RevokeSensorAction sensor={sensor} />
     </div>
   );
 }

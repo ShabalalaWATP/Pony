@@ -13,6 +13,9 @@ type AlertRuleCreateRequest = components["schemas"]["AlertRuleCreateRequest"];
 type AlertRuleUpdateRequest = components["schemas"]["AlertRuleUpdateRequest"];
 type SensorCommandAcceptedResponse = components["schemas"]["SensorCommandAcceptedResponse"];
 type SetChannelRequest = components["schemas"]["SetChannelRequest"];
+type SensorCapability = components["schemas"]["SensorCapability"];
+type SensorRegisterRequest = components["schemas"]["SensorRegisterRequest"];
+type SensorRegisterResponse = components["schemas"]["SensorRegisterResponse"];
 type AuditLog = components["schemas"]["AuditLog"];
 
 /**
@@ -282,6 +285,39 @@ export function useSetSensorChannel() {
   });
 }
 
+const SENSORS_ROOT_KEY = ["sensors"] as const;
+
+/**
+ * Register a new sensor. The backend mints a fresh client certificate +
+ * private key pair and returns them in the response. The PEM material
+ * is only available in this response — the drawer surfaces them once
+ * and never persists them, so the operator must copy/save before closing.
+ */
+export function useRegisterSensor() {
+  const qc = useQueryClient();
+  return useMutation<SensorRegisterResponse, ApiError, SensorRegisterRequest>({
+    mutationFn: (body) => apiClient.post<SensorRegisterResponse>("/sensors", body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: SENSORS_ROOT_KEY });
+    },
+  });
+}
+
+/**
+ * Revoke a sensor's certificate. Destructive — once revoked the sensor
+ * can no longer connect to the backend gateway until re-registered. The
+ * UI guards this behind a typed-confirm modal.
+ */
+export function useRevokeSensor() {
+  const qc = useQueryClient();
+  return useMutation<void, ApiError, string>({
+    mutationFn: (id) => apiClient.post<undefined>(`/sensors/${encodeURIComponent(id)}/revoke`),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: SENSORS_ROOT_KEY });
+    },
+  });
+}
+
 export type {
   Page,
   Sensor,
@@ -293,6 +329,9 @@ export type {
   AlertSeverity,
   AlertRuleCreateRequest,
   AlertRuleUpdateRequest,
+  SensorCapability,
   SensorCommandAcceptedResponse,
+  SensorRegisterRequest,
+  SensorRegisterResponse,
   AuditLog,
 };
