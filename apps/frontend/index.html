@@ -2,14 +2,34 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/glyph.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#0a0c11" />
+
+    <!-- Favicon stack: SVG glyph for crisp rendering at any size in
+         modern browsers, PNG fallbacks for older user agents + iOS. -->
+    <link rel="icon" type="image/svg+xml" href="/glyph.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
     <meta
       name="description"
       content="Cheeky Pony — operator dashboard for distributed WiFi reconnaissance."
     />
+
+    <!-- Open Graph / social-share preview -->
+    <meta property="og:title" content="Cheeky Pony" />
+    <meta
+      property="og:description"
+      content="Operator dashboard for distributed WiFi reconnaissance."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/logo-512.png" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:image" content="/logo-512.png" />
+
     <title>Cheeky Pony</title>
   </head>
   <body class="bg-bg-0 text-fg-100 antialiased">
