@@ -1,7 +1,6 @@
-import { Bell, Search, Settings, Wifi } from "lucide-react";
+import { Settings, Wifi } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Glyph } from "@/components/branding/Glyph";
-import { cn } from "@/lib/cn";
 import { Wordmark } from "@/components/branding/Wordmark";
 import { AlertSeverityChip } from "@/components/domain/AlertSeverityChip";
 import { ChannelBadge } from "@/components/domain/ChannelBadge";
@@ -21,88 +20,13 @@ import { Kbd } from "@/components/ui/Kbd";
 import { Separator } from "@/components/ui/Separator";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { MockTopbar } from "./designSystem/MockTopbar";
+import { Section, Swatch } from "./designSystem/sections";
 
 const SAMPLE_SPARKLINE = [
   -82, -78, -76, -73, -71, -70, -68, -65, -64, -62, -61, -63, -66, -64, -62, -60, -58, -57, -59,
   -61,
 ];
-
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}): JSX.Element {
-  return (
-    <section className="mb-16">
-      <header className="mb-6">
-        <h2 className="text-lg font-medium tracking-tight text-fg-100">{title}</h2>
-        {description && <p className="mt-1 max-w-prose text-sm text-fg-60">{description}</p>}
-      </header>
-      <div className="rounded-lg border border-fg-20 bg-bg-1 p-6">{children}</div>
-    </section>
-  );
-}
-
-function Swatch({ name, varName }: { name: string; varName: string }): JSX.Element {
-  return (
-    <div className="flex flex-col gap-2">
-      <div
-        className="h-16 rounded-sm border border-fg-20"
-        style={{ background: `hsl(var(${varName}))` }}
-      />
-      <div className="flex flex-col gap-0.5">
-        <code className="font-mono text-2xs text-fg-100">{name}</code>
-        <code className="font-mono text-2xs text-fg-40">var({varName})</code>
-      </div>
-    </div>
-  );
-}
-
-function MockTopbar({ labMode }: { labMode: boolean }): JSX.Element {
-  return (
-    <div
-      className={cn(
-        "relative flex h-12 items-center gap-4 border-b border-fg-20 bg-bg-3 px-4",
-        labMode && "border-b-2 border-b-accent-violet",
-      )}
-    >
-      <div className="flex items-center gap-2.5">
-        <Glyph className="size-6 text-mode" label="" />
-        <Wordmark forceState="live" />
-      </div>
-      <Separator orientation="vertical" className="mx-2 h-5" />
-      <nav className="font-mono text-xs text-fg-60">
-        <span>Sensors</span>
-        <span className="mx-1.5 text-fg-40">/</span>
-        <span className="text-fg-100">wlan-pi-01</span>
-      </nav>
-      <div className="ml-auto flex items-center gap-3">
-        <button
-          type="button"
-          className="inline-flex h-7 items-center gap-2 rounded-sm border border-fg-20 bg-bg-2 px-2 text-xs text-fg-60 hover:text-fg-100"
-        >
-          <Search className="size-3" aria-hidden="true" />
-          <span>Jump to…</span>
-          <Kbd className="ml-2">⌘K</Kbd>
-        </button>
-        <div className="flex items-center gap-2 text-fg-60">
-          <LiveDot state="live" label="5 sensors · 1.2k/min" />
-        </div>
-        <Button variant="ghost" size="icon" aria-label="Notifications">
-          <Bell className="size-4" aria-hidden="true" />
-        </Button>
-        <Button variant="ghost" size="icon" aria-label="Settings">
-          <Settings className="size-4" aria-hidden="true" />
-        </Button>
-      </div>
-      <div className="cp-scanline" aria-hidden="true" />
-    </div>
-  );
-}
 
 export function DesignSystem(): JSX.Element {
   const [labMode, setLabMode] = useState(false);
