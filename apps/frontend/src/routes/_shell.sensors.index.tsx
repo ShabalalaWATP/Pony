@@ -1,12 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { StubView } from "@/views/StubView";
+import { SensorsView } from "@/components/sensors/SensorsView";
+
+interface SensorsSearch {
+  id?: string;
+  q?: string;
+}
 
 export const Route = createFileRoute("/_shell/sensors/")({
-  component: () => (
-    <StubView
-      title="Sensors"
-      stage={5}
-      description="Virtualised sensor list with status, capabilities, event rate sparklines, and a per-sensor detail drawer."
-    />
-  ),
+  validateSearch: (search: Record<string, unknown>): SensorsSearch => ({
+    id: typeof search.id === "string" ? search.id : undefined,
+    q: typeof search.q === "string" ? search.q : undefined,
+  }),
+  component: SensorsView,
 });

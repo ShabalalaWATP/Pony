@@ -6,3 +6,6 @@ export { Tooltip } from "./Tooltip";
 export { Skeleton } from "./Skeleton";
 export { Separator } from "./Separator";
 export { Kbd } from "./Kbd";
+export { DataTable } from "./DataTable";
+export { Drawer } from "./Drawer";
+export { PageHeader } from "./PageHeader";

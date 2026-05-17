@@ -1,12 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { StubView } from "@/views/StubView";
+import { DevicesView } from "@/components/devices/DevicesView";
+
+interface DevicesSearch {
+  mac?: string;
+  q?: string;
+}
 
 export const Route = createFileRoute("/_shell/devices/")({
-  component: () => (
-    <StubView
-      title="Devices"
-      stage={5}
-      description="Virtualised client table with MAC/vendor/probes/associated AP/RSSI and a per-device detail drawer."
-    />
-  ),
+  validateSearch: (search: Record<string, unknown>): DevicesSearch => ({
+    mac: typeof search.mac === "string" ? search.mac : undefined,
+    q: typeof search.q === "string" ? search.q : undefined,
+  }),
+  component: DevicesView,
 });

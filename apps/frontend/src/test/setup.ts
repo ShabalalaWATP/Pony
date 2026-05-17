@@ -45,6 +45,41 @@ if (typeof Element !== "undefined" && !Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = noop;
 }
 
+// jsdom returns 0 for layout dimensions. TanStack Virtual's measurement
+// path (offsetHeight + getBoundingClientRect) then reports an empty
+// viewport and refuses to render rows. Stub both with sensible defaults
+// so virtualised tables render in tests.
+if (typeof window !== "undefined") {
+  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+    configurable: true,
+    get() {
+      const fromAttr = (this as HTMLElement).getAttribute?.("data-test-height");
+      return fromAttr ? Number(fromAttr) : 600;
+    },
+  });
+  Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+    configurable: true,
+    get() {
+      return 800;
+    },
+  });
+  Element.prototype.getBoundingClientRect = function getBoundingClientRect(this: Element): DOMRect {
+    // Always return a non-zero rect — TanStack Virtual and Recharts
+    // refuse to render anything when measurements come back 0×0.
+    return {
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 800,
+      bottom: 600,
+      width: 800,
+      height: 600,
+      toJSON: () => "",
+    };
+  };
+}
+
 // jsdom doesn't implement ResizeObserver — cmdk's <Command.List> uses it
 // to size itself.
 if (typeof globalThis.ResizeObserver === "undefined") {

@@ -1,17 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { StubView } from "@/views/StubView";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_shell/networks/$bssid")({
-  component: NetworkDetail,
+  beforeLoad: ({ params }) => {
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
+    throw redirect({
+      to: "/networks",
+      search: { bssid: params.bssid },
+    });
+  },
 });
-
-function NetworkDetail(): JSX.Element {
-  const { bssid } = Route.useParams();
-  return (
-    <StubView
-      title={`AP ${bssid}`}
-      stage={5}
-      description="Signal-strength chart, associated clients, probe responses, raw frame samples, PCAP export."
-    />
-  );
-}

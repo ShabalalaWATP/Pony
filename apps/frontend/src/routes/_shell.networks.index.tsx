@@ -1,12 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { StubView } from "@/views/StubView";
+import { NetworksView } from "@/components/networks/NetworksView";
+
+interface NetworksSearch {
+  bssid?: string;
+  q?: string;
+}
 
 export const Route = createFileRoute("/_shell/networks/")({
-  component: () => (
-    <StubView
-      title="Networks"
-      stage={5}
-      description="Virtualised AP table with SSID/BSSID/vendor/channel/encryption/RSSI/client-count and a detail drawer."
-    />
-  ),
+  validateSearch: (search: Record<string, unknown>): NetworksSearch => ({
+    bssid: typeof search.bssid === "string" ? search.bssid : undefined,
+    q: typeof search.q === "string" ? search.q : undefined,
+  }),
+  component: NetworksView,
 });
