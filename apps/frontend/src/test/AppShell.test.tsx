@@ -7,7 +7,7 @@ import {
   createRouter,
   Outlet,
 } from "@tanstack/react-router";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppShell } from "@/components/layout/AppShell";
@@ -76,8 +76,10 @@ describe("AppShell", () => {
     renderAppShell();
     await screen.findByLabelText("Cheeky Pony");
     expect(document.documentElement.dataset.labMode).toBe("false");
-    useLabModeStore.setState({ preview: true });
-    useUIStore.setState({ sidebarCollapsed: true });
+    act(() => {
+      useLabModeStore.setState({ preview: true });
+      useUIStore.setState({ sidebarCollapsed: true });
+    });
     await screen.findByLabelText("Cheeky Pony");
     expect(document.documentElement.dataset.labMode).toBe("true");
   });
@@ -93,9 +95,13 @@ describe("AppShell", () => {
   it("collapses sidebar on [ and expands on ]", async () => {
     renderAppShell();
     await screen.findByLabelText("Cheeky Pony");
-    fireEvent.keyDown(window, { key: "[" });
+    act(() => {
+      fireEvent.keyDown(window, { key: "[" });
+    });
     expect(useUIStore.getState().sidebarCollapsed).toBe(true);
-    fireEvent.keyDown(window, { key: "]" });
+    act(() => {
+      fireEvent.keyDown(window, { key: "]" });
+    });
     expect(useUIStore.getState().sidebarCollapsed).toBe(false);
   });
 });

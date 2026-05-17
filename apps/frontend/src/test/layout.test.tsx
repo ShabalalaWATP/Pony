@@ -1,5 +1,5 @@
 import { type QueryClient } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
@@ -55,7 +55,9 @@ describe("Sidebar", () => {
     await screen.findByText("Recon");
     expect(screen.queryByRole("link", { name: /Lab/i })).toBeNull();
 
-    useLabModeStore.setState({ preview: true });
+    act(() => {
+      useLabModeStore.setState({ preview: true });
+    });
     rerender(withRouter(<Sidebar />));
     expect((await screen.findAllByRole("link", { name: /Lab/i })).length).toBeGreaterThan(0);
   });
@@ -123,7 +125,9 @@ describe("CommandPalette", () => {
 
     for (const item of items) {
       await userEvent.click(item);
-      useUIStore.setState({ commandPaletteOpen: true });
+      act(() => {
+        useUIStore.setState({ commandPaletteOpen: true });
+      });
     }
   });
 });

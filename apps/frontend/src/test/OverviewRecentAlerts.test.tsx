@@ -1,5 +1,5 @@
 import { HttpResponse, http } from "msw";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OverviewRecentAlerts } from "@/components/overview/OverviewRecentAlerts";
@@ -88,15 +88,17 @@ describe("OverviewRecentAlerts", () => {
     await screen.findByText(/no alerts yet/i);
 
     // Mount connects the client; emit a fresh alert.
-    FakeSocket.last!.open();
-    FakeSocket.last!.emit({
-      kind: "alerts.fire",
-      alert: {
-        id: "fresh-1",
-        rule_id: "rule-rogue",
-        severity: "critical",
-        related_entities: ["dd:ee:ff:11:22:33"],
-      },
+    act(() => {
+      FakeSocket.last!.open();
+      FakeSocket.last!.emit({
+        kind: "alerts.fire",
+        alert: {
+          id: "fresh-1",
+          rule_id: "rule-rogue",
+          severity: "critical",
+          related_entities: ["dd:ee:ff:11:22:33"],
+        },
+      });
     });
 
     await waitFor(() => {

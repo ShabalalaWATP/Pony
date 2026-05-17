@@ -1,5 +1,5 @@
 import { HttpResponse, http } from "msw";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ActiveLabCommandsList } from "@/components/lab/ActiveLabCommandsList";
@@ -108,11 +108,13 @@ describe("ActiveLabCommandsList", () => {
     const { node } = withQueryAndRouter(<ActiveLabCommandsList />);
     render(node);
     await screen.findByTestId("active-lab-commands");
-    FakeSocket.last!.emit({
-      kind: "lab.progress",
-      command_id: fixtures.labActiveCommand.command_id,
-      status: "scanning",
-      message: "12 frames",
+    act(() => {
+      FakeSocket.last!.emit({
+        kind: "lab.progress",
+        command_id: fixtures.labActiveCommand.command_id,
+        status: "scanning",
+        message: "12 frames",
+      });
     });
     const list = await screen.findByTestId("active-lab-commands");
     await waitFor(() => expect(list).toHaveTextContent(/scanning/i));
@@ -132,7 +134,9 @@ describe("ActiveLabCommandsList", () => {
     const { node } = withQueryAndRouter(<ActiveLabCommandsList />);
     render(node);
     await screen.findByTestId("active-lab-commands");
-    FakeSocket.last!.emit({ kind: "lab.progress", status: "x" });
+    act(() => {
+      FakeSocket.last!.emit({ kind: "lab.progress", status: "x" });
+    });
     // No progress text should appear.
     expect(screen.queryByText(/^progress$/i)).toBeNull();
   });
