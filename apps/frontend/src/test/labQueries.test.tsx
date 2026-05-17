@@ -8,7 +8,12 @@ import {
   useActiveEngagement,
   useActiveLabCommands,
   useAddAllowListTarget,
+  useAllowList,
   useEndEngagement,
+  useEngagementsList,
+  useLabStatus,
+  useRemoveAllowListTarget,
+  useResumeEngagement,
   useStartLabModule,
   useStopLabModule,
 } from "@/services/api/labQueries";
@@ -193,5 +198,128 @@ describe("lab + engagement query hooks", () => {
     expect(isLabRefusal({ reason: 1, detail: "x" })).toBe(false);
     expect(isLabRefusal({ reason: "x" })).toBe(false);
     expect(isLabRefusal({ reason: "x", detail: "y" })).toBe(true);
+  });
+
+  it("useLabStatus returns the four gate flags", async () => {
+    server.use(
+      http.get("/api/v1/lab/status", () =>
+        HttpResponse.json({
+          lab_mode: true,
+          acknowledgement_on_file: false,
+          is_admin_2fa: true,
+        }),
+      ),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useLabStatus(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual({
+      lab_mode: true,
+      acknowledgement_on_file: false,
+      is_admin_2fa: true,
+    });
+  });
+
+  it("useEngagementsList returns the paginated engagements page", async () => {
+    let url = "";
+    server.use(
+      http.get("/api/v1/engagements", ({ request }) => {
+        url = request.url;
+        return HttpResponse.json({
+          items: [fixtures.engagement],
+          total: 1,
+          limit: 50,
+          offset: 0,
+        });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useEngagementsList({ limit: 50 }), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.items[0]?.id).toBe(fixtures.engagement.id);
+    expect(url).toContain("limit=50");
+  });
+
+  it("useResumeEngagement POSTs to /engagements/{id}/resume and returns the engagement", async () => {
+    let path = "";
+    server.use(
+      http.post("/api/v1/engagements/:id/resume", ({ params }) => {
+        path = typeof params.id === "string" ? params.id : (params.id?.[0] ?? "");
+        return HttpResponse.json({ ...fixtures.engagement, ended_at: null });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useResumeEngagement(), { wrapper });
+    result.current.mutate("eng-RZ");
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(path).toBe("eng-RZ");
+  });
+
+  it("useAllowList is disabled until an engagement id is supplied", () => {
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useAllowList(null), { wrapper });
+    expect(result.current.fetchStatus).toBe("idle");
+  });
+
+  it("useAllowList returns the engagement's allow-list page", async () => {
+    let url = "";
+    server.use(
+      http.get("/api/v1/engagements/:id/allow-list", ({ request }) => {
+        url = request.url;
+        return HttpResponse.json({
+          items: [
+            { kind: "bssid", value: "aa:bb:cc:dd:ee:01" },
+            { kind: "ssid", value: "Office-WiFi" },
+          ],
+          total: 2,
+          limit: 200,
+          offset: 0,
+        });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useAllowList("eng-3"), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.items).toHaveLength(2);
+    expect(url).toContain("/engagements/eng-3/allow-list");
+  });
+
+  it("useAddAllowListTarget POSTs kind+value", async () => {
+    let body: unknown = null;
+    server.use(
+      http.post("/api/v1/engagements/:id/allow-list", async ({ request }) => {
+        body = await request.json();
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useAddAllowListTarget(), { wrapper });
+    result.current.mutate({
+      engagementId: "eng-A",
+      payload: { kind: "bssid", value: "aa:bb:cc:dd:ee:42" },
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(body).toEqual({ kind: "bssid", value: "aa:bb:cc:dd:ee:42" });
+  });
+
+  it("useRemoveAllowListTarget DELETEs kind+value in the body", async () => {
+    let path = "";
+    let body: unknown = null;
+    server.use(
+      http.delete("/api/v1/engagements/:id/allow-list", async ({ params, request }) => {
+        path = typeof params.id === "string" ? params.id : (params.id?.[0] ?? "");
+        body = await request.json();
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const { wrapper } = wrap();
+    const { result } = renderHook(() => useRemoveAllowListTarget(), { wrapper });
+    result.current.mutate({
+      engagementId: "eng-9",
+      payload: { kind: "ssid", value: "Office-WiFi" },
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(path).toBe("eng-9");
+    expect(body).toEqual({ kind: "ssid", value: "Office-WiFi" });
   });
 });

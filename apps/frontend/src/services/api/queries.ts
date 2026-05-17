@@ -12,9 +12,14 @@ type AlertSeverity = components["schemas"]["AlertSeverity"];
 type AlertRuleCreateRequest = components["schemas"]["AlertRuleCreateRequest"];
 type AlertRuleUpdateRequest = components["schemas"]["AlertRuleUpdateRequest"];
 type SensorCommandAcceptedResponse = components["schemas"]["SensorCommandAcceptedResponse"];
+type SetChannelRequest = components["schemas"]["SetChannelRequest"];
 
-/** Bands the backend's `SetChannelRequest` accepts. */
-export type ChannelBand = "2.4" | "5" | "6";
+/**
+ * Bands the backend's `SetChannelRequest` accepts. Re-exported from
+ * the generated OpenAPI types so the union (`"2.4" | "5" | "6"`)
+ * stays in sync with the backend without a hand-rolled literal.
+ */
+export type ChannelBand = SetChannelRequest["band"];
 
 export interface SetChannelArgs {
   id: string;

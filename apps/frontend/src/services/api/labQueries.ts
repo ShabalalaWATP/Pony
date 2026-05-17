@@ -4,10 +4,12 @@ import type { components } from "./openapi";
 
 type Engagement = components["schemas"]["Engagement"];
 type AllowTargetRequest = components["schemas"]["AllowTargetRequest"];
+type AllowedTarget = components["schemas"]["AllowedTarget"];
 type LabModule = components["schemas"]["LabModule"];
 type LabActiveCommand = components["schemas"]["LabActiveCommand"];
 type LabModuleStartRequest = components["schemas"]["LabModuleStartRequest"];
 type LabModuleStartResponse = components["schemas"]["LabModuleStartResponse"];
+type LabStatusResponse = components["schemas"]["LabStatusResponse"];
 type TargetKind = components["schemas"]["TargetKind"];
 
 interface Page<T> {
@@ -18,7 +20,11 @@ interface Page<T> {
 }
 
 export const ENGAGEMENT_ACTIVE_KEY = ["engagement", "active"] as const;
+export const ENGAGEMENTS_LIST_KEY = ["engagements"] as const;
 export const LAB_ACTIVE_KEY = ["lab", "active"] as const;
+export const LAB_STATUS_KEY = ["lab", "status"] as const;
+const allowListKey = (engagementId: string): readonly unknown[] =>
+  ["engagement", engagementId, "allow-list"] as const;
 
 /**
  * Structured 403 body the backend emits for every active-gate refusal.
@@ -58,6 +64,46 @@ export function useActiveEngagement() {
   });
 }
 
+/**
+ * Paginated engagements list (active + ended). Powers `/engagements`
+ * where the operator picks one to resume or audit.
+ */
+export function useEngagementsList(pagination: { limit?: number; offset?: number } = {}) {
+  const { limit = 100, offset = 0 } = pagination;
+  const qs = new URLSearchParams({ limit: String(limit), offset: String(offset) }).toString();
+  return useQuery<Page<Engagement>, ApiError>({
+    queryKey: [...ENGAGEMENTS_LIST_KEY, { limit, offset }],
+    queryFn: () => apiClient.get<Page<Engagement>>(`/engagements?${qs}`),
+    staleTime: 30_000,
+    retry: (count, error) => {
+      if (error.status === 401 || error.status === 403) return false;
+      return count < 1;
+    },
+  });
+}
+
+/**
+ * Live allow-list for an engagement. `enabled` is keyed on the id so
+ * the hook stays idle until the engagement is known. The backend
+ * paginates; the lab UI only needs the first 200 entries — anything
+ * larger is an operations smell and would page in the audit log.
+ */
+export function useAllowList(engagementId: string | null | undefined) {
+  return useQuery<Page<AllowedTarget>, ApiError>({
+    queryKey: allowListKey(engagementId ?? ""),
+    queryFn: () =>
+      apiClient.get<Page<AllowedTarget>>(
+        `/engagements/${encodeURIComponent(engagementId ?? "")}/allow-list?limit=200`,
+      ),
+    enabled: Boolean(engagementId),
+    staleTime: 10_000,
+    retry: (count, error) => {
+      if (error.status === 401 || error.status === 403 || error.status === 404) return false;
+      return count < 1;
+    },
+  });
+}
+
 export function useAddAllowListTarget() {
   const qc = useQueryClient();
   return useMutation<void, ApiError, { engagementId: string; payload: AllowTargetRequest }>({
@@ -66,8 +112,23 @@ export function useAddAllowListTarget() {
         `/engagements/${encodeURIComponent(engagementId)}/allow-list`,
         payload,
       ),
-    onSuccess: () => {
+    onSuccess: (_data, { engagementId }) => {
       void qc.invalidateQueries({ queryKey: ENGAGEMENT_ACTIVE_KEY });
+      void qc.invalidateQueries({ queryKey: allowListKey(engagementId) });
+    },
+  });
+}
+
+export function useRemoveAllowListTarget() {
+  const qc = useQueryClient();
+  return useMutation<void, ApiError, { engagementId: string; payload: AllowTargetRequest }>({
+    mutationFn: ({ engagementId, payload }) =>
+      apiClient.delete<undefined>(
+        `/engagements/${encodeURIComponent(engagementId)}/allow-list`,
+        payload,
+      ),
+    onSuccess: (_data, { engagementId }) => {
+      void qc.invalidateQueries({ queryKey: allowListKey(engagementId) });
     },
   });
 }
@@ -78,7 +139,43 @@ export function useEndEngagement() {
     mutationFn: (id) => apiClient.post<undefined>(`/engagements/${encodeURIComponent(id)}/end`),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ENGAGEMENT_ACTIVE_KEY });
+      void qc.invalidateQueries({ queryKey: ENGAGEMENTS_LIST_KEY });
       void qc.invalidateQueries({ queryKey: LAB_ACTIVE_KEY });
+    },
+  });
+}
+
+/**
+ * Resume an ended engagement. Only succeeds when no other engagement
+ * is currently active — the backend enforces that invariant.
+ */
+export function useResumeEngagement() {
+  const qc = useQueryClient();
+  return useMutation<Engagement, ApiError, string>({
+    mutationFn: (id) => apiClient.post<Engagement>(`/engagements/${encodeURIComponent(id)}/resume`),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ENGAGEMENT_ACTIVE_KEY });
+      void qc.invalidateQueries({ queryKey: ENGAGEMENTS_LIST_KEY });
+    },
+  });
+}
+
+/**
+ * Reads the four lab-gate flags up-front so the UI can show *why* the
+ * lab is unavailable before the operator tries to fire a module. We
+ * don't infer state from a 403 anymore — that was lossy.
+ *
+ * Stays at 200 even when gates fail; treat 401/403 as "no access" and
+ * skip retries for them. Network 5xx retries once.
+ */
+export function useLabStatus() {
+  return useQuery<LabStatusResponse, ApiError>({
+    queryKey: LAB_STATUS_KEY,
+    queryFn: () => apiClient.get<LabStatusResponse>("/lab/status"),
+    staleTime: 15_000,
+    retry: (count, error) => {
+      if (error.status === 401 || error.status === 403) return false;
+      return count < 1;
     },
   });
 }
@@ -133,9 +230,11 @@ export function useStopLabModule() {
 export type {
   Engagement,
   AllowTargetRequest,
+  AllowedTarget,
   LabModule,
   LabActiveCommand,
   LabModuleStartRequest,
   LabModuleStartResponse,
+  LabStatusResponse,
   TargetKind,
 };

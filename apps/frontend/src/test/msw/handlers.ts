@@ -11,6 +11,8 @@ type Alert = components["schemas"]["Alert"];
 type AlertRule = components["schemas"]["AlertRule"];
 type Engagement = components["schemas"]["Engagement"];
 type LabActiveCommand = components["schemas"]["LabActiveCommand"];
+type LabStatusResponse = components["schemas"]["LabStatusResponse"];
+type AllowedTarget = components["schemas"]["AllowedTarget"];
 
 export const fixtures = {
   user: {
@@ -74,6 +76,15 @@ export const fixtures = {
     target: { kind: "bssid", value: "aa:bb:cc:dd:ee:01" },
     started_at: "2026-05-17T10:00:00Z",
   } satisfies LabActiveCommand,
+  labStatus: {
+    lab_mode: false,
+    acknowledgement_on_file: false,
+    is_admin_2fa: false,
+  } satisfies LabStatusResponse,
+  allowedTarget: {
+    kind: "bssid",
+    value: "aa:bb:cc:dd:ee:01",
+  } satisfies AllowedTarget,
 };
 
 export const authHandlers = [
@@ -172,11 +183,20 @@ export const authHandlers = [
   // Lab / engagements — defaults: no active engagement (404) so the
   // lab UI shows the gate banner; tests with a real engagement
   // override per-case.
+  http.get("/api/v1/engagements", () =>
+    HttpResponse.json({ items: [fixtures.engagement], total: 1, limit: 100, offset: 0 }),
+  ),
   http.get("/api/v1/engagements/active", () =>
     HttpResponse.json({ detail: "no active engagement" }, { status: 404 }),
   ),
+  http.get("/api/v1/engagements/:id/allow-list", () =>
+    HttpResponse.json({ items: [], total: 0, limit: 200, offset: 0 }),
+  ),
   http.post("/api/v1/engagements/:id/allow-list", () => new HttpResponse(null, { status: 204 })),
+  http.delete("/api/v1/engagements/:id/allow-list", () => new HttpResponse(null, { status: 204 })),
   http.post("/api/v1/engagements/:id/end", () => new HttpResponse(null, { status: 204 })),
+  http.post("/api/v1/engagements/:id/resume", () => HttpResponse.json(fixtures.engagement)),
+  http.get("/api/v1/lab/status", () => HttpResponse.json(fixtures.labStatus)),
   http.get("/api/v1/lab/active", () =>
     HttpResponse.json({ items: [], total: 0, limit: 100, offset: 0 }),
   ),
