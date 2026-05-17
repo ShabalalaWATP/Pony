@@ -36,3 +36,31 @@ async def test_create_engagement_and_allow_target(backend_client: BackendClient)
         TargetKind.BSSID,
         "AA:BB:CC:DD:EE:FF",
     )
+
+
+async def test_active_engagement_and_endpoints(backend_client: BackendClient) -> None:
+    """Engagements expose the single active engagement and can be ended."""
+
+    csrf = await create_verified_admin(backend_client)
+    created = await backend_client.client.post(
+        "/api/v1/engagements",
+        json={"name": "Lab"},
+        headers={"x-csrf-token": csrf},
+    )
+    active = await backend_client.client.get("/api/v1/engagements/active")
+    duplicate = await backend_client.client.post(
+        "/api/v1/engagements",
+        json={"name": "Second"},
+        headers={"x-csrf-token": csrf},
+    )
+    ended = await backend_client.client.post(
+        f"/api/v1/engagements/{created.json()['id']}/end",
+        headers={"x-csrf-token": csrf},
+    )
+    missing = await backend_client.client.get("/api/v1/engagements/active")
+
+    assert created.status_code == 200
+    assert active.status_code == 200
+    assert duplicate.status_code == 409
+    assert ended.status_code == 204
+    assert missing.status_code == 404

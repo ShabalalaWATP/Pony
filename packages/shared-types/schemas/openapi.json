@@ -393,6 +393,7 @@
         "type": "string"
       },
       "AllowTargetRequest": {
+        "additionalProperties": false,
         "description": "Allow-list target request.",
         "properties": {
           "kind": {
@@ -626,6 +627,42 @@
           "offset"
         ],
         "title": "ApiPage[Event]",
+        "type": "object"
+      },
+      "ApiPage_LabActiveCommand_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LabActiveCommand"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[LabActiveCommand]",
         "type": "object"
       },
       "ApiPage_Sensor_": {
@@ -866,6 +903,7 @@
         "type": "object"
       },
       "EngagementCreateRequest": {
+        "additionalProperties": false,
         "description": "Engagement creation request.",
         "properties": {
           "name": {
@@ -952,6 +990,130 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "LabActiveCommand": {
+        "description": "Active lab command dashboard item.",
+        "properties": {
+          "command_id": {
+            "title": "Command Id",
+            "type": "string"
+          },
+          "engagement_id": {
+            "title": "Engagement Id",
+            "type": "string"
+          },
+          "module": {
+            "$ref": "#/components/schemas/LabModule"
+          },
+          "sensor_id": {
+            "title": "Sensor Id",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/LabTarget"
+          }
+        },
+        "required": [
+          "command_id",
+          "module",
+          "sensor_id",
+          "engagement_id",
+          "target",
+          "started_at"
+        ],
+        "title": "LabActiveCommand",
+        "type": "object"
+      },
+      "LabModule": {
+        "description": "Supported active lab modules.",
+        "enum": [
+          "rogue-ap",
+          "deauth",
+          "evil-twin",
+          "captive-portal",
+          "mitm"
+        ],
+        "title": "LabModule",
+        "type": "string"
+      },
+      "LabModuleStartRequest": {
+        "additionalProperties": false,
+        "description": "Active lab module start request.",
+        "properties": {
+          "engagement_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Engagement Id",
+            "type": "string"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "sensor_id": {
+            "maxLength": 96,
+            "minLength": 1,
+            "title": "Sensor Id",
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/LabTarget"
+          }
+        },
+        "required": [
+          "sensor_id",
+          "engagement_id",
+          "target"
+        ],
+        "title": "LabModuleStartRequest",
+        "type": "object"
+      },
+      "LabModuleStartResponse": {
+        "description": "Active lab module start response.",
+        "properties": {
+          "command_id": {
+            "title": "Command Id",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "started_at"
+        ],
+        "title": "LabModuleStartResponse",
+        "type": "object"
+      },
+      "LabTarget": {
+        "additionalProperties": false,
+        "description": "Active lab command target.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/TargetKind"
+          },
+          "value": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value"
+        ],
+        "title": "LabTarget",
         "type": "object"
       },
       "LoginRequest": {
@@ -2253,6 +2415,28 @@
         ]
       }
     },
+    "/api/v1/engagements/active": {
+      "get": {
+        "description": "Return the active engagement.\n\nArgs:\n    _: Current user.\n    store: Application store.\n\nReturns:\n    Active engagement.",
+        "operationId": "get_active_engagement_api_v1_engagements_active_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Engagement"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Active Engagement",
+        "tags": [
+          "engagements"
+        ]
+      }
+    },
     "/api/v1/engagements/{engagement_id}/allow-list": {
       "post": {
         "description": "Add a target to an engagement allow-list.\n\nArgs:\n    engagement_id: Engagement identifier.\n    payload: Target payload.\n    _: Current admin with verified TOTP.\n    store: Application store.",
@@ -2294,6 +2478,42 @@
           }
         },
         "summary": "Allow Target",
+        "tags": [
+          "engagements"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}/end": {
+      "post": {
+        "description": "End an engagement and cancel scoped lab commands.\n\nArgs:\n    engagement_id: Engagement identifier.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n    command_broker: Sensor command broker.\n    operator_broker: Operator broker.",
+        "operationId": "end_engagement_api_v1_engagements__engagement_id__end_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "End Engagement",
         "tags": [
           "engagements"
         ]
@@ -2396,6 +2616,159 @@
         "summary": "Get Event",
         "tags": [
           "devices"
+        ]
+      }
+    },
+    "/api/v1/lab/active": {
+      "get": {
+        "description": "List active lab commands.\n\nArgs:\n    _: Current user.\n    broker: Sensor command broker.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated active lab commands.",
+        "operationId": "list_active_lab_commands_api_v1_lab_active_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_LabActiveCommand_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Active Lab Commands",
+        "tags": [
+          "lab"
+        ]
+      }
+    },
+    "/api/v1/lab/{module}/start": {
+      "post": {
+        "description": "Start one gated active lab module.\n\nArgs:\n    module: Active lab module.\n    payload: Start request payload.\n    user: Current user.\n    store: Application store.\n    audit: Audit logger.\n    command_broker: Sensor command broker.\n    operator_broker: Operator broker.\n    settings: Runtime settings.\n\nReturns:\n    Accepted command identifier and start timestamp.",
+        "operationId": "start_lab_module_api_v1_lab__module__start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "module",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/LabModule"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabModuleStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabModuleStartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Lab Module",
+        "tags": [
+          "lab"
+        ]
+      }
+    },
+    "/api/v1/lab/{module}/stop/{command_id}": {
+      "post": {
+        "description": "Stop one gated active lab module.\n\nArgs:\n    module: Active lab module.\n    command_id: Active lab command identifier.\n    user: Current user.\n    store: Application store.\n    audit: Audit logger.\n    command_broker: Sensor command broker.\n    settings: Runtime settings.",
+        "operationId": "stop_lab_module_api_v1_lab__module__stop__command_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "module",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/LabModule"
+            }
+          },
+          {
+            "in": "path",
+            "name": "command_id",
+            "required": true,
+            "schema": {
+              "title": "Command Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stop Lab Module",
+        "tags": [
+          "lab"
         ]
       }
     },

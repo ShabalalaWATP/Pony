@@ -263,6 +263,26 @@ class InMemoryStore:
         self.engagements[engagement.id] = engagement
         return engagement
 
+    async def get_engagement(self, engagement_id: str) -> Engagement | None:
+        """Return an engagement by id."""
+
+        return self.engagements.get(engagement_id)
+
+    async def get_active_engagement(self) -> Engagement | None:
+        """Return the active engagement when one exists."""
+
+        return next(
+            (engagement for engagement in self.engagements.values() if engagement.ended_at is None),
+            None,
+        )
+
+    async def update_engagement(self, engagement: Engagement) -> Engagement:
+        """Persist updated engagement fields."""
+
+        async with self._lock:
+            self.engagements[engagement.id] = engagement
+        return engagement
+
     async def allow_target(self, engagement_id: str, kind: TargetKind, value: str) -> None:
         """Allow a target for an engagement."""
 

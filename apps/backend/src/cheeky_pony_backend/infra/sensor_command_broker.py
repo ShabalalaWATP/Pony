@@ -24,6 +24,22 @@ class SensorCommandMetadata:
     parameters: dict[str, Any]
     started_at: datetime
     audit_id: str
+    lab_module: str | None = None
+    engagement_id: str | None = None
+    target: dict[str, str] | None = None
+
+
+@dataclass(frozen=True)
+class LabCommandRecord:
+    """Active lab command state for dashboard and stop flows."""
+
+    command_id: str
+    module: str
+    sensor_id: str
+    engagement_id: str
+    target: dict[str, str]
+    started_at: datetime
+    parameters: dict[str, Any]
 
 
 class SensorCommandBroker:
@@ -34,6 +50,7 @@ class SensorCommandBroker:
         self._connections: dict[str, WebSocket] = {}
         self._pending: dict[str, list[SensorCommand]] = {}
         self._metadata: dict[str, SensorCommandMetadata] = {}
+        self._active_lab: dict[str, LabCommandRecord] = {}
 
     async def connect(self, sensor_id: str, websocket: WebSocket) -> None:
         """Register a connected sensor and flush pending commands.
@@ -101,6 +118,72 @@ class SensorCommandBroker:
 
         async with self._lock:
             return self._metadata.pop(command_id, None)
+
+    async def start_lab_command(self, record: LabCommandRecord) -> None:
+        """Track an active lab command.
+
+        Args:
+            record: Active lab command record.
+        """
+
+        async with self._lock:
+            self._active_lab[record.command_id] = record
+
+    async def get_lab_command(self, command_id: str) -> LabCommandRecord | None:
+        """Return one active lab command.
+
+        Args:
+            command_id: Active lab command identifier.
+
+        Returns:
+            Active lab command when present.
+        """
+
+        async with self._lock:
+            return self._active_lab.get(command_id)
+
+    async def stop_lab_command(self, command_id: str) -> LabCommandRecord | None:
+        """Remove one active lab command.
+
+        Args:
+            command_id: Active lab command identifier.
+
+        Returns:
+            Removed lab command when present.
+        """
+
+        async with self._lock:
+            return self._active_lab.pop(command_id, None)
+
+    async def list_lab_commands(self) -> list[LabCommandRecord]:
+        """Return active lab commands.
+
+        Returns:
+            Active lab command records.
+        """
+
+        async with self._lock:
+            return list(self._active_lab.values())
+
+    async def stop_lab_commands_for_engagement(self, engagement_id: str) -> list[LabCommandRecord]:
+        """Remove active lab commands for an engagement.
+
+        Args:
+            engagement_id: Engagement identifier.
+
+        Returns:
+            Removed lab command records.
+        """
+
+        async with self._lock:
+            records = [
+                record
+                for record in self._active_lab.values()
+                if record.engagement_id == engagement_id
+            ]
+            for record in records:
+                self._active_lab.pop(record.command_id, None)
+            return records
 
     async def _queue_after_failed_send(
         self,

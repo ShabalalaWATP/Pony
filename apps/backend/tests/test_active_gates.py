@@ -3,11 +3,12 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
-from fastapi import HTTPException
 
 from cheeky_pony_backend.config import Settings
-from cheeky_pony_backend.domain.active_gates import ActiveGateService
+from cheeky_pony_backend.domain.active_gates import ActiveGateDeniedError, ActiveGateService
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
@@ -32,7 +33,7 @@ async def test_active_gate_denies_without_lab_mode_and_audits() -> None:
         AuditLogger(store),
     )
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(ActiveGateDeniedError) as exc_info:
         await service.authorize(
             actor,
             "active.deauth",
@@ -42,8 +43,8 @@ async def test_active_gate_denies_without_lab_mode_and_audits() -> None:
             {"reason": "test"},
         )
 
-    assert exc_info.value.status_code == 403
-    assert store.audit_logs[0].outcome == "denied:lab_mode_required"
+    assert exc_info.value.reason == "lab_mode_disabled"
+    assert store.audit_logs[0].outcome == "denied:lab_mode_disabled"
 
 
 async def test_active_gate_allows_only_when_all_gates_pass() -> None:
@@ -55,6 +56,7 @@ async def test_active_gate_allows_only_when_all_gates_pass() -> None:
         email="admin@example.com",
         password_hash="hash",
         roles=["admin"],
+        totp_verified_at=datetime.now(tz=UTC),
     )
     await store.create_engagement(Engagement(id="eng-1", name="Lab"))
     await store.allow_target("eng-1", TargetKind.BSSID, "AA:BB:CC:DD:EE:FF")
@@ -80,4 +82,4 @@ async def test_active_gate_allows_only_when_all_gates_pass() -> None:
         {"reason": "test"},
     )
 
-    assert store.audit_logs[-1].outcome == "authorized"
+    assert store.audit_logs == []

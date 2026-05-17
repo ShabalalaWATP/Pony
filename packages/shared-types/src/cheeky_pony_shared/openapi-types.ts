@@ -15,6 +15,7 @@ export interface components {
     "ApiPage_AuditLog_": unknown;
     "ApiPage_Client_": unknown;
     "ApiPage_Event_": unknown;
+    "ApiPage_LabActiveCommand_": unknown;
     "ApiPage_Sensor_": unknown;
     "AuditLog": unknown;
     "Client": unknown;
@@ -23,6 +24,11 @@ export interface components {
     "Event": unknown;
     "EventKind": unknown;
     "HTTPValidationError": unknown;
+    "LabActiveCommand": unknown;
+    "LabModule": unknown;
+    "LabModuleStartRequest": unknown;
+    "LabModuleStartResponse": unknown;
+    "LabTarget": unknown;
     "LoginRequest": unknown;
     "LoginResponse": unknown;
     "RegisterRequest": unknown;
@@ -60,9 +66,14 @@ export interface paths {
   "/api/v1/devices": Record<string, unknown>;
   "/api/v1/devices/{mac}": Record<string, unknown>;
   "/api/v1/engagements": Record<string, unknown>;
+  "/api/v1/engagements/active": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/allow-list": Record<string, unknown>;
+  "/api/v1/engagements/{engagement_id}/end": Record<string, unknown>;
   "/api/v1/events": Record<string, unknown>;
   "/api/v1/events/{event_id}": Record<string, unknown>;
+  "/api/v1/lab/active": Record<string, unknown>;
+  "/api/v1/lab/{module}/start": Record<string, unknown>;
+  "/api/v1/lab/{module}/stop/{command_id}": Record<string, unknown>;
   "/api/v1/sensors": Record<string, unknown>;
   "/api/v1/sensors/{sensor_id}": Record<string, unknown>;
   "/api/v1/sensors/{sensor_id}/commands/restart": Record<string, unknown>;

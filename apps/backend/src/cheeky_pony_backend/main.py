@@ -8,10 +8,21 @@ from collections.abc import Awaitable, Callable
 import uvicorn
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from cheeky_pony_backend.api.v1 import alerts, audit, auth, devices, engagements, sensors, system
+from cheeky_pony_backend.api.v1 import (
+    alerts,
+    audit,
+    auth,
+    devices,
+    engagements,
+    lab,
+    sensors,
+    system,
+)
 from cheeky_pony_backend.api.ws import router as ws_router
 from cheeky_pony_backend.config import Settings, get_settings
+from cheeky_pony_backend.domain.active_gates import ActiveGateDeniedError
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
 from cheeky_pony_backend.infra.mongo_store import MongoStore
@@ -46,9 +57,10 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
         CORSMiddleware,
         allow_origins=active_settings.cors_origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "PATCH"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type", "X-CSRF-Token"],
     )
+    _install_exception_handlers(app)
     _install_security_middleware(app, active_settings)
     _install_routes(app)
 
@@ -101,6 +113,7 @@ def _install_routes(app: FastAPI) -> None:
     app.include_router(sensors.router, prefix="/api/v1")
     app.include_router(devices.router, prefix="/api/v1")
     app.include_router(alerts.router, prefix="/api/v1")
+    app.include_router(lab.router, prefix="/api/v1")
     app.include_router(audit.router, prefix="/api/v1")
     app.include_router(system.router, prefix="/api/v1")
     app.include_router(engagements.router, prefix="/api/v1")
@@ -146,6 +159,15 @@ def _csrf_failure_response(request: Request, settings: Settings) -> Response | N
     if not CsrfService().verify(str(claims.get("csrf")), csrf_header):
         return Response(status_code=status.HTTP_403_FORBIDDEN)
     return None
+
+
+def _install_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(ActiveGateDeniedError)
+    async def active_gate_denied(_: Request, exc: ActiveGateDeniedError) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"reason": exc.reason, "detail": exc.detail},
+        )
 
 
 if __name__ == "__main__":

@@ -296,6 +296,28 @@ class MongoStore:
         await self.db.engagements.insert_one(engagement.model_dump(mode="json"))
         return engagement
 
+    async def get_engagement(self, engagement_id: str) -> Engagement | None:
+        """Return an engagement by id."""
+
+        data = await self.db.engagements.find_one({"id": engagement_id}, {"_id": False})
+        return Engagement.model_validate(data) if data else None
+
+    async def get_active_engagement(self) -> Engagement | None:
+        """Return the active engagement when one exists."""
+
+        data = await self.db.engagements.find_one({"ended_at": None}, {"_id": False})
+        return Engagement.model_validate(data) if data else None
+
+    async def update_engagement(self, engagement: Engagement) -> Engagement:
+        """Persist updated engagement fields."""
+
+        await self.db.engagements.replace_one(
+            {"id": engagement.id},
+            engagement.model_dump(mode="json"),
+            upsert=True,
+        )
+        return engagement
+
     async def allow_target(self, engagement_id: str, kind: TargetKind, value: str) -> None:
         """Allow a target for an engagement."""
 
