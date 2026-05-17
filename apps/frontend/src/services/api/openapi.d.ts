@@ -601,6 +601,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/engagements/{engagement_id}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Report
+         * @description Create an engagement report request.
+         *
+         *     Args:
+         *         engagement_id: Engagement identifier.
+         *         payload: Report request body.
+         *         background_tasks: FastAPI background task collector.
+         *         user: Current user.
+         *         store: Application store.
+         *         audit: Audit logger.
+         *
+         *     Returns:
+         *         Created report identifier and initial status.
+         */
+        post: operations["create_report_api_v1_engagements__engagement_id__reports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/engagements/{engagement_id}/reports/{report_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Report Status
+         * @description Return report generation status.
+         *
+         *     Args:
+         *         engagement_id: Engagement identifier.
+         *         report_id: Report identifier.
+         *         _: Current user.
+         *         store: Application store.
+         *         settings: Runtime settings.
+         *
+         *     Returns:
+         *         Report status response with a signed download URL when ready.
+         */
+        get: operations["get_report_status_api_v1_engagements__engagement_id__reports__report_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/engagements/{engagement_id}/reports/{report_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Report
+         * @description Download a ready report through a signed URL.
+         *
+         *     Args:
+         *         engagement_id: Engagement identifier.
+         *         report_id: Report identifier.
+         *         _: Current user.
+         *         store: Application store.
+         *         settings: Runtime settings.
+         *         token: Signed download token.
+         *
+         *     Returns:
+         *         Report file response.
+         */
+        get: operations["download_report_api_v1_engagements__engagement_id__reports__report_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events": {
         parameters: {
             query?: never;
@@ -1467,6 +1559,55 @@ export interface components {
             password: string;
         };
         /**
+         * ReportCreateRequest
+         * @description Report creation request.
+         */
+        ReportCreateRequest: {
+            format: components["schemas"]["ReportFormat"];
+            /**
+             * Since
+             * Format: date-time
+             */
+            since: string;
+            /**
+             * Until
+             * Format: date-time
+             */
+            until: string;
+        };
+        /**
+         * ReportCreateResponse
+         * @description Report creation response.
+         */
+        ReportCreateResponse: {
+            /** Report Id */
+            report_id: string;
+            status: components["schemas"]["ReportStatus"];
+        };
+        /**
+         * ReportFormat
+         * @description Supported engagement report formats.
+         * @enum {string}
+         */
+        ReportFormat: "pdf" | "html" | "pcap" | "jsonl";
+        /**
+         * ReportStatus
+         * @description Engagement report generation states.
+         * @enum {string}
+         */
+        ReportStatus: "pending" | "ready" | "failed";
+        /**
+         * ReportStatusResponse
+         * @description Report status response.
+         */
+        ReportStatusResponse: {
+            /** Download Url */
+            download_url?: string | null;
+            /** Error */
+            error?: string | null;
+            status: components["schemas"]["ReportStatus"];
+        };
+        /**
          * Sensor
          * @description Registered sensor identity and health metadata.
          */
@@ -2279,6 +2420,107 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_report_api_v1_engagements__engagement_id__reports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportCreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_report_status_api_v1_engagements__engagement_id__reports__report_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: string;
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_report_api_v1_engagements__engagement_id__reports__report_id__download_get: {
+        parameters: {
+            query: {
+                token: string;
+            };
+            header?: never;
+            path: {
+                engagement_id: string;
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
             };
             /** @description Validation Error */
             422: {

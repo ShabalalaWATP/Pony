@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     seed_admin_email: str = "admin@example.com"
     seed_admin_password: str = "change-me-now"  # noqa: S105
     use_in_memory_store: bool = False
+    report_download_token_minutes: int = Field(default=15, ge=1, le=1440)
 
     @field_validator("cors_origins", mode="before")
     @classmethod

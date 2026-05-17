@@ -1178,6 +1178,106 @@
         "title": "RegisterRequest",
         "type": "object"
       },
+      "ReportCreateRequest": {
+        "additionalProperties": false,
+        "description": "Report creation request.",
+        "properties": {
+          "format": {
+            "$ref": "#/components/schemas/ReportFormat"
+          },
+          "since": {
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          },
+          "until": {
+            "format": "date-time",
+            "title": "Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "format",
+          "since",
+          "until"
+        ],
+        "title": "ReportCreateRequest",
+        "type": "object"
+      },
+      "ReportCreateResponse": {
+        "description": "Report creation response.",
+        "properties": {
+          "report_id": {
+            "title": "Report Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReportStatus"
+          }
+        },
+        "required": [
+          "report_id",
+          "status"
+        ],
+        "title": "ReportCreateResponse",
+        "type": "object"
+      },
+      "ReportFormat": {
+        "description": "Supported engagement report formats.",
+        "enum": [
+          "pdf",
+          "html",
+          "pcap",
+          "jsonl"
+        ],
+        "title": "ReportFormat",
+        "type": "string"
+      },
+      "ReportStatus": {
+        "description": "Engagement report generation states.",
+        "enum": [
+          "pending",
+          "ready",
+          "failed"
+        ],
+        "title": "ReportStatus",
+        "type": "string"
+      },
+      "ReportStatusResponse": {
+        "description": "Report status response.",
+        "properties": {
+          "download_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Download Url"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReportStatus"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "ReportStatusResponse",
+        "type": "object"
+      },
       "Sensor": {
         "additionalProperties": false,
         "description": "Registered sensor identity and health metadata.",
@@ -2516,6 +2616,169 @@
         "summary": "End Engagement",
         "tags": [
           "engagements"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}/reports": {
+      "post": {
+        "description": "Create an engagement report request.\n\nArgs:\n    engagement_id: Engagement identifier.\n    payload: Report request body.\n    background_tasks: FastAPI background task collector.\n    user: Current user.\n    store: Application store.\n    audit: Audit logger.\n\nReturns:\n    Created report identifier and initial status.",
+        "operationId": "create_report_api_v1_engagements__engagement_id__reports_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportCreateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}/reports/{report_id}": {
+      "get": {
+        "description": "Return report generation status.\n\nArgs:\n    engagement_id: Engagement identifier.\n    report_id: Report identifier.\n    _: Current user.\n    store: Application store.\n    settings: Runtime settings.\n\nReturns:\n    Report status response with a signed download URL when ready.",
+        "operationId": "get_report_status_api_v1_engagements__engagement_id__reports__report_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Report Status",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}/reports/{report_id}/download": {
+      "get": {
+        "description": "Download a ready report through a signed URL.\n\nArgs:\n    engagement_id: Engagement identifier.\n    report_id: Report identifier.\n    _: Current user.\n    store: Application store.\n    settings: Runtime settings.\n    token: Signed download token.\n\nReturns:\n    Report file response.",
+        "operationId": "download_report_api_v1_engagements__engagement_id__reports__report_id__download_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "title": "Report Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Report",
+        "tags": [
+          "reports"
         ]
       }
     },

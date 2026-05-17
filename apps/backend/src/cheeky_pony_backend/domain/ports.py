@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from cheeky_pony_backend.domain.reports import ReportRecord
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_shared import (
     AccessPoint,
@@ -157,3 +158,15 @@ class Store(Protocol):
 
     async def target_allowed(self, engagement_id: str, kind: TargetKind, value: str) -> bool:
         """Return whether a target is allowed."""
+
+    async def create_report(self, report: ReportRecord) -> ReportRecord:
+        """Persist a report request."""
+
+    async def get_report(self, engagement_id: str, report_id: str) -> ReportRecord | None:
+        """Return a report by engagement and id."""
+
+    async def get_report_by_id(self, report_id: str) -> ReportRecord | None:
+        """Return a report by id."""
+
+    async def update_report(self, report: ReportRecord) -> ReportRecord:
+        """Persist updated report fields."""

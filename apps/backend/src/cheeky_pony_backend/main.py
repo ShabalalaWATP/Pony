@@ -17,6 +17,7 @@ from cheeky_pony_backend.api.v1 import (
     devices,
     engagements,
     lab,
+    reports,
     sensors,
     system,
 )
@@ -114,6 +115,7 @@ def _install_routes(app: FastAPI) -> None:
     app.include_router(devices.router, prefix="/api/v1")
     app.include_router(alerts.router, prefix="/api/v1")
     app.include_router(lab.router, prefix="/api/v1")
+    app.include_router(reports.router, prefix="/api/v1")
     app.include_router(audit.router, prefix="/api/v1")
     app.include_router(system.router, prefix="/api/v1")
     app.include_router(engagements.router, prefix="/api/v1")
