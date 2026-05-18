@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol
 
 from cheeky_pony_backend.domain.reports import ReportRecord
@@ -147,6 +148,12 @@ class Store(Protocol):
 
     async def list_audit(self, limit: int, offset: int) -> tuple[list[AuditLog], int]:
         """List audit logs."""
+
+    async def count_synthetic_records(self) -> int:
+        """Count seeded demo records across collections."""
+
+    async def last_demo_seeded_at(self) -> datetime | None:
+        """Return the last demo seed timestamp."""
 
     async def create_acknowledgement(self, acknowledgement: SystemAcknowledgement) -> None:
         """Persist an acknowledgement."""

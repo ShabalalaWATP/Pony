@@ -41,11 +41,20 @@ Method: STRIDE per major component.
 ## Sensor Gateway
 
 - Spoofing: sensor WebSocket accepts only authenticated sensor identity from the mTLS termination layer.
-- Tampering: event payloads and command-result envelopes are normalized before persistence or operator fan-out.
+- Tampering: event payloads and command-result envelopes are normalized before persistence or operator fan-out; inbound frames with `synthetic: true` are rejected and audited.
 - Repudiation: sensor commands write queue and completion audit entries linked by command id.
 - Information disclosure: Pi-to-PC link is intended for Tailscale and mTLS.
 - Denial of service: reconnect logic uses exponential backoff with jitter.
 - Elevation of privilege: local commands use argument lists and narrowly scoped subprocess wrappers.
+
+## Demo Data Seeder
+
+- Spoofing: CLI seed and clean actions are attributed to the invoking actor id or `system:seed`.
+- Tampering: the seeder refuses outside `CHEEKY_PONY_ENV=dev`, refuses while lab mode is live, and refuses when a non-synthetic sensor has checked in recently unless `--force` is supplied.
+- Repudiation: seed and clean operations append `demo.seed.run` and `demo.seed.clean` audit entries.
+- Information disclosure: synthetic MACs use the `02:00:` locally administered range and no real sensor identifiers are copied into the seeded dataset.
+- Denial of service: seeded signal histories are capped at the same 200-sample repository boundary as real telemetry.
+- Elevation of privilege: seeded records are metadata only; production read and lab-gating behavior does not trust the `synthetic` marker.
 
 ## Sensor Lifecycle Commands
 

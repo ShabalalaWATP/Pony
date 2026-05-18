@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import json
 
-from cheeky_pony_sensor.ws_client import BackendWebSocketClient
+from cheeky_pony_sensor.ws_client import BackendWebSocketClient, sensor_event_payload
 from cheeky_pony_shared import Event, EventKind
 
 
@@ -34,7 +34,7 @@ async def test_receive_commands_sends_handler_result() -> None:
     """BackendWebSocketClient receives commands and sends result payloads."""
 
     async def handler(command):  # type: ignore[no-untyped-def]
-        return {"command_id": command.id, "accepted": True}
+        return {"command_id": command.id, "accepted": True, "synthetic": True}
 
     websocket = FakeWebSocket(
         [{"id": "cmd-1", "kind": "start_capture", "parameters": {}, "lab_mode": False}]
@@ -44,6 +44,7 @@ async def test_receive_commands_sends_handler_result() -> None:
     await client._receive_commands(websocket)
 
     assert json.loads(websocket.sent[0])["payload"]["accepted"] is True
+    assert "synthetic" not in json.loads(websocket.sent[0])["payload"]
 
 
 async def test_enqueue_and_stop_set_internal_state() -> None:
@@ -65,3 +66,20 @@ async def test_enqueue_and_stop_set_internal_state() -> None:
 
     assert await client._queue.get() == event
     assert client._stopped.is_set()
+
+
+def test_sensor_event_payload_strips_synthetic_markers() -> None:
+    """Sensor wire payloads omit synthetic markers at every level."""
+
+    event = Event(
+        id="evt-1",
+        sensor_id="pi-1",
+        kind=EventKind.ACCESS_POINT_SEEN,
+        payload={"bssid": "AA:BB:CC:DD:EE:FF", "synthetic": True},
+        synthetic=True,
+    )
+
+    payload = sensor_event_payload(event)
+
+    assert "synthetic" not in payload
+    assert "synthetic" not in payload["payload"]

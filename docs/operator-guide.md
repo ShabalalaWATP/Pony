@@ -15,6 +15,37 @@ Default local URLs:
 - backend health: `http://localhost:8000/health`
 - OpenAPI: `http://localhost:8000/openapi.json`
 
+## Demo data
+
+Local development can seed a believable synthetic dataset:
+
+```shell
+make seed-demo
+```
+
+Remove it with:
+
+```shell
+make unseed-demo
+```
+
+The seeder writes only visibly fake records: sensor ids use `synth-` prefixes
+and AP/client MACs use the locally administered `02:00:` range. Seeded telemetry
+records carry `synthetic: true`; normal sensor data does not set that marker.
+
+The command refuses to run unless all safety guards pass:
+
+- `CHEEKY_PONY_ENV=dev`
+- `CHEEKY_PONY_LAB_MODE=false`
+- no non-synthetic sensor has reported within the last five minutes
+
+Use `python -m cheeky_pony_backend.infra.seed_demo --force` only for deliberate
+local recovery. `--clean` removes records where `synthetic == true` and leaves
+audit entries intact because audit logs are append-only.
+
+The frontend can check `GET /api/v1/system/demo-status` after login to show
+whether synthetic records are present.
+
 ## First admin
 
 The first user may self-register. After that, registration requires an authenticated admin with a verified TOTP session.

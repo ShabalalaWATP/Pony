@@ -15,6 +15,7 @@ const baseSensor: Sensor = {
   capabilities: ["passive_capture"],
   revoked: false,
   last_seen: "2026-05-17T10:00:00Z",
+  synthetic: false,
 };
 
 describe("RevokeSensorAction", () => {

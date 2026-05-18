@@ -112,6 +112,11 @@
         "title": "Ssid",
         "type": "string"
       },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
+        "type": "boolean"
+      },
       "vendor_oui": {
         "anyOf": [
           {
@@ -195,6 +200,11 @@
       },
       "severity": {
         "$ref": "#/components/schemas/AlertSeverity"
+      },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
+        "type": "boolean"
       }
     },
     "required": [
@@ -256,6 +266,11 @@
       },
       "severity": {
         "$ref": "#/components/schemas/AlertSeverity"
+      },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
+        "type": "boolean"
       }
     },
     "required": [
@@ -961,6 +976,11 @@
         "title": "Signal History",
         "type": "array"
       },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
+        "type": "boolean"
+      },
       "vendor_oui": {
         "anyOf": [
           {
@@ -978,6 +998,33 @@
       "mac"
     ],
     "title": "Client",
+    "type": "object"
+  },
+  "DemoStatusResponse": {
+    "description": "Demo data presence summary.",
+    "properties": {
+      "last_seeded_at": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Last Seeded At"
+      },
+      "synthetic_records": {
+        "minimum": 0.0,
+        "title": "Synthetic Records",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "synthetic_records"
+    ],
+    "title": "DemoStatusResponse",
     "type": "object"
   },
   "Engagement": {
@@ -1020,6 +1067,11 @@
         "format": "date-time",
         "title": "Started At",
         "type": "string"
+      },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
+        "type": "boolean"
       }
     },
     "required": [
@@ -1084,6 +1136,11 @@
         "minLength": 1,
         "title": "Sensor Id",
         "type": "string"
+      },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
+        "type": "boolean"
       }
     },
     "required": [
@@ -1100,6 +1157,8 @@
     "enum": [
       "access_point_seen",
       "client_seen",
+      "probe_request",
+      "association",
       "sensor_status",
       "command_result"
     ],
@@ -1479,6 +1538,11 @@
       "revoked": {
         "default": false,
         "title": "Revoked",
+        "type": "boolean"
+      },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
         "type": "boolean"
       },
       "tailnet_ip": {

@@ -3,7 +3,7 @@ BACKEND_DIR := apps/backend
 SENSOR_DIR := apps/sensor-agent
 SHARED_DIR := packages/shared-types
 
-.PHONY: bootstrap lint test up down openapi license
+.PHONY: bootstrap lint test up down openapi license seed-demo unseed-demo
 
 bootstrap:
 	uv venv --python 3.12 || $(PYTHON) -m venv .venv
@@ -30,3 +30,9 @@ openapi:
 
 license:
 	python scripts/add-license-headers.py
+
+seed-demo:
+	$(PYTHON) -m cheeky_pony_backend.infra.seed_demo
+
+unseed-demo:
+	$(PYTHON) -m cheeky_pony_backend.infra.seed_demo --clean

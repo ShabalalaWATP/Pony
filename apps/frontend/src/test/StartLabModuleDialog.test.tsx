@@ -12,6 +12,7 @@ const engagement: Engagement = {
   name: "Spring",
   scope_rules: [],
   started_at: "2026-05-17T08:00:00Z",
+  synthetic: false,
 };
 
 function mount(props: Partial<Parameters<typeof StartLabModuleDialog>[0]> = {}) {
