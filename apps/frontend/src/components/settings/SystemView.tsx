@@ -1,10 +1,11 @@
-import { CheckCircle2, ShieldX, XCircle } from "lucide-react";
+import { CheckCircle2, Cpu, FileCheck2, ShieldCheck, ShieldX } from "lucide-react";
 import { useState } from "react";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { EndpointHint } from "@/components/ui/EndpointHint";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/domain/EmptyState";
+import { LeaderRow } from "@/components/domain/LeaderRow";
 import {
   type LabStatusResponse,
   useAcknowledgeOperator,
@@ -156,72 +157,78 @@ interface GateStatusCardProps {
   ackOnFile: boolean;
 }
 
+interface Gate {
+  label: string;
+  icon: typeof Cpu;
+  ok: boolean;
+  hint: string;
+}
+
 function GateStatusCard({ status, ackOnFile }: GateStatusCardProps): JSX.Element {
-  const gates: { label: string; ok: boolean; hint: string }[] = [
+  const gates: Gate[] = [
     {
-      label: "Lab mode",
+      label: "LAB_MODE",
+      icon: Cpu,
       ok: status.lab_mode,
-      hint: "Set LAB_MODE=true on the backend.",
+      hint: "Set CHEEKY_PONY_LAB_MODE=true on the backend.",
     },
     {
-      label: "Authorized-operator acknowledgement",
+      label: "AUTHORIZED OPERATOR",
+      icon: FileCheck2,
       ok: ackOnFile,
       hint: "Type and accept the statement below.",
     },
     {
-      label: "Admin + recent 2FA",
+      label: "ADMIN + RECENT 2FA",
+      icon: ShieldCheck,
       ok: status.is_admin_2fa,
       hint: "Sign in as admin and re-verify TOTP.",
     },
   ];
   const allGreen = gates.every((g) => g.ok);
+  const frame = allGreen
+    ? "rounded-md border border-accent-green/40 bg-accent-green/5 p-4"
+    : "rounded-md border border-accent-amber/40 bg-accent-amber/5 p-4";
+  const headerTone = allGreen ? "text-accent-green" : "text-accent-amber";
   return (
-    <section
-      data-testid="system-gate-card"
-      className={
-        allGreen
-          ? "rounded-md border border-accent-green/40 bg-accent-green/10 p-4 text-sm text-accent-green"
-          : "rounded-md border border-accent-amber/40 bg-accent-amber/10 p-4 text-sm text-accent-amber"
-      }
-    >
-      <header className="flex items-center gap-2 text-2xs uppercase tracking-wide">
+    <section data-testid="system-gate-card" className={frame}>
+      <header className={`flex items-center gap-2 text-2xs uppercase tracking-wide ${headerTone}`}>
         {allGreen ? (
           <CheckCircle2 className="size-3.5" aria-hidden="true" />
         ) : (
           <ShieldX className="size-3.5" aria-hidden="true" />
         )}
-        Lab gates
+        <span>Lab gates</span>
+        <EndpointHint className="ml-auto">/api/v1/lab/status</EndpointHint>
       </header>
-      <ul className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+      <ul className="mt-3 flex flex-col gap-1.5">
         {gates.map((g) => (
-          <li
+          <LeaderRow
             key={g.label}
-            data-testid="system-gate"
-            data-ok={g.ok}
-            className="flex items-start gap-2 text-fg-100"
-          >
-            {g.ok ? (
-              <CheckCircle2
-                className="mt-0.5 size-3 shrink-0 text-accent-green"
-                aria-hidden="true"
-              />
-            ) : (
-              <XCircle className="mt-0.5 size-3 shrink-0 text-accent-red" aria-hidden="true" />
-            )}
-            <span className="flex flex-col">
-              <span>{g.label}</span>
-              {!g.ok && <span className="text-2xs text-fg-60">{g.hint}</span>}
-              {g.ok && (
-                <span className="text-2xs text-fg-60">
-                  <Badge tone="green" outline>
-                    on
-                  </Badge>
-                </span>
-              )}
-            </span>
-          </li>
+            icon={g.icon}
+            label={g.label}
+            value={g.ok ? "OK" : "MISSING"}
+            tone={g.ok ? "ok" : "wait"}
+            className="px-1"
+          />
         ))}
       </ul>
+      {!allGreen && (
+        <ul className="mt-3 flex flex-col gap-1 border-t border-fg-20 pt-3 text-2xs text-fg-60">
+          {gates
+            .filter((g) => !g.ok)
+            .map((g) => (
+              <li key={`hint-${g.label}`} className="flex gap-2" data-testid="system-gate-hint">
+                <span aria-hidden="true" className="text-accent-amber">
+                  !
+                </span>
+                <span>
+                  <span className="font-mono text-fg-80">{g.label}</span> — {g.hint}
+                </span>
+              </li>
+            ))}
+        </ul>
+      )}
     </section>
   );
 }

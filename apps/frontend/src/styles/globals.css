@@ -69,10 +69,17 @@
   --duration-drawer: 220ms;
 }
 
-/* ---------- Base resets ---------- */
+/* ---------- Base resets ----------
+   Wrapped in @layer base so Tailwind utilities (which live in
+   @layer utilities) can override per-element border colors. An
+   unlayered `*` reset wins over layered utilities regardless of
+   selector specificity, which was a real foot-gun discovered while
+   building the login corner brackets. */
 
-* {
-  border-color: hsl(var(--fg-20));
+@layer base {
+  * {
+    border-color: hsl(var(--fg-20));
+  }
 }
 
 html,

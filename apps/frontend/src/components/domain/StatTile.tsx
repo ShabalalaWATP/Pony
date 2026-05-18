@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { EndpointHint } from "@/components/ui/EndpointHint";
 import { cn } from "@/lib/cn";
 import { SignalSparkline } from "./SignalSparkline";
 
@@ -9,6 +10,8 @@ interface StatTileProps {
   trend?: readonly number[];
   /** Delta vs previous period (positive number = up). */
   delta?: number;
+  /** Backend route this tile sources its value from (e.g. `/api/v1/sensors`). */
+  endpoint?: string;
   className?: string;
 }
 
@@ -17,7 +20,14 @@ interface StatTileProps {
  * the cell. Anatomy: label (top, uppercase), big mono value (centre),
  * delta + sparkline (bottom). Click-through is handled by the caller.
  */
-export function StatTile({ label, value, trend, delta, className }: StatTileProps): JSX.Element {
+export function StatTile({
+  label,
+  value,
+  trend,
+  delta,
+  endpoint,
+  className,
+}: StatTileProps): JSX.Element {
   return (
     <div
       className={cn(
@@ -26,7 +36,10 @@ export function StatTile({ label, value, trend, delta, className }: StatTileProp
         className,
       )}
     >
-      <div className="text-2xs uppercase tracking-wide text-fg-60">{label}</div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-2xs uppercase tracking-wide text-fg-60">{label}</span>
+        {endpoint && <EndpointHint className="truncate">{endpoint}</EndpointHint>}
+      </div>
       <div className="flex items-end justify-between gap-3">
         <div className="font-mono text-2xl tabular-nums text-fg-100">{value}</div>
         <div className="flex flex-col items-end gap-1">

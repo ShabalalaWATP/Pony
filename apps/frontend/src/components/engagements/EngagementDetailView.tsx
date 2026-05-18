@@ -3,7 +3,9 @@ import { ArrowLeft, PlayCircle, ShieldCheck, ShieldX, StopCircle } from "lucide-
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { CornerBrackets } from "@/components/ui/CornerBrackets";
 import { DetailRow, DetailSection } from "@/components/ui/DetailGrid";
+import { EndpointHint } from "@/components/ui/EndpointHint";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -103,6 +105,7 @@ export function EngagementDetailView({ engagementId }: EngagementDetailViewProps
             ended
           </Badge>
         )}
+        <EndpointHint>{`/api/v1/engagements/${engagement.id}`}</EndpointHint>
       </PageHeader>
 
       <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -266,13 +269,14 @@ function EndAction({ engagement }: { engagement: Engagement }): JSX.Element {
 
   return (
     <form
-      className="flex flex-col gap-2 rounded-md border border-accent-red/40 bg-accent-red/10 p-3"
+      className="relative flex flex-col gap-2 rounded-md border border-accent-red/40 bg-accent-red/10 p-3"
       onSubmit={(e) => {
         e.preventDefault();
         if (canSubmit) end.mutate(engagement.id);
       }}
       data-testid="engagement-end-form"
     >
+      <CornerBrackets inset="-0.35rem" tone="red" />
       <p className="flex items-center gap-2 text-2xs text-accent-red">
         <ShieldX className="size-3.5" aria-hidden="true" />
         Type the engagement name to end it. Cancels every active lab command and writes an audit

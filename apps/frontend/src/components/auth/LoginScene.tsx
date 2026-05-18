@@ -1,5 +1,8 @@
 import { Activity, Cpu, Radio } from "lucide-react";
 import type { ReactNode } from "react";
+import { CornerBrackets } from "@/components/ui/CornerBrackets";
+import { EndpointHint } from "@/components/ui/EndpointHint";
+import { LeaderRow, type LeaderTone } from "@/components/domain/LeaderRow";
 
 const APP_VERSION = "v0.3.0";
 
@@ -8,7 +11,7 @@ interface BootLine {
   label: string;
   value: string;
   /** Visual tone for the value pill. */
-  tone: "ok" | "wait";
+  tone: LeaderTone;
 }
 
 /**
@@ -151,21 +154,14 @@ function Wordmark(): JSX.Element {
 function StatusReadout(): JSX.Element {
   return (
     <ul
-      className="flex w-full max-w-xs flex-col gap-1.5 rounded-sm border border-fg-20 bg-bg-inset/60 p-3 font-mono text-2xs text-fg-80 backdrop-blur md:max-w-sm"
+      className="flex w-full max-w-xs flex-col gap-1.5 rounded-sm border border-fg-20 bg-bg-inset/60 p-3 backdrop-blur md:max-w-sm"
       aria-label="System status"
       data-testid="login-status-readout"
     >
-      {BOOT_LINES.map(({ icon: Icon, label, value, tone }) => (
-        <li key={label} className="flex items-center gap-2">
-          <Icon className="size-3 text-fg-60" aria-hidden="true" />
-          <span className="text-fg-60">{label}</span>
-          <span className="flex-1 self-end overflow-hidden text-fg-20">
-            ─────────────────────────────
-          </span>
-          <span className={tone === "ok" ? "text-accent-green" : "text-accent-amber"}>{value}</span>
-        </li>
+      {BOOT_LINES.map(({ icon, label, value, tone }) => (
+        <LeaderRow key={label} icon={icon} label={label} value={value} tone={tone} />
       ))}
-      <li className="flex items-center gap-2 pt-1 text-fg-40">
+      <li className="flex items-center gap-2 pt-1 font-mono text-2xs text-fg-40">
         <span aria-hidden="true">$</span>
         <span>standby</span>
         <span className="cp-cursor-blink ml-0.5 inline-block size-2 bg-mode" aria-hidden="true" />
@@ -177,36 +173,17 @@ function StatusReadout(): JSX.Element {
 function FormPanel({ children }: { children: ReactNode }): JSX.Element {
   return (
     <section className="relative">
-      <CornerBrackets />
+      <CornerBrackets inset="-0.5rem" />
       <div className="relative rounded-md border border-fg-20 bg-bg-2/70 p-6 backdrop-blur-md md:p-7">
         <header className="mb-5 flex items-center gap-2 border-b border-fg-20 pb-3">
           <span className="size-1.5 rounded-full bg-mode shadow-[0_0_8px_hsl(var(--mode-accent))]" />
           <span className="font-mono text-2xs uppercase tracking-widest text-fg-60">
             authenticate
           </span>
-          <span className="ml-auto font-mono text-2xs text-fg-40">/auth/login</span>
+          <EndpointHint className="ml-auto">/auth/login</EndpointHint>
         </header>
         {children}
       </div>
     </section>
-  );
-}
-
-function CornerBrackets(): JSX.Element {
-  // Four absolute-positioned L-shapes; non-interactive, screen-reader
-  // hidden. Uses the mode accent so it shifts to violet when LAB_MODE
-  // is active. The border-color is set via inline style because
-  // `globals.css` resets `* { border-color: var(--fg-20) }` outside
-  // any cascade layer, which outranks Tailwind's `.border-mode`
-  // utility (it lives inside `@layer utilities`).
-  const arm = "absolute size-3.5";
-  const colored: React.CSSProperties = { borderColor: "hsl(var(--mode-accent))" };
-  return (
-    <div aria-hidden="true" className="pointer-events-none absolute -inset-2">
-      <span className={`${arm} left-0 top-0 border-l-2 border-t-2`} style={colored} />
-      <span className={`${arm} right-0 top-0 border-r-2 border-t-2`} style={colored} />
-      <span className={`${arm} bottom-0 left-0 border-b-2 border-l-2`} style={colored} />
-      <span className={`${arm} bottom-0 right-0 border-b-2 border-r-2`} style={colored} />
-    </div>
   );
 }

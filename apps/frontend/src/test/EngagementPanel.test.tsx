@@ -15,11 +15,13 @@ const engagement: Engagement = {
 };
 
 describe("EngagementPanel", () => {
-  it("renders the engagement name + id", () => {
+  it("renders the engagement name + endpoint hint", () => {
     const { node } = withQuery(<EngagementPanel engagement={engagement} />);
     render(node);
     expect(screen.getByText(engagement.name)).toBeInTheDocument();
-    expect(screen.getByText(`id: ${engagement.id}`)).toBeInTheDocument();
+    expect(screen.getByTestId("endpoint-hint")).toHaveTextContent(
+      `/api/v1/engagements/${engagement.id}`,
+    );
   });
 
   it("POSTs to /allow-list when a target is added", async () => {
