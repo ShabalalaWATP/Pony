@@ -195,3 +195,68 @@ button:disabled {
   background: linear-gradient(90deg, transparent, hsl(var(--mode-accent)), transparent);
   animation: cp-scanline 8s linear infinite;
 }
+
+/* Login scene — slow drifting grid, vertical sweep, and a blinking
+   terminal cursor. All purely decorative; collapses to static under
+   prefers-reduced-motion. */
+@keyframes cp-grid-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(32px, 32px, 0);
+  }
+}
+@keyframes cp-vsweep {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  10%,
+  90% {
+    opacity: 0.05;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+@keyframes cp-cursor-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes cp-logo-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.04);
+  }
+}
+.cp-grid-drift {
+  animation: cp-grid-drift 18s linear infinite;
+  will-change: transform;
+}
+.cp-vsweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, hsl(var(--mode-accent) / 0.6), transparent);
+  height: 1px;
+  animation: cp-vsweep 11s linear infinite;
+}
+.cp-cursor-blink {
+  animation: cp-cursor-blink 1.05s steps(2, end) infinite;
+}
+.cp-logo-pulse {
+  animation: cp-logo-pulse 4.2s ease-in-out infinite;
+}
