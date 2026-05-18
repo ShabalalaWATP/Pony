@@ -34,6 +34,7 @@ export const fixtures = {
     signal_history: [{ rssi_dbm: -55, seen_at: "2026-05-17T10:00:00Z" }],
     vendor_oui: "Apple",
     flags: [],
+    synthetic: false,
   } satisfies AccessPoint,
   device: {
     mac: "38:c9:86:1c:33:a2",
@@ -41,6 +42,7 @@ export const fixtures = {
     associated_bssid: "a4:c3:f0:1d:88:0a",
     probes: [],
     signal_history: [],
+    synthetic: false,
   } satisfies Client,
   event: {
     id: "00000000-0000-0000-0000-000000000099",
@@ -48,12 +50,14 @@ export const fixtures = {
     kind: "access_point_seen",
     payload: { ssid: "TestNet", bssid: "a4:c3:f0:1d:88:0a" },
     occurred_at: "2026-05-17T10:00:00Z",
+    synthetic: false,
   } satisfies Event,
   alert: {
     id: "a1",
     rule_id: "rule-rogue-ssid",
     severity: "high",
     related_entities: ["aa:bb:cc:dd:ee:01"],
+    synthetic: false,
   } satisfies Alert,
   alertRule: {
     id: "rule-1",
@@ -64,12 +68,14 @@ export const fixtures = {
     predicate: { event_kind: "access_point_seen", match: { ssid: "^Free.*" } },
     created_by: "operator@cheeky.local",
     created_at: "2026-05-17T09:00:00Z",
+    synthetic: false,
   } satisfies AlertRule,
   engagement: {
     id: "eng-1",
     name: "Spring assessment 2026",
     scope_rules: [],
     started_at: "2026-05-17T08:00:00Z",
+    synthetic: false,
   } satisfies Engagement,
   labActiveCommand: {
     command_id: "lab-cmd-1",
@@ -96,6 +102,7 @@ export const fixtures = {
     capabilities: ["passive_capture", "channel_control"],
     last_seen: "2026-05-17T10:00:00Z",
     revoked: false,
+    synthetic: false,
   } satisfies Sensor,
   adminUser: {
     id: "00000000-0000-0000-0000-0000000000ad",
@@ -117,6 +124,7 @@ export const fixtures = {
       capabilities: ["passive_capture"],
       last_seen: null,
       revoked: false,
+      synthetic: false,
     },
   } satisfies SensorRegisterResponse,
   auditEntry: {

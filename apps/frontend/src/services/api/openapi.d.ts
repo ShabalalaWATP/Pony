@@ -1181,6 +1181,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/system/demo-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Demo Status
+         * @description Return demo data presence metadata.
+         *
+         *     Args:
+         *         _: Current user.
+         *         store: Application store.
+         *
+         *     Returns:
+         *         Synthetic record count and last seed timestamp.
+         */
+        get: operations["demo_status_api_v1_system_demo_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -1328,6 +1355,11 @@ export interface components {
              * @default
              */
             ssid: string;
+            /**
+             * Synthetic
+             * @default false
+             */
+            synthetic: boolean;
             /** Vendor Oui */
             vendor_oui?: string | null;
         };
@@ -1355,6 +1387,11 @@ export interface components {
             /** Rule Id */
             rule_id: string;
             severity: components["schemas"]["AlertSeverity"];
+            /**
+             * Synthetic
+             * @default false
+             */
+            synthetic: boolean;
         };
         /**
          * AlertRule
@@ -1384,6 +1421,11 @@ export interface components {
                 [key: string]: unknown;
             };
             severity: components["schemas"]["AlertSeverity"];
+            /**
+             * Synthetic
+             * @default false
+             */
+            synthetic: boolean;
         };
         /**
          * AlertRuleCreateRequest
@@ -1623,8 +1665,23 @@ export interface components {
             probes?: string[];
             /** Signal History */
             signal_history?: components["schemas"]["SignalSample"][];
+            /**
+             * Synthetic
+             * @default false
+             */
+            synthetic: boolean;
             /** Vendor Oui */
             vendor_oui?: string | null;
+        };
+        /**
+         * DemoStatusResponse
+         * @description Demo data presence summary.
+         */
+        DemoStatusResponse: {
+            /** Last Seeded At */
+            last_seeded_at?: string | null;
+            /** Synthetic Records */
+            synthetic_records: number;
         };
         /**
          * Engagement
@@ -1646,6 +1703,11 @@ export interface components {
              * Format: date-time
              */
             started_at?: string;
+            /**
+             * Synthetic
+             * @default false
+             */
+            synthetic: boolean;
         };
         /**
          * EngagementCreateRequest
@@ -1678,13 +1740,18 @@ export interface components {
             };
             /** Sensor Id */
             sensor_id: string;
+            /**
+             * Synthetic
+             * @default false
+             */
+            synthetic: boolean;
         };
         /**
          * EventKind
          * @description Normalized event kinds emitted by sensors.
          * @enum {string}
          */
-        EventKind: "access_point_seen" | "client_seen" | "sensor_status" | "command_result";
+        EventKind: "access_point_seen" | "client_seen" | "probe_request" | "association" | "sensor_status" | "command_result";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1868,6 +1935,11 @@ export interface components {
              * @default false
              */
             revoked: boolean;
+            /**
+             * Synthetic
+             * @default false
+             */
+            synthetic: boolean;
             /** Tailnet Ip */
             tailnet_ip: string;
             /** Version */
@@ -3372,6 +3444,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    demo_status_api_v1_system_demo_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoStatusResponse"];
                 };
             };
         };

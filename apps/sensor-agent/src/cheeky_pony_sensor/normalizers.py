@@ -165,7 +165,7 @@ def normalize_kismet_device(payload: dict[str, Any], sensor_id: str) -> list[Eve
                 id=str(uuid4()),
                 sensor_id=sensor_id,
                 kind=EventKind.ACCESS_POINT_SEEN,
-                payload=ap.model_dump(mode="json"),
+                payload=ap.model_dump(mode="json", exclude={"synthetic"}),
             )
         )
     client = normalize_client(payload)
@@ -175,7 +175,7 @@ def normalize_kismet_device(payload: dict[str, Any], sensor_id: str) -> list[Eve
                 id=str(uuid4()),
                 sensor_id=sensor_id,
                 kind=EventKind.CLIENT_SEEN,
-                payload=client.model_dump(mode="json"),
+                payload=client.model_dump(mode="json", exclude={"synthetic"}),
             )
         )
     return events

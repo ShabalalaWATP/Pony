@@ -68,6 +68,10 @@ async def sensor_gateway(websocket: WebSocket) -> None:
     try:
         while True:
             payload = await websocket.receive_json()
+            if _has_synthetic_marker(payload):
+                await _reject_synthetic_marker(sensor_id, websocket, store)
+                await command_broker.disconnect(sensor_id, websocket)
+                return
             if await _handle_command_result(sensor_id, payload, store, broker, command_broker):
                 continue
             if await _handle_lab_progress(sensor_id, payload, broker, command_broker):
@@ -123,6 +127,28 @@ async def operator_gateway(websocket: WebSocket) -> None:
 def _operator_origin_allowed(websocket: WebSocket, settings: Settings) -> bool:
     origin = websocket.headers.get("origin")
     return origin is not None and origin in settings.cors_origins
+
+
+async def _reject_synthetic_marker(sensor_id: str, websocket: WebSocket, store: Store) -> None:
+    await AuditLogger(store).record(
+        sensor_id,
+        "sensor.rejected_synthetic_marker",
+        {"sensor_id": sensor_id},
+        {},
+        "denied:invalid_payload",
+    )
+    await websocket.send_json({"status_code": 400, "detail": "invalid_payload"})
+    await websocket.close(code=status.WS_1003_UNSUPPORTED_DATA, reason="invalid_payload")
+
+
+def _has_synthetic_marker(value: object) -> bool:
+    if isinstance(value, dict):
+        if value.get("synthetic") is True:
+            return True
+        return any(_has_synthetic_marker(item) for item in value.values())
+    if isinstance(value, list):
+        return any(_has_synthetic_marker(item) for item in value)
+    return False
 
 
 async def _persist_event(store: Store, broker: OperatorBroker, event: Event) -> None:

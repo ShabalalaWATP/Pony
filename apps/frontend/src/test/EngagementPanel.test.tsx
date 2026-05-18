@@ -12,6 +12,7 @@ const engagement: Engagement = {
   name: "Spring Op",
   scope_rules: [],
   started_at: "2026-05-17T08:00:00Z",
+  synthetic: false,
 };
 
 describe("EngagementPanel", () => {

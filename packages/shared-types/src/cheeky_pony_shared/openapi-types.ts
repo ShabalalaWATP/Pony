@@ -23,6 +23,7 @@ export interface components {
     "ApiPage_UserPublic_": unknown;
     "AuditLog": unknown;
     "Client": unknown;
+    "DemoStatusResponse": unknown;
     "Engagement": unknown;
     "EngagementCreateRequest": unknown;
     "Event": unknown;
@@ -98,6 +99,7 @@ export interface paths {
   "/api/v1/sensors/{sensor_id}/commands/update": Record<string, unknown>;
   "/api/v1/sensors/{sensor_id}/revoke": Record<string, unknown>;
   "/api/v1/system/acknowledgements": Record<string, unknown>;
+  "/api/v1/system/demo-status": Record<string, unknown>;
   "/api/v1/users": Record<string, unknown>;
   "/api/v1/users/{user_id}": Record<string, unknown>;
   "/health": Record<string, unknown>;

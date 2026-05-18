@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
@@ -10,6 +11,7 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from cheeky_pony_backend.domain.reports import ReportRecord
 from cheeky_pony_backend.infra.mongo_engagements import MongoEngagementStoreMixin
 from cheeky_pony_backend.infra.mongo_users import MongoUserStoreMixin
+from cheeky_pony_backend.infra.signals_repo import MongoSignalsRepo, SignalsRepo
 from cheeky_pony_shared import (
     AccessPoint,
     Alert,
@@ -22,6 +24,17 @@ from cheeky_pony_shared import (
     SystemAcknowledgement,
 )
 
+SYNTHETIC_COUNT_COLLECTIONS = (
+    "sensors",
+    "access_points",
+    "clients",
+    "events",
+    "alerts",
+    "alert_rules",
+    "engagements",
+    "allow_list",
+)
+
 
 class MongoStore(MongoUserStoreMixin, MongoEngagementStoreMixin):
     """MongoDB implementation of the application store."""
@@ -29,6 +42,7 @@ class MongoStore(MongoUserStoreMixin, MongoEngagementStoreMixin):
     def __init__(self, dsn: str, database_name: str) -> None:
         self.client: AsyncIOMotorClient[dict[str, Any]] = AsyncIOMotorClient(dsn)
         self.db: AsyncIOMotorDatabase[dict[str, Any]] = self.client[database_name]
+        self.signals_repo: SignalsRepo = MongoSignalsRepo(self.db)
 
     async def ensure_indexes(self) -> None:
         """Create datastore indices."""
@@ -84,22 +98,42 @@ class MongoStore(MongoUserStoreMixin, MongoEngagementStoreMixin):
     async def upsert_access_point(self, access_point: AccessPoint) -> AccessPoint:
         """Upsert an access point."""
 
-        await self.db.access_points.replace_one(
-            {"bssid": access_point.bssid},
-            access_point.model_dump(mode="json"),
+        samples = list(access_point.signal_history)
+        payload = access_point.model_dump(mode="json")
+        payload["bssid"] = access_point.bssid.upper()
+        payload.pop("signal_history", None)
+        await self.db.access_points.update_one(
+            {"bssid": access_point.bssid.upper()},
+            {"$set": payload, "$setOnInsert": {"signal_history": []}},
             upsert=True,
         )
-        return access_point
+        signal_history = await self.signals_repo.recent_ap_samples(access_point.bssid)
+        for sample in samples:
+            signal_history = await self.signals_repo.append_ap_sample(access_point.bssid, sample)
+        return access_point.model_copy(
+            update={"bssid": access_point.bssid.upper(), "signal_history": signal_history}
+        )
 
     async def upsert_client(self, client: Client) -> Client:
         """Upsert a client device."""
 
-        await self.db.clients.replace_one(
-            {"mac": client.mac},
-            client.model_dump(mode="json"),
+        samples = list(client.signal_history)
+        payload = client.model_dump(mode="json")
+        payload["mac"] = client.mac.upper()
+        if client.associated_bssid is not None:
+            payload["associated_bssid"] = client.associated_bssid.upper()
+        payload.pop("signal_history", None)
+        await self.db.clients.update_one(
+            {"mac": client.mac.upper()},
+            {"$set": payload, "$setOnInsert": {"signal_history": []}},
             upsert=True,
         )
-        return client
+        signal_history = await self.signals_repo.recent_client_samples(client.mac)
+        for sample in samples:
+            signal_history = await self.signals_repo.append_client_sample(client.mac, sample)
+        return client.model_copy(
+            update={"mac": client.mac.upper(), "signal_history": signal_history}
+        )
 
     async def insert_event(self, event: Event) -> Event:
         """Append an event."""
@@ -264,6 +298,24 @@ class MongoStore(MongoUserStoreMixin, MongoEngagementStoreMixin):
             .limit(limit)
         )
         return [AuditLog.model_validate(doc) async for doc in docs], total
+
+    async def count_synthetic_records(self) -> int:
+        """Count seeded demo records across telemetry collections."""
+
+        total = 0
+        for collection_name in SYNTHETIC_COUNT_COLLECTIONS:
+            total += await self.db[collection_name].count_documents({"synthetic": True})
+        return total
+
+    async def last_demo_seeded_at(self) -> datetime | None:
+        """Return the latest successful demo seed timestamp."""
+
+        data = await self.db.audit_logs.find_one(
+            {"action": "demo.seed.run"},
+            {"_id": False},
+            sort=[("occurred_at", -1)],
+        )
+        return AuditLog.model_validate(data).occurred_at if data else None
 
     async def create_acknowledgement(self, acknowledgement: SystemAcknowledgement) -> None:
         """Persist an acknowledgement."""

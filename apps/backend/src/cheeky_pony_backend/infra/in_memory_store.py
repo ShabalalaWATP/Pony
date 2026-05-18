@@ -4,10 +4,13 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterable
+from datetime import datetime
 
 from cheeky_pony_backend.domain.reports import ReportRecord
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.infra.in_memory_users import InMemoryUserStoreMixin
+from cheeky_pony_backend.infra.signals_repo import SIGNAL_HISTORY_CAP
 from cheeky_pony_shared import (
     AccessPoint,
     Alert,
@@ -19,6 +22,7 @@ from cheeky_pony_shared import (
     Engagement,
     Event,
     Sensor,
+    SignalSample,
     SystemAcknowledgement,
     TargetKind,
 )
@@ -79,14 +83,34 @@ class InMemoryStore(InMemoryUserStoreMixin):
     async def upsert_access_point(self, access_point: AccessPoint) -> AccessPoint:
         """Upsert an access point."""
 
-        self.access_points[access_point.bssid] = access_point
-        return access_point
+        existing = self.access_points.get(access_point.bssid.upper())
+        signal_history = _capped_signal_history(
+            existing.signal_history if existing else [],
+            access_point.signal_history,
+        )
+        updated = access_point.model_copy(
+            update={"bssid": access_point.bssid.upper(), "signal_history": signal_history}
+        )
+        self.access_points[updated.bssid] = updated
+        return updated
 
     async def upsert_client(self, client: Client) -> Client:
         """Upsert a client device."""
 
-        self.clients[client.mac] = client
-        return client
+        existing = self.clients.get(client.mac.upper())
+        signal_history = _capped_signal_history(
+            existing.signal_history if existing else [],
+            client.signal_history,
+        )
+        updates: dict[str, object] = {
+            "mac": client.mac.upper(),
+            "signal_history": signal_history,
+        }
+        if client.associated_bssid is not None:
+            updates["associated_bssid"] = client.associated_bssid.upper()
+        updated = client.model_copy(update=updates)
+        self.clients[updated.mac] = updated
+        return updated
 
     async def insert_event(self, event: Event) -> Event:
         """Append an event."""
@@ -222,6 +246,27 @@ class InMemoryStore(InMemoryUserStoreMixin):
 
         return self.audit_logs[offset : offset + limit], len(self.audit_logs)
 
+    async def count_synthetic_records(self) -> int:
+        """Count seeded demo records across in-memory collections."""
+
+        return (
+            _count_synthetic(self.sensors.values())
+            + _count_synthetic(self.access_points.values())
+            + _count_synthetic(self.clients.values())
+            + _count_synthetic(self.events)
+            + _count_synthetic(self.alerts.values())
+            + _count_synthetic(self.alert_rules.values())
+            + _count_synthetic(self.engagements.values())
+        )
+
+    async def last_demo_seeded_at(self) -> datetime | None:
+        """Return the latest successful demo seed timestamp."""
+
+        for audit_log in reversed(self.audit_logs):
+            if audit_log.action == "demo.seed.run":
+                return audit_log.occurred_at
+        return None
+
     async def create_acknowledgement(self, acknowledgement: SystemAcknowledgement) -> None:
         """Persist an acknowledgement."""
 
@@ -341,3 +386,14 @@ def _filter_alerts(
         if (not severity_set or alert.severity in severity_set)
         and (acked is None or (alert.acked_at is not None) == acked)
     ]
+
+
+def _capped_signal_history(
+    existing: list[SignalSample],
+    samples: list[SignalSample],
+) -> list[SignalSample]:
+    return [*existing, *samples][-SIGNAL_HISTORY_CAP:]
+
+
+def _count_synthetic(records: Iterable[object]) -> int:
+    return sum(1 for record in records if getattr(record, "synthetic", False) is True)
