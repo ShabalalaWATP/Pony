@@ -116,6 +116,27 @@ async def test_authorized_acknowledgement_requires_exact_statement(
     assert audit.json()["total"] >= 1
 
 
+async def test_authorized_acknowledgement_forbids_extra_fields(
+    backend_client: BackendClient,
+) -> None:
+    """System write models reject undeclared fields."""
+
+    csrf = await create_verified_admin(backend_client)
+
+    response = await backend_client.client.post(
+        "/api/v1/system/acknowledgements",
+        json={
+            "statement": "I am authorized to test the listed wireless targets in this engagement.",
+            "admin": True,
+        },
+        headers={"x-csrf-token": csrf},
+    )
+
+    assert response.status_code == 422
+    assert backend_client.store.audit_logs[-1].action == "system.acknowledgement"
+    assert backend_client.store.audit_logs[-1].outcome == "denied:invalid_payload"
+
+
 async def test_audit_has_no_delete_route(backend_client: BackendClient) -> None:
     """Audit logs can be listed but not deleted over the API."""
 

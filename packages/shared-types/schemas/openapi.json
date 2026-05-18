@@ -139,6 +139,7 @@
         "type": "object"
       },
       "AcknowledgementRequest": {
+        "additionalProperties": false,
         "description": "Authorized-operator acknowledgement request.",
         "properties": {
           "statement": {
@@ -1329,6 +1330,7 @@
         "type": "object"
       },
       "LoginRequest": {
+        "additionalProperties": false,
         "description": "User login request.",
         "properties": {
           "email": {
@@ -1369,6 +1371,7 @@
         "type": "object"
       },
       "RegisterRequest": {
+        "additionalProperties": false,
         "description": "User registration request.",
         "properties": {
           "email": {
@@ -1787,6 +1790,7 @@
         "type": "object"
       },
       "TotpVerifyRequest": {
+        "additionalProperties": false,
         "description": "TOTP verification request.",
         "properties": {
           "code": {
@@ -3592,7 +3596,7 @@
         ]
       },
       "post": {
-        "description": "Register a sensor and issue client certificate material.\n\nArgs:\n    payload: Sensor registration payload.\n    _: Current admin with verified TOTP.\n    store: Application store.\n\nReturns:\n    Registered sensor and certificate bundle.",
+        "description": "Register a sensor and issue client certificate material.\n\nArgs:\n    payload: Sensor registration payload.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n\nReturns:\n    Registered sensor and certificate bundle.",
         "operationId": "register_sensor_api_v1_sensors_post",
         "requestBody": {
           "content": {
@@ -3816,7 +3820,7 @@
     },
     "/api/v1/sensors/{sensor_id}/revoke": {
       "post": {
-        "description": "Revoke a sensor.\n\nArgs:\n    sensor_id: Sensor identifier.\n    _: Current admin with verified TOTP.\n    store: Application store.",
+        "description": "Revoke a sensor.\n\nArgs:\n    sensor_id: Sensor identifier.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.",
         "operationId": "revoke_sensor_api_v1_sensors__sensor_id__revoke_post",
         "parameters": [
           {

@@ -48,7 +48,15 @@ whether synthetic records are present.
 
 ## First admin
 
-The first user may self-register. After that, registration requires an authenticated admin with a verified TOTP session.
+Set `CHEEKY_PONY_BOOTSTRAP_TOKEN` to a random value for first deploy. The first
+`POST /api/v1/auth/register` call must include it as
+`Authorization: Bearer <bootstrap-token>`. If the token is unset, first-admin
+registration returns `503 bootstrap_disabled`.
+
+After the first admin lands, the bootstrap path closes regardless of whether the
+environment variable is still present. Rotate or remove the token after the first
+admin is created. Subsequent registration requires an authenticated admin with a
+verified TOTP session.
 
 Admin actions require both the `admin` role and a recent TOTP verification. The
 recent-verification window is controlled by `CHEEKY_PONY_TOTP_RECENT_MINUTES`.

@@ -118,6 +118,7 @@ async def operator_gateway(websocket: WebSocket) -> None:
     await websocket.send_json({"kind": "connected", "user_id": user.id})
     try:
         while True:
+            # Re-check Origin here before adding any client-pushed state mutation.
             await websocket.receive_text()
     except WebSocketDisconnect:
         await broker.disconnect(websocket)

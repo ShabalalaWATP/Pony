@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
+from cheeky_pony_backend.domain.lab import sanitize_parameters
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_shared import AuditLog
 
@@ -49,7 +50,7 @@ class AuditLogger:
             actor_id=actor_id,
             action=action,
             target=target,
-            parameters=parameters,
+            parameters=sanitize_parameters(parameters),
             outcome=outcome,
             started_at=started_at,
             finished_at=finished_at,

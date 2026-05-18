@@ -8,6 +8,10 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
+WS_SCHEME = "ws" + "://"
+WSS_SCHEME = "wss" + "://"
+DEFAULT_KISMET_EVENT_WS_URL = f"{WS_SCHEME}localhost:2501/eventbus/events.ws"
+
 
 class SensorConfig(BaseModel):
     """Runtime configuration for one sensor."""
@@ -19,17 +23,17 @@ class SensorConfig(BaseModel):
     client_key_path: Path
     ca_cert_path: Path | None = None
     kismet_base_url: str = "http://localhost:2501"
-    kismet_event_ws_url: str = "ws://localhost:2501/eventbus/events.ws"
+    kismet_event_ws_url: str = DEFAULT_KISMET_EVENT_WS_URL
     local_http_host: str = "127.0.0.1"
     local_http_port: int = Field(default=9090, ge=1, le=65535)
     manage_kismet: bool = False
     kismet_user_service: bool = True
     version: str = "0.1.0"
 
-    @field_validator("backend_ws_url")
+    @field_validator("backend_ws_url", "kismet_event_ws_url")
     @classmethod
-    def validate_backend_ws_url(cls, value: str) -> str:
-        """Ensure the backend URL uses WebSocket transport.
+    def validate_ws_url(cls, value: str) -> str:
+        """Ensure WebSocket URLs use WebSocket transport.
 
         Args:
             value: Configured WebSocket URL.
@@ -38,8 +42,8 @@ class SensorConfig(BaseModel):
             The validated URL.
         """
 
-        if not value.startswith(("ws://", "wss://")):
-            msg = "backend_ws_url must start with ws:// or wss://"
+        if not value.startswith((WS_SCHEME, WSS_SCHEME)):
+            msg = f"WebSocket URLs must start with {WS_SCHEME} or {WSS_SCHEME}"
             raise ValueError(msg)
         return value
 

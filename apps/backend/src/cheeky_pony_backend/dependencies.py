@@ -25,7 +25,8 @@ from cheeky_pony_backend.security import (
 PASSWORD_SERVICE = PasswordService()
 TOTP_SERVICE = TotpService()
 CSRF_SERVICE = CsrfService()
-AUTH_RATE_LIMITER = RateLimiter(limit=100)
+AUTH_RATE_LIMITER = RateLimiter(limit=10)
+ACCOUNT_AUTH_RATE_LIMITER = RateLimiter(limit=10)
 
 
 def get_store(request: Request) -> Store:
@@ -208,6 +209,33 @@ def check_auth_rate_limit(request: Request) -> None:
     host = request.client.host if request.client else "unknown"
     if not AUTH_RATE_LIMITER.allow(host):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="rate_limited")
+
+
+def check_account_auth_rate_limit(email: str) -> None:
+    """Apply the account-level auth endpoint rate limit.
+
+    Args:
+        email: Target account email address.
+
+    Raises:
+        HTTPException: When the limit is exceeded.
+    """
+
+    if not ACCOUNT_AUTH_RATE_LIMITER.allow(email.lower()):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="rate_limited")
+
+
+def reset_account_auth_rate_limit(email: str) -> None:
+    """Clear account-level auth throttling after successful login."""
+
+    ACCOUNT_AUTH_RATE_LIMITER.reset(email.lower())
+
+
+def reset_auth_rate_limiters() -> None:
+    """Clear in-process auth throttles for isolated tests."""
+
+    AUTH_RATE_LIMITER.clear()
+    ACCOUNT_AUTH_RATE_LIMITER.clear()
 
 
 def _bearer_token(request: Request) -> str | None:

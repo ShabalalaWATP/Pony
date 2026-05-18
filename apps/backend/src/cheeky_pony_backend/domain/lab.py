@@ -84,7 +84,7 @@ class LabStatusResponse(BaseModel):
 
 
 _MAC_RE = re.compile(r"^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$")
-_SENSITIVE_KEYS = ("password", "credential", "secret", "token", "key", "handshake")
+_SENSITIVE_KEYS = ("password", "credential", "secret", "token", "key", "handshake", "code", "otp")
 _MODULE_CAPABILITIES: dict[LabModule, SensorCapability] = {
     LabModule.ROGUE_AP: SensorCapability.ROGUE_AP,
     LabModule.DEAUTH: SensorCapability.DEAUTH,

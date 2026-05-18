@@ -73,6 +73,13 @@ async def create_engagement(
     """
 
     if await store.get_active_engagement() is not None:
+        await audit.record(
+            user.id,
+            "engagement.create",
+            {},
+            payload.model_dump(mode="json"),
+            "denied:active_engagement_exists",
+        )
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="active_engagement_exists")
     engagement = Engagement(id=str(uuid4()), name=payload.name, scope_rules=payload.scope_rules)
     created = await store.create_engagement(engagement)
@@ -167,13 +174,16 @@ async def allow_target(
         audit: Audit logger.
     """
 
-    await _get_engagement_or_404(store, engagement_id)
+    parameters = payload.model_dump(mode="json")
+    await _get_engagement_or_audit_404(
+        store, audit, user, engagement_id, "engagement.allow_list.add", parameters
+    )
     await store.allow_target(engagement_id, payload.kind, payload.value)
     await audit.record(
         user.id,
         "engagement.allow_list.add",
         {"engagement_id": engagement_id, "kind": payload.kind.value, "value": payload.value},
-        {},
+        parameters,
         "ok",
     )
 
@@ -222,13 +232,16 @@ async def remove_allowed_target(
         audit: Audit logger.
     """
 
-    await _get_engagement_or_404(store, engagement_id)
+    parameters = payload.model_dump(mode="json")
+    await _get_engagement_or_audit_404(
+        store, audit, user, engagement_id, "engagement.allow_list.remove", parameters
+    )
     await store.remove_allowed_target(engagement_id, payload.kind, payload.value)
     await audit.record(
         user.id,
         "engagement.allow_list.remove",
         {"engagement_id": engagement_id, "kind": payload.kind.value, "value": payload.value},
-        {},
+        parameters,
         "ok",
     )
 
@@ -252,9 +265,18 @@ async def resume_engagement(
         Resumed engagement.
     """
 
-    engagement = await _get_engagement_or_404(store, engagement_id)
+    engagement = await _get_engagement_or_audit_404(
+        store, audit, user, engagement_id, "engagement.resume", {}
+    )
     active = await store.get_active_engagement()
     if active is not None and active.id != engagement_id:
+        await audit.record(
+            user.id,
+            "engagement.resume",
+            {"engagement_id": engagement_id, "active_engagement_id": active.id},
+            {},
+            "denied:active_engagement_exists",
+        )
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="active_engagement_exists")
     resumed = await store.update_engagement(engagement.model_copy(update={"ended_at": None}))
     await audit.record(user.id, "engagement.resume", {"engagement_id": engagement_id}, {}, "ok")
@@ -281,7 +303,9 @@ async def end_engagement(
         operator_broker: Operator broker.
     """
 
-    engagement = await _get_engagement_or_404(store, engagement_id)
+    engagement = await _get_engagement_or_audit_404(
+        store, audit, user, engagement_id, "engagement.end", {}
+    )
     ended_at = datetime.now(tz=UTC)
     await store.update_engagement(engagement.model_copy(update={"ended_at": ended_at}))
     records = await command_broker.stop_lab_commands_for_engagement(engagement_id)
@@ -324,5 +348,26 @@ def _stop_module_command(command_id: str, module: str) -> SensorCommand:
 async def _get_engagement_or_404(store: Store, engagement_id: str) -> Engagement:
     engagement = await store.get_engagement(engagement_id)
     if engagement is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="engagement_not_found")
+    return engagement
+
+
+async def _get_engagement_or_audit_404(
+    store: Store,
+    audit: AuditLogger,
+    user: UserRecord,
+    engagement_id: str,
+    action: str,
+    parameters: dict[str, object],
+) -> Engagement:
+    engagement = await store.get_engagement(engagement_id)
+    if engagement is None:
+        await audit.record(
+            user.id,
+            action,
+            {"engagement_id": engagement_id},
+            parameters,
+            "denied:not_found",
+        )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="engagement_not_found")
     return engagement

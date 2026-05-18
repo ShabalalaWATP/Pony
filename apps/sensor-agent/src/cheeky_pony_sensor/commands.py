@@ -4,11 +4,14 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Any
 
 from cheeky_pony_shared import CommandKind, SensorCapability, SensorCommand
+
+_INTERFACE_RE = re.compile(r"^wlan[0-9]+$")
 
 
 @dataclass(frozen=True)
@@ -109,9 +112,11 @@ class CommandDispatcher:
 
     async def _set_channel(self, command: SensorCommand) -> CommandResult:
         channel = int(command.parameters.get("channel", 0))
-        interface = str(command.parameters.get("interface", "wlan1"))
+        interface = command.interface or "wlan1"
         if SensorCapability.CHANNEL_CONTROL not in self._capabilities:
             return CommandResult(command.id, False, "capability_not_advertised")
+        if not _INTERFACE_RE.fullmatch(interface):
+            return CommandResult(command.id, False, "denied:invalid_interface")
         output = await self._runner.run(["iw", "dev", interface, "set", "channel", str(channel)])
         return CommandResult(command.id, True, "channel_set", output)
 

@@ -86,6 +86,8 @@ async def test_report_request_validates_engagement_and_range(
 
     assert missing.status_code == 404
     assert invalid_range.status_code == 422
+    assert backend_client.store.audit_logs[-1].action == "reports.create"
+    assert backend_client.store.audit_logs[-1].outcome == "denied:engagement_not_found"
 
 
 async def _finish_report_if_needed(bundle: BackendClient, report_id: str) -> None:

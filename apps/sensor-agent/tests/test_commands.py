@@ -53,12 +53,32 @@ async def test_set_channel_uses_argument_list() -> None:
         SensorCommand(
             id="cmd-1",
             kind=CommandKind.SET_CHANNEL,
-            parameters={"channel": 6, "interface": "wlan1"},
+            parameters={"channel": 6},
+            interface="wlan2",
         )
     )
 
     assert result.accepted is True
-    assert runner.argv == ["iw", "dev", "wlan1", "set", "channel", "6"]
+    assert runner.argv == ["iw", "dev", "wlan2", "set", "channel", "6"]
+
+
+async def test_set_channel_rejects_invalid_interface() -> None:
+    """Invalid interface names are refused before invoking iw."""
+
+    runner = FakeRunner()
+    dispatcher = CommandDispatcher({SensorCapability.CHANNEL_CONTROL}, runner)
+    result = await dispatcher.dispatch(
+        SensorCommand(
+            id="cmd-1",
+            kind=CommandKind.SET_CHANNEL,
+            parameters={"channel": 6},
+            interface="mon0 type monitor",
+        )
+    )
+
+    assert result.accepted is False
+    assert result.outcome == "denied:invalid_interface"
+    assert runner.argv is None
 
 
 async def test_passive_and_active_command_branches() -> None:

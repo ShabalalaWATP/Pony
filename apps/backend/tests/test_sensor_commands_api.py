@@ -68,6 +68,23 @@ async def test_set_channel_requires_sensor_capability(backend_client: BackendCli
     )
 
     assert response.status_code == 409
+    assert backend_client.store.audit_logs[-1].action == "sensors.commands.set_channel"
+    assert backend_client.store.audit_logs[-1].outcome == "denied:capability_not_advertised"
+
+
+async def test_sensor_command_missing_sensor_is_audited(backend_client: BackendClient) -> None:
+    """Missing sensor command targets are audit-visible refusals."""
+
+    csrf = await create_verified_admin(backend_client)
+
+    response = await backend_client.client.post(
+        "/api/v1/sensors/missing/commands/restart",
+        headers={"x-csrf-token": csrf},
+    )
+
+    assert response.status_code == 404
+    assert backend_client.store.audit_logs[-1].action == "sensors.commands.restart"
+    assert backend_client.store.audit_logs[-1].outcome == "denied:not_found"
 
 
 async def test_set_channel_band_exports_literal_enum(backend_client: BackendClient) -> None:

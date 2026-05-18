@@ -236,6 +236,16 @@ class RateLimiter:
         hits.append(now)
         return True
 
+    def reset(self, key: str) -> None:
+        """Clear rate-limit state for one key."""
+
+        self._hits.pop(key, None)
+
+    def clear(self) -> None:
+        """Clear all rate-limit state."""
+
+        self._hits.clear()
+
 
 _SUBJECT_CN_PATTERN = re.compile(r"(?:^|[,/])\s*CN\s*=\s*([^,/]+)")
 
