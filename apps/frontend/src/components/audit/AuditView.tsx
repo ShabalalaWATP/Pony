@@ -360,9 +360,10 @@ function AuditEntryDetail({ entry }: { entry: AuditLog }): JSX.Element {
 }
 
 /**
- * Hardened JSON block: we render `JSON.stringify` output inside a
- * `<pre>` — no `dangerouslySetInnerHTML`, no `eval`-style parsers,
- * no `innerHTML`. A hostile audit body can't escape into the DOM.
+ * Hardened JSON block: renders `JSON.stringify` output inside a `<pre>`
+ * so React's text-escaping handles it. No HTML escape hatches, no
+ * unsafe innerHTML assignment, no eval-style parsers. A hostile audit
+ * body cannot escape into the DOM.
  */
 function JsonBlock({ value, testId }: { value: unknown; testId: string }): JSX.Element {
   return (
