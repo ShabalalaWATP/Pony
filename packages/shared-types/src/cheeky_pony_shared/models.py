@@ -39,6 +39,8 @@ class EventKind(StrEnum):
 
     ACCESS_POINT_SEEN = "access_point_seen"
     CLIENT_SEEN = "client_seen"
+    PROBE_REQUEST = "probe_request"
+    ASSOCIATION = "association"
     SENSOR_STATUS = "sensor_status"
     COMMAND_RESULT = "command_result"
 
@@ -100,6 +102,7 @@ class Sensor(StrictBase):
         default=None,
         pattern=r"^[0-9a-f]{64}$",
     )
+    synthetic: bool = False
 
 
 class AccessPoint(StrictBase):
@@ -118,6 +121,7 @@ class AccessPoint(StrictBase):
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
     location_source: Literal["sensor_gps", "wigle", "manual"] | None = None
+    synthetic: bool = False
 
 
 class Client(StrictBase):
@@ -133,6 +137,7 @@ class Client(StrictBase):
     first_seen: datetime = Field(default_factory=utc_now)
     last_seen: datetime = Field(default_factory=utc_now)
     signal_history: list[SignalSample] = Field(default_factory=list)
+    synthetic: bool = False
 
 
 class Event(StrictBase):
@@ -143,6 +148,7 @@ class Event(StrictBase):
     kind: EventKind
     payload: dict[str, Any]
     occurred_at: datetime = Field(default_factory=utc_now)
+    synthetic: bool = False
 
 
 class Alert(StrictBase):
@@ -154,6 +160,7 @@ class Alert(StrictBase):
     related_entities: list[str] = Field(default_factory=list)
     acked_by: str | None = None
     acked_at: datetime | None = None
+    synthetic: bool = False
 
 
 class AlertRule(StrictBase):
@@ -167,6 +174,7 @@ class AlertRule(StrictBase):
     predicate: dict[str, Any]
     created_by: str = Field(min_length=1, max_length=128)
     created_at: datetime = Field(default_factory=utc_now)
+    synthetic: bool = False
 
 
 class AuditLog(StrictBase):
@@ -192,6 +200,7 @@ class Engagement(StrictBase):
     scope_rules: list[dict[str, Any]] = Field(default_factory=list)
     started_at: datetime = Field(default_factory=utc_now)
     ended_at: datetime | None = None
+    synthetic: bool = False
 
 
 class AllowedTarget(StrictBase):

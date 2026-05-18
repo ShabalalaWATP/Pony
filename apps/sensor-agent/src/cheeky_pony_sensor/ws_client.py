@@ -109,11 +109,35 @@ class BackendWebSocketClient:
     async def _send_events(self, websocket: Any) -> None:
         while not self._stopped.is_set():
             event = await self._queue.get()
-            await websocket.send(event.model_dump_json())
+            await websocket.send(json.dumps(sensor_event_payload(event)))
 
     async def _receive_commands(self, websocket: Any) -> None:
         async for message in websocket:
             data = json.loads(message)
             command = SensorCommand.model_validate(data)
             result = await self._command_handler(command)
-            await websocket.send(json.dumps({"kind": "command_result", "payload": result}))
+            await websocket.send(
+                json.dumps({"kind": "command_result", "payload": _strip_synthetic(result)})
+            )
+
+
+def sensor_event_payload(event: Event) -> dict[str, object]:
+    """Return the sensor event wire payload without synthetic markers."""
+
+    payload = event.model_dump(mode="json", exclude={"synthetic"})
+    sanitized = _strip_synthetic(payload)
+    if not isinstance(sanitized, dict):
+        return {}
+    return sanitized
+
+
+def _strip_synthetic(value: object) -> object:
+    if isinstance(value, dict):
+        return {
+            str(key): _strip_synthetic(item)
+            for key, item in value.items()
+            if str(key) != "synthetic"
+        }
+    if isinstance(value, list):
+        return [_strip_synthetic(item) for item in value]
+    return value

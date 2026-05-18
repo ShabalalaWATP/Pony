@@ -9,7 +9,7 @@ import pytest
 from conftest import BackendClient
 from helpers import create_verified_admin
 
-from cheeky_pony_shared import AccessPoint, Client, Event, EventKind
+from cheeky_pony_shared import AccessPoint, AuditLog, Client, Event, EventKind
 
 pytestmark = pytest.mark.asyncio
 
@@ -123,3 +123,31 @@ async def test_audit_has_no_delete_route(backend_client: BackendClient) -> None:
     response = await backend_client.client.delete("/api/v1/audit", headers={"x-csrf-token": csrf})
 
     assert response.status_code in {404, 405}
+
+
+async def test_demo_status_reports_synthetic_count(backend_client: BackendClient) -> None:
+    """Demo status exposes synthetic record count for the frontend banner."""
+
+    await create_verified_admin(backend_client)
+    seeded_at = datetime(2026, 1, 2, tzinfo=UTC)
+    await backend_client.store.upsert_access_point(
+        AccessPoint(bssid="02:00:A0:00:00:01", ssid="synth-ap-00", synthetic=True)
+    )
+    await backend_client.store.append_audit(
+        AuditLog(
+            id="audit-demo-seed",
+            actor_id="system:seed",
+            action="demo.seed.run",
+            target={},
+            parameters={},
+            outcome="ok",
+            occurred_at=seeded_at,
+        )
+    )
+
+    response = await backend_client.client.get("/api/v1/system/demo-status")
+
+    assert response.status_code == 200
+    assert response.json()["synthetic_records"] == 1
+    returned_at = datetime.fromisoformat(response.json()["last_seeded_at"].replace("Z", "+00:00"))
+    assert returned_at == seeded_at

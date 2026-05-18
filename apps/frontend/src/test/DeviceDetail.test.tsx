@@ -14,6 +14,7 @@ const sampleDevice: Client = {
   signal_history: [{ rssi_dbm: -62, seen_at: "2026-05-17T10:00:00Z" }],
   first_seen: "2026-05-17T09:00:00Z",
   last_seen: "2026-05-17T10:00:00Z",
+  synthetic: false,
 };
 
 describe("DeviceDetail", () => {

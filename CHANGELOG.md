@@ -5,6 +5,13 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend stage 9a — synthetic data and signal history
+
+- Added a bounded `SignalsRepo` seam for AP/client signal samples with a 200-sample
+  MongoDB cap and ADR-0008 documenting the later TimescaleDB migration point.
+- Added synthetic demo seeding and cleanup commands, demo status reporting, and
+  sensor-gateway rejection for inbound `synthetic: true` telemetry.
+
 ### Frontend stages 4–6 — final route wiring
 
 - **#33** Stage 6 — `/engagements/$id` detail view (metadata, scope rules, live

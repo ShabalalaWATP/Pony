@@ -16,6 +16,7 @@ const sampleAp: AccessPoint = {
   vendor_oui: "Apple",
   first_seen: "2026-05-17T09:00:00Z",
   last_seen: "2026-05-17T10:00:00Z",
+  synthetic: false,
 };
 
 describe("AccessPointDetail", () => {

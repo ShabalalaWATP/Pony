@@ -4,12 +4,18 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from cheeky_pony_backend.dependencies import get_audit_logger, get_store, require_admin_2fa
+from cheeky_pony_backend.dependencies import (
+    current_user,
+    get_audit_logger,
+    get_store,
+    require_admin_2fa,
+)
 from cheeky_pony_backend.domain.active_gates import AUTHORIZED_OPERATOR_KIND
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.ports import Store
@@ -25,6 +31,34 @@ class AcknowledgementRequest(BaseModel):
     """Authorized-operator acknowledgement request."""
 
     statement: str = Field(min_length=16, max_length=512)
+
+
+class DemoStatusResponse(BaseModel):
+    """Demo data presence summary."""
+
+    synthetic_records: int = Field(ge=0)
+    last_seeded_at: datetime | None = None
+
+
+@router.get("/demo-status", response_model=DemoStatusResponse)
+async def demo_status(
+    _: Annotated[UserRecord, Depends(current_user)],
+    store: Annotated[Store, Depends(get_store)],
+) -> DemoStatusResponse:
+    """Return demo data presence metadata.
+
+    Args:
+        _: Current user.
+        store: Application store.
+
+    Returns:
+        Synthetic record count and last seed timestamp.
+    """
+
+    return DemoStatusResponse(
+        synthetic_records=await store.count_synthetic_records(),
+        last_seeded_at=await store.last_demo_seeded_at(),
+    )
 
 
 @router.post("/acknowledgements", response_model=SystemAcknowledgement)

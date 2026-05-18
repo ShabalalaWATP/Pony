@@ -17,6 +17,7 @@ const baseSensor: Sensor = {
   capabilities: ["passive_capture", "channel_control"],
   last_seen: new Date().toISOString(),
   revoked: false,
+  synthetic: false,
 };
 
 class FakeSocket {
