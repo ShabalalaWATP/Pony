@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from helpers import create_verified_admin
 
 from cheeky_pony_backend.config import Settings
+from cheeky_pony_backend.dependencies import reset_auth_rate_limiters
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
 from cheeky_pony_backend.main import create_app
@@ -187,6 +188,7 @@ class LabBundle:
 
 
 async def _lab_client(lab_mode: bool) -> LabBundle:
+    reset_auth_rate_limiters()
     settings = _settings(lab_mode)
     store = InMemoryStore()
     app = create_app(settings=settings, store=store)
@@ -258,7 +260,8 @@ def _settings(lab_mode: bool) -> Settings:
         env="test",
         lab_mode=lab_mode,
         cookie_secure=False,
-        jwt_secret="test-secret-test-secret-test-secret-123",
+        jwt_secret="j" * 32,
+        bootstrap_token="bootstrap-" + "token-test",
         sensor_gateway_header_secret=SENSOR_HEADER_VALUE,
         use_in_memory_store=True,
     )

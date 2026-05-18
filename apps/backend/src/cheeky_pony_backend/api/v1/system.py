@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from cheeky_pony_backend.dependencies import (
     current_user,
@@ -29,6 +29,8 @@ AUTHORIZED_STATEMENT = "I am authorized to test the listed wireless targets in t
 
 class AcknowledgementRequest(BaseModel):
     """Authorized-operator acknowledgement request."""
+
+    model_config = ConfigDict(extra="forbid")
 
     statement: str = Field(min_length=16, max_length=512)
 

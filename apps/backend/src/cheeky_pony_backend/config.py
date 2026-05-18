@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
     seed_admin_email: str = "admin@example.com"
     seed_admin_password: str = DEV_SEED_ADMIN_PASSWORD
+    bootstrap_token: str | None = Field(default=None, min_length=16)
     use_in_memory_store: bool = False
     report_download_token_minutes: int = Field(default=15, ge=1, le=1440)
     totp_recent_minutes: int = Field(default=15, ge=1, le=120)
@@ -50,6 +51,23 @@ class Settings(BaseSettings):
 
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
+
+    @field_validator("cors_origins")
+    @classmethod
+    def no_wildcard_origin(cls, value: list[str]) -> list[str]:
+        """Reject wildcard or empty origins while credentialed CORS is enabled.
+
+        Args:
+            value: Parsed CORS origin list.
+
+        Returns:
+            Validated origin list.
+        """
+
+        if any(origin.strip() in {"", "*"} for origin in value):
+            msg = "cors_origins must not contain '*' or an empty entry when cookies are enabled"
+            raise ValueError(msg)
         return value
 
     @model_validator(mode="after")

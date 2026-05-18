@@ -9,6 +9,7 @@ import httpx
 import pytest_asyncio
 
 from cheeky_pony_backend.config import Settings
+from cheeky_pony_backend.dependencies import reset_auth_rate_limiters
 from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
 from cheeky_pony_backend.main import create_app
 
@@ -32,9 +33,11 @@ async def backend_client() -> AsyncIterator[BackendClient]:
     settings = Settings(
         env="test",
         cookie_secure=False,
-        jwt_secret="test-secret-test-secret-test-secret-123",
+        jwt_secret="j" * 32,
+        bootstrap_token="bootstrap-" + "token-test",
         use_in_memory_store=True,
     )
+    reset_auth_rate_limiters()
     store = InMemoryStore()
     app = create_app(settings=settings, store=store)
     transport = httpx.ASGITransport(app=app)

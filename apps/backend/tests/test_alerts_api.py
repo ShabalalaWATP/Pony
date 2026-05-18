@@ -56,6 +56,7 @@ async def test_alerts_can_be_filtered_and_acked(backend_client: BackendClient) -
     assert missing.status_code == 404
     assert backend_client.store.alerts["alert-1"].acked_at is not None
     assert backend_client.store.audit_logs[-1].action == "alerts.ack"
+    assert backend_client.store.audit_logs[-1].outcome == "denied:not_found"
 
 
 async def test_alert_rule_admin_lifecycle_is_audited(
@@ -116,6 +117,8 @@ async def test_alert_rule_predicates_are_validated(backend_client: BackendClient
     )
 
     assert response.status_code == 422
+    assert backend_client.store.audit_logs[-1].action == "alerts.rules.create"
+    assert backend_client.store.audit_logs[-1].outcome == "denied:invalid_predicate"
 
 
 async def test_alert_rule_rejects_redos_prone_regex(backend_client: BackendClient) -> None:
@@ -133,3 +136,5 @@ async def test_alert_rule_rejects_redos_prone_regex(backend_client: BackendClien
     )
 
     assert response.status_code == 422
+    assert backend_client.store.audit_logs[-1].action == "alerts.rules.create"
+    assert backend_client.store.audit_logs[-1].outcome == "denied:invalid_predicate"

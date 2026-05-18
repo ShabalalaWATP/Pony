@@ -36,20 +36,6 @@ class AlertRuleCreateRequest(BaseModel):
     enabled: bool = True
     predicate: dict[str, Any]
 
-    @field_validator("predicate")
-    @classmethod
-    def validate_predicate(cls, value: dict[str, Any]) -> dict[str, Any]:
-        """Validate v1 predicate JSON.
-
-        Args:
-            value: Predicate JSON.
-
-        Returns:
-            Validated predicate.
-        """
-
-        return _validate_predicate(value)
-
 
 class AlertRuleUpdateRequest(BaseModel):
     """Alert rule update request."""
@@ -146,11 +132,24 @@ async def create_alert_rule(
         Created alert rule.
     """
 
-    rule = AlertRule(id=str(uuid4()), created_by=user.id, **payload.model_dump(mode="json"))
+    try:
+        predicate = _validate_predicate(payload.predicate)
+    except ValueError as exc:
+        await audit.record(
+            user.id,
+            "alerts.rules.create",
+            {},
+            payload.model_dump(mode="json"),
+            "denied:invalid_predicate",
+        )
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+    rule_payload = payload.model_dump(mode="json")
+    rule_payload["predicate"] = predicate
+    rule = AlertRule(id=str(uuid4()), created_by=user.id, **rule_payload)
     saved = await store.create_alert_rule(rule)
-    await audit.record(
-        user.id, "alerts.rules.create", {"rule_id": saved.id}, payload.model_dump(mode="json"), "ok"
-    )
+    await audit.record(user.id, "alerts.rules.create", {"rule_id": saved.id}, rule_payload, "ok")
     return saved
 
 
@@ -175,7 +174,7 @@ async def update_alert_rule(
         Updated alert rule.
     """
 
-    existing = await _get_rule_or_404(store, rule_id)
+    existing = await _get_rule_or_audit_404(store, audit, user, rule_id, "alerts.rules.update")
     changes = payload.model_dump(exclude_unset=True, mode="json")
     saved = await store.update_alert_rule(existing.model_copy(update=changes))
     await audit.record(user.id, "alerts.rules.update", {"rule_id": saved.id}, changes, "ok")
@@ -198,7 +197,7 @@ async def delete_alert_rule(
         audit: Audit logger.
     """
 
-    await _get_rule_or_404(store, rule_id)
+    await _get_rule_or_audit_404(store, audit, user, rule_id, "alerts.rules.delete")
     await store.delete_alert_rule(rule_id)
     await audit.record(user.id, "alerts.rules.delete", {"rule_id": rule_id}, {}, "ok")
 
@@ -221,15 +220,23 @@ async def ack_alert(
 
     alert = await store.get_alert(alert_id)
     if alert is None:
+        await audit.record(user.id, "alerts.ack", {"alert_id": alert_id}, {}, "denied:not_found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="alert_not_found")
     updated = alert.model_copy(update={"acked_by": user.id, "acked_at": datetime.now(tz=UTC)})
     await store.update_alert(updated)
     await audit.record(user.id, "alerts.ack", {"alert_id": alert_id}, {}, "ok")
 
 
-async def _get_rule_or_404(store: Store, rule_id: str) -> AlertRule:
+async def _get_rule_or_audit_404(
+    store: Store,
+    audit: AuditLogger,
+    user: UserRecord,
+    rule_id: str,
+    action: str,
+) -> AlertRule:
     rule = await store.get_alert_rule(rule_id)
     if rule is None:
+        await audit.record(user.id, action, {"rule_id": rule_id}, {}, "denied:not_found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="alert_rule_not_found")
     return rule
 

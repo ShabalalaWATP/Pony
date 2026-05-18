@@ -234,6 +234,7 @@ class SensorCommand(StrictBase):
     id: str = Field(min_length=1, max_length=128)
     kind: CommandKind
     parameters: dict[str, Any] = Field(default_factory=dict)
+    interface: str | None = Field(default=None, max_length=64)
     lab_mode: bool = False
 
     @field_validator("parameters")

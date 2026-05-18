@@ -995,8 +995,9 @@ export interface paths {
          *
          *     Args:
          *         payload: Sensor registration payload.
-         *         _: Current admin with verified TOTP.
+         *         user: Current admin with verified TOTP.
          *         store: Application store.
+         *         audit: Audit logger.
          *
          *     Returns:
          *         Registered sensor and certificate bundle.
@@ -1142,8 +1143,9 @@ export interface paths {
          *
          *     Args:
          *         sensor_id: Sensor identifier.
-         *         _: Current admin with verified TOTP.
+         *         user: Current admin with verified TOTP.
          *         store: Application store.
+         *         audit: Audit logger.
          */
         post: operations["revoke_sensor_api_v1_sensors__sensor_id__revoke_post"];
         delete?: never;

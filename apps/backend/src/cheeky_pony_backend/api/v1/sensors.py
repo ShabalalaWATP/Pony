@@ -68,21 +68,30 @@ class SetChannelRequest(BaseModel):
 @router.post("", response_model=SensorRegisterResponse)
 async def register_sensor(
     payload: SensorRegisterRequest,
-    _: Annotated[UserRecord, Depends(require_admin_2fa)],
+    user: Annotated[UserRecord, Depends(require_admin_2fa)],
     store: Annotated[Store, Depends(get_store)],
+    audit: Annotated[AuditLogger, Depends(get_audit_logger)],
 ) -> SensorRegisterResponse:
     """Register a sensor and issue client certificate material.
 
     Args:
         payload: Sensor registration payload.
-        _: Current admin with verified TOTP.
+        user: Current admin with verified TOTP.
         store: Application store.
+        audit: Audit logger.
 
     Returns:
         Registered sensor and certificate bundle.
     """
 
     if await store.get_sensor(payload.id):
+        await audit.record(
+            user.id,
+            "sensor.register",
+            {"sensor_id": payload.id},
+            {"name": payload.name, "tailnet_ip": payload.tailnet_ip},
+            "denied:sensor_exists",
+        )
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="sensor_exists")
     bundle = issue_sensor_certificate(payload.id)
     sensor = Sensor(
@@ -90,6 +99,13 @@ async def register_sensor(
         client_cert_fingerprint_sha256=bundle.fingerprint_sha256,
     )
     await store.create_sensor(sensor)
+    await audit.record(
+        user.id,
+        "sensor.register",
+        {"sensor_id": sensor.id},
+        {"name": sensor.name, "tailnet_ip": sensor.tailnet_ip},
+        "ok",
+    )
     return SensorRegisterResponse(
         sensor=sensor,
         client_certificate_pem=bundle.certificate_pem,
@@ -143,18 +159,27 @@ async def get_sensor(
 @router.post("/{sensor_id}/revoke", status_code=status.HTTP_204_NO_CONTENT)
 async def revoke_sensor(
     sensor_id: str,
-    _: Annotated[UserRecord, Depends(require_admin_2fa)],
+    user: Annotated[UserRecord, Depends(require_admin_2fa)],
     store: Annotated[Store, Depends(get_store)],
+    audit: Annotated[AuditLogger, Depends(get_audit_logger)],
 ) -> None:
     """Revoke a sensor.
 
     Args:
         sensor_id: Sensor identifier.
-        _: Current admin with verified TOTP.
+        user: Current admin with verified TOTP.
         store: Application store.
+        audit: Audit logger.
     """
 
+    sensor = await store.get_sensor(sensor_id)
+    if sensor is None:
+        await audit.record(
+            user.id, "sensor.revoke", {"sensor_id": sensor_id}, {}, "denied:not_found"
+        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="sensor_not_found")
     await store.revoke_sensor(sensor_id)
+    await audit.record(user.id, "sensor.revoke", {"sensor_id": sensor_id}, {}, "ok")
 
 
 @router.post(
@@ -265,13 +290,28 @@ async def _dispatch_sensor_command(
     audit: AuditLogger,
     broker: SensorCommandBroker,
 ) -> SensorCommandAcceptedResponse:
+    action = f"sensors.commands.{command_kind.value}"
     sensor = await store.get_sensor(sensor_id)
     if sensor is None or sensor.revoked:
+        await audit.record(
+            user.id,
+            action,
+            {"sensor_id": sensor_id},
+            parameters,
+            "denied:not_found",
+        )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="sensor_not_found")
     if (
         command_kind == CommandKind.SET_CHANNEL
         and SensorCapability.CHANNEL_CONTROL not in sensor.capabilities
     ):
+        await audit.record(
+            user.id,
+            action,
+            {"sensor_id": sensor_id},
+            parameters,
+            "denied:capability_not_advertised",
+        )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="capability_not_advertised"
         )
@@ -280,7 +320,7 @@ async def _dispatch_sensor_command(
     started_at = datetime.now(tz=UTC)
     audit_entry = await audit.record(
         user.id,
-        f"sensors.commands.{command_kind.value}",
+        action,
         {"sensor_id": sensor_id, "command_id": command_id},
         parameters,
         "queued",

@@ -5,6 +5,13 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Security audit follow-up
+
+- Hardened auth, sensor admin, engagement, report, alert, and validation refusal
+  paths so success and denial outcomes are audit-visible.
+- Added first-admin bootstrap token enforcement, stricter auth throttling, Bearer
+  CSRF coverage, CORS wildcard rejection, and sensor-agent interface validation.
+
 ### Backend stage 9a — synthetic data and signal history
 
 - Added a bounded `SignalsRepo` seam for AP/client signal samples with a 200-sample

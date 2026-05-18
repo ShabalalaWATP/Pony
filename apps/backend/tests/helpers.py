@@ -6,6 +6,9 @@ from __future__ import annotations
 import pyotp
 from conftest import BackendClient
 
+BOOTSTRAP_TOKEN = "bootstrap-" + "token-test"
+BOOTSTRAP_HEADERS = {"authorization": f"Bearer {BOOTSTRAP_TOKEN}"}
+
 
 async def create_verified_admin(bundle: BackendClient) -> str:
     """Create, log in, and TOTP-verify an admin user.
@@ -19,6 +22,7 @@ async def create_verified_admin(bundle: BackendClient) -> str:
 
     await bundle.client.post(
         "/api/v1/auth/register",
+        headers=BOOTSTRAP_HEADERS,
         json={"email": "admin@example.com", "password": "long-password-123"},
     )
     login = await bundle.client.post(

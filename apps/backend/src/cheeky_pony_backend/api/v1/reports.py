@@ -58,6 +58,13 @@ async def create_report(
 
     engagement = await store.get_engagement(engagement_id)
     if engagement is None:
+        await audit.record(
+            user.id,
+            "reports.create",
+            {"engagement_id": engagement_id},
+            payload.model_dump(mode="json"),
+            "denied:engagement_not_found",
+        )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="engagement_not_found")
     report = ReportRecord(
         id=str(uuid4()),

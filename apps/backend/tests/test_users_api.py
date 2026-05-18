@@ -23,7 +23,8 @@ from cheeky_pony_backend.security import TokenService
 TEST_SETTINGS = Settings(
     env="test",
     cookie_secure=False,
-    jwt_secret="test-secret-test-secret-test-secret-123",
+    jwt_secret="j" * 32,
+    bootstrap_token="bootstrap-" + "token-test",
     use_in_memory_store=True,
 )
 

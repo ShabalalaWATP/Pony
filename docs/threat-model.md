@@ -4,17 +4,24 @@ Method: STRIDE per major component.
 
 ## Backend API
 
-- Spoofing: JWT cookies are signed, HTTP-only, SameSite=strict, and state-changing browser flows require CSRF headers.
+- Spoofing: JWT cookies and Bearer tokens are signed; state-changing API flows
+  require CSRF headers when authenticated by either cookie or Bearer token.
 - Tampering: Pydantic v2 validates inputs; repository boundaries own persistence writes, including AP geolocation fields.
-- Repudiation: active gates and state-changing admin flows append audit entries; logout records the actor id.
+- Repudiation: active gates and state-changing admin/auth flows append audit
+  entries on success and refusal; logout records the actor id.
 - Information disclosure: strict CORS and CSP headers reduce browser exfiltration paths; server-side AP coordinates are authenticated API data and must not be exposed on public routes.
 - Denial of service: auth endpoints are rate-limited in-process for development and designed for Redis-backed limits.
-- Elevation of privilege: admin actions require admin role plus a verified TOTP session.
+- Elevation of privilege: first-admin bootstrap requires the one-time
+  `CHEEKY_PONY_BOOTSTRAP_TOKEN`, and admin actions require admin role plus a
+  verified TOTP session.
 
 ## Operator Realtime Channel
 
 - Spoofing: operator WebSockets require a valid signed access-token cookie before accept.
-- Tampering: outbound topic payloads are built from validated shared models before broadcast, including alert notifications and command results.
+- Tampering: outbound topic payloads are built from validated shared models before
+  broadcast, including alert notifications and command results. The channel is
+  currently server-fan-out only; any future client-pushed mutation must re-check
+  Origin per message before dispatch.
 - Repudiation: realtime delivery is derived from persisted event, device, sensor, alert, and command audit records.
 - Information disclosure: broadcasts are limited to authenticated operators and inherit strict cookie/CORS posture; alert payloads carry entity references rather than raw capture material.
 - Denial of service: disconnected sockets are dropped from the in-process broker after failed sends.

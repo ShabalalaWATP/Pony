@@ -77,6 +77,10 @@ async def test_active_engagement_and_endpoints(backend_client: BackendClient) ->
     assert duplicate.status_code == 409
     assert ended.status_code == 204
     assert missing.status_code == 404
+    assert any(
+        log.action == "engagement.create" and log.outcome == "denied:active_engagement_exists"
+        for log in backend_client.store.audit_logs
+    )
 
 
 async def test_get_engagement_by_id(backend_client: BackendClient) -> None:
@@ -155,3 +159,48 @@ async def test_list_and_resume_engagements(backend_client: BackendClient) -> Non
     assert resumed.status_code == 200
     assert resumed.json()["id"] == first.json()["id"]
     assert resumed.json()["ended_at"] is None
+    assert any(
+        log.action == "engagement.resume" and log.outcome == "denied:active_engagement_exists"
+        for log in backend_client.store.audit_logs
+    )
+
+
+async def test_engagement_mutation_missing_paths_are_audited(
+    backend_client: BackendClient,
+) -> None:
+    """Missing engagement refusals on write routes are audit-visible."""
+
+    csrf = await create_verified_admin(backend_client)
+
+    allowed = await backend_client.client.post(
+        "/api/v1/engagements/missing/allow-list",
+        json={"kind": "bssid", "value": "AA:BB:CC:DD:EE:FF"},
+        headers={"x-csrf-token": csrf},
+    )
+    removed = await backend_client.client.request(
+        "DELETE",
+        "/api/v1/engagements/missing/allow-list",
+        json={"kind": "bssid", "value": "AA:BB:CC:DD:EE:FF"},
+        headers={"x-csrf-token": csrf},
+    )
+    resumed = await backend_client.client.post(
+        "/api/v1/engagements/missing/resume",
+        headers={"x-csrf-token": csrf},
+    )
+    ended = await backend_client.client.post(
+        "/api/v1/engagements/missing/end",
+        headers={"x-csrf-token": csrf},
+    )
+
+    assert [allowed.status_code, removed.status_code, resumed.status_code, ended.status_code] == [
+        404,
+        404,
+        404,
+        404,
+    ]
+    assert [(log.action, log.outcome) for log in backend_client.store.audit_logs[-4:]] == [
+        ("engagement.allow_list.add", "denied:not_found"),
+        ("engagement.allow_list.remove", "denied:not_found"),
+        ("engagement.resume", "denied:not_found"),
+        ("engagement.end", "denied:not_found"),
+    ]

@@ -137,6 +137,7 @@
     "type": "object"
   },
   "AcknowledgementRequest": {
+    "additionalProperties": false,
     "description": "Authorized-operator acknowledgement request.",
     "properties": {
       "statement": {
@@ -1327,6 +1328,7 @@
     "type": "object"
   },
   "LoginRequest": {
+    "additionalProperties": false,
     "description": "User login request.",
     "properties": {
       "email": {
@@ -1367,6 +1369,7 @@
     "type": "object"
   },
   "RegisterRequest": {
+    "additionalProperties": false,
     "description": "User registration request.",
     "properties": {
       "email": {
@@ -1785,6 +1788,7 @@
     "type": "object"
   },
   "TotpVerifyRequest": {
+    "additionalProperties": false,
     "description": "TOTP verification request.",
     "properties": {
       "code": {
