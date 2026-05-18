@@ -7,6 +7,7 @@ import {
 } from "@/services/ws/operator";
 import {
   _setOperatorClientForTests,
+  useLastMessageAt,
   useLiveTopic,
   useOperatorConnection,
 } from "@/services/ws/hooks";
@@ -145,5 +146,26 @@ describe("useOperatorConnection / useLiveTopic", () => {
     });
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledWith(expect.objectContaining({ kind: "events.append" }));
+  });
+});
+
+describe("useLastMessageAt", () => {
+  it("starts null and tracks the timestamp of each message", async () => {
+    const client = new OperatorWebSocketClient();
+    _setOperatorClientForTests(client);
+    const { result } = renderHook(() => useLastMessageAt());
+    expect(result.current).toBeNull();
+    act(() => {
+      FakeSocket.last!.open();
+      FakeSocket.last!.emit({ kind: "events.append", id: "e1" });
+    });
+    await waitFor(() => expect(result.current).not.toBeNull());
+    const firstAt = result.current!;
+    // A later message advances the timestamp.
+    await new Promise((r) => setTimeout(r, 5));
+    act(() => {
+      FakeSocket.last!.emit({ kind: "alerts.fire", id: "a1" });
+    });
+    await waitFor(() => expect(result.current!).toBeGreaterThan(firstAt));
   });
 });

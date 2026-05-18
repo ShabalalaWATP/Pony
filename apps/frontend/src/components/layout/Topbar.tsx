@@ -2,9 +2,9 @@ import { Bell, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Kbd } from "@/components/ui/Kbd";
 import { Separator } from "@/components/ui/Separator";
-import { LiveDot } from "@/components/domain/LiveDot";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { Breadcrumbs } from "./Breadcrumbs";
+import { OperatorConnectionPill } from "./OperatorConnectionPill";
 import { useUIStore } from "@/stores/useUIStore";
 import { useLabModeStore } from "@/stores/useLabModeStore";
 import { cn } from "@/lib/cn";
@@ -49,7 +49,7 @@ export function Topbar(): JSX.Element {
           <Kbd className="ml-2">⌘K</Kbd>
         </button>
 
-        <LiveDot state="live" label="0 sensors · 0/min" />
+        <OperatorConnectionPill />
 
         <Button variant="ghost" size="icon" aria-label="Notifications">
           <Bell className="size-4" aria-hidden="true" />

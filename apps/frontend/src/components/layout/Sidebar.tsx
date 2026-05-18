@@ -17,6 +17,7 @@ import { Glyph } from "@/components/branding/Glyph";
 import { Wordmark } from "@/components/branding/Wordmark";
 import { Kbd } from "@/components/ui/Kbd";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { useLastMessageAt } from "@/services/ws/hooks";
 import { useUIStore } from "@/stores/useUIStore";
 import { useLabModeStore } from "@/stores/useLabModeStore";
 import { cn } from "@/lib/cn";
@@ -104,6 +105,10 @@ function NavLink({ item, collapsed }: { item: NavItem; collapsed: boolean }): JS
 export function Sidebar(): JSX.Element {
   const collapsed = useUIStore((s) => s.sidebarCollapsed);
   const labPreview = useLabModeStore((s) => s.preview);
+  // The wordmark's `//` pulses when an operator-WS message arrived within
+  // the last 5s. `useLastMessageAt` returns the timestamp; `useLivePulse`
+  // inside `Wordmark` does the windowing + 1Hz tick down to stale.
+  const lastEventAt = useLastMessageAt();
 
   return (
     <aside
@@ -121,7 +126,7 @@ export function Sidebar(): JSX.Element {
         )}
       >
         <Glyph className="size-6 text-mode" label={collapsed ? "Cheeky Pony" : ""} />
-        {!collapsed && <Wordmark className="text-sm" forceState="live" />}
+        {!collapsed && <Wordmark className="text-sm" lastEventAt={lastEventAt} />}
       </Link>
 
       <nav className="flex-1 overflow-y-auto px-2 py-3">
