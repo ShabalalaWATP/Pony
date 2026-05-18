@@ -1,6 +1,7 @@
 import { Outlet } from "@tanstack/react-router";
 import { CheatSheet } from "./CheatSheet";
 import { CommandPalette } from "./CommandPalette";
+import { DemoDataBanner } from "./DemoDataBanner";
 import { LabModeBanner } from "./LabModeBanner";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -36,6 +37,7 @@ export function AppShell(): JSX.Element {
       <div className="flex flex-1 flex-col">
         <Topbar />
         <LabModeBanner />
+        <DemoDataBanner />
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-screen-2xl px-8 py-6">
             <Outlet />

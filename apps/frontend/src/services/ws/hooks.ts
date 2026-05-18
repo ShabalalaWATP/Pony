@@ -56,3 +56,28 @@ export function useLiveTopic(
     };
   }, [client, match, handler]);
 }
+
+/**
+ * Track the timestamp of the most recent operator-WS message of any kind.
+ *
+ * Used by the topbar connection pill and the sidebar wordmark to surface
+ * "live data is flowing" — both consume the same source so they never
+ * disagree. The connection itself opens on first subscriber via the
+ * shared client.
+ */
+export function useLastMessageAt(): number | null {
+  const client = useMemo(getSharedClient, []);
+  const [lastAt, setLastAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    client.connect();
+    const unsubscribe = client.subscribe(() => {
+      setLastAt(Date.now());
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [client]);
+
+  return lastAt;
+}
