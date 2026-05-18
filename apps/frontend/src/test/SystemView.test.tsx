@@ -27,7 +27,7 @@ describe("SystemView", () => {
     expect(await screen.findByText(/sign in required/i)).toBeInTheDocument();
   });
 
-  it("renders the gate card with three rows (lab_mode + ack + 2FA)", async () => {
+  it("renders the gate card with three LeaderRows (lab_mode + ack + 2FA)", async () => {
     server.use(
       http.get("/api/v1/lab/status", () =>
         HttpResponse.json({
@@ -39,12 +39,19 @@ describe("SystemView", () => {
     );
     const { node } = withQuery(<SystemView />);
     render(node);
-    await screen.findByTestId("system-gate-card");
-    const rows = screen.getAllByTestId("system-gate");
+    const card = await screen.findByTestId("system-gate-card");
+    const rows = within(card).getAllByTestId("leader-row");
     expect(rows).toHaveLength(3);
-    // The acknowledgement row is the only one still red.
-    const flags = rows.map((r) => r.getAttribute("data-ok"));
-    expect(flags).toEqual(["true", "false", "true"]);
+    expect(rows[0]).toHaveTextContent(/LAB_MODE/);
+    expect(rows[0]).toHaveTextContent(/OK/);
+    expect(rows[1]).toHaveTextContent(/AUTHORIZED OPERATOR/);
+    expect(rows[1]).toHaveTextContent(/MISSING/);
+    expect(rows[2]).toHaveTextContent(/ADMIN \+ RECENT 2FA/);
+    expect(rows[2]).toHaveTextContent(/OK/);
+    // Hint for the only failing gate shows up.
+    const hints = within(card).getAllByTestId("system-gate-hint");
+    expect(hints).toHaveLength(1);
+    expect(hints[0]).toHaveTextContent(/Type and accept the statement/);
   });
 
   it("hides the acknowledgement form when one is already on file", async () => {

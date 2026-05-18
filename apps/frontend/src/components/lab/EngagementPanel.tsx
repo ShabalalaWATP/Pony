@@ -2,6 +2,8 @@ import { CheckCircle2, ShieldX, StopCircle, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { CornerBrackets } from "@/components/ui/CornerBrackets";
+import { EndpointHint } from "@/components/ui/EndpointHint";
 import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { RelativeTime } from "@/components/domain/RelativeTime";
@@ -56,8 +58,9 @@ export function EngagementPanel({ engagement }: EngagementPanelProps): JSX.Eleme
   return (
     <section
       data-testid="engagement-panel"
-      className="rounded-md border border-mode/40 bg-mode/5 p-4"
+      className="relative rounded-md border border-mode/40 bg-mode/5 p-4"
     >
+      <CornerBrackets inset="-0.4rem" tone="mode" />
       <div className="flex flex-wrap items-center gap-3">
         <Badge tone="accent" outline>
           Active engagement
@@ -68,7 +71,7 @@ export function EngagementPanel({ engagement }: EngagementPanelProps): JSX.Eleme
             started <RelativeTime value={engagement.started_at} />
           </span>
         )}
-        <span className="ml-auto font-mono text-2xs text-fg-60">id: {engagement.id}</span>
+        <EndpointHint className="ml-auto">{`/api/v1/engagements/${engagement.id}`}</EndpointHint>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">

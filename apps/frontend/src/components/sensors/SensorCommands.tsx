@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { DetailSection } from "@/components/ui/DetailGrid";
+import { EndpointHint } from "@/components/ui/EndpointHint";
 import { Input } from "@/components/ui/Input";
 import { RelativeTime } from "@/components/domain/RelativeTime";
 import {
@@ -115,7 +116,10 @@ export function SensorCommands({ sensor }: SensorCommandsProps): JSX.Element {
 
   return (
     <>
-      <DetailSection label="Lifecycle commands">
+      <DetailSection
+        label="Lifecycle commands"
+        trailing={<EndpointHint>{`/api/v1/sensors/${sensor.id}/commands/*`}</EndpointHint>}
+      >
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap gap-2">
             <Button

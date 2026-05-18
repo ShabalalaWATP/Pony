@@ -12,20 +12,25 @@ function formatTotal(total: number | undefined): string {
 interface TileProps {
   label: string;
   value: React.ReactNode;
+  endpoint: string;
   error?: React.ReactNode;
 }
 
-function Tile({ label, value, error }: TileProps): JSX.Element {
+function Tile({ label, value, endpoint, error }: TileProps): JSX.Element {
   if (error) {
     return (
       <Tooltip content={error}>
         <div>
-          <StatTile label={label} value={<span className="text-fg-40">—</span>} />
+          <StatTile
+            label={label}
+            value={<span className="text-fg-40">—</span>}
+            endpoint={endpoint}
+          />
         </div>
       </Tooltip>
     );
   }
-  return <StatTile label={label} value={value} />;
+  return <StatTile label={label} value={value} endpoint={endpoint} />;
 }
 
 export function OverviewKPIs(): JSX.Element {
@@ -53,17 +58,32 @@ export function OverviewKPIs(): JSX.Element {
       {devices.isLoading ? (
         <Skeleton className="h-26" />
       ) : (
-        <Tile label="Devices" value={formatTotal(devices.data?.total)} error={devicesError} />
+        <Tile
+          label="Devices"
+          value={formatTotal(devices.data?.total)}
+          endpoint="/api/v1/devices"
+          error={devicesError}
+        />
       )}
       {aps.isLoading ? (
         <Skeleton className="h-26" />
       ) : (
-        <Tile label="Access Points" value={formatTotal(aps.data?.total)} error={apsError} />
+        <Tile
+          label="Access Points"
+          value={formatTotal(aps.data?.total)}
+          endpoint="/api/v1/access_points"
+          error={apsError}
+        />
       )}
       {sensors.isLoading ? (
         <Skeleton className="h-26" />
       ) : (
-        <Tile label="Sensors" value={formatTotal(sensors.data?.total)} error={sensorsError} />
+        <Tile
+          label="Sensors"
+          value={formatTotal(sensors.data?.total)}
+          endpoint="/api/v1/sensors"
+          error={sensorsError}
+        />
       )}
     </div>
   );
