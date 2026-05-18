@@ -22,8 +22,20 @@ WebSockets.
 | Architecture Decision Records | [`docs/adr/`](docs/adr) |
 | Release-history / per-PR log | [`CHANGELOG.md`](CHANGELOG.md) |
 | Vulnerability reporting | [`SECURITY.md`](SECURITY.md) |
-| Codex brief (backend / infra) | [`AGENTS.md`](AGENTS.md) |
-| Claude Code brief (frontend) | [`CLAUDE.md`](CLAUDE.md) |
+
+## Contributing
+
+Engineering standards — SOLID, file/function size caps, strict typing,
+security non-negotiables, audit-on-every-state-change, ADRs for non-obvious
+decisions — live in the standing agent briefs. Read whichever applies to the
+code you're touching **before** you start:
+
+- [`AGENTS.md`](AGENTS.md) — backend, sensor-agent, infra, CI/CD, docs
+- [`CLAUDE.md`](CLAUDE.md) — frontend (`apps/frontend/`)
+
+Both briefs document ownership boundaries, the OpenAPI-driven coordination
+contract between backend and frontend, the per-PR Definition of Done, and
+where to look for context. Re-read them on every session.
 
 ## Current Status
 
