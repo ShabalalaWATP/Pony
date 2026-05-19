@@ -8,7 +8,7 @@
 
 **Naming**: codename "Cheeky Pony" throughout. Internal abbreviation `CP` is fine. **Never** ship the string "WiFi Pineapple" or any Hak5 mark in user-visible UI, docs, or strings.
 
-**Wordmark**: `CHEEKY//PONY` set in **Space Grotesk** 600 weight, +120 letter-spacing, uppercase. The `//` lives in the mode-accent (cyan by default, violet in lab mode); the words sit at `foreground/95`. On data-bearing screens the `//` is a live-pulse indicator — it pulses at 1.2Hz only when the active sensor has emitted an event in the last 5 seconds. Stale data flattens it to `foreground/30`.
+**Wordmark**: `CHEEKY PONY` set in **Space Grotesk** 600 weight, uppercase, +180 letter-spacing. The mark is static — live-data freshness is signalled on the topbar's `OperatorConnectionPill` and on per-entity `LiveDot`s, not on the brand. Earlier iterations rendered a cyan `//` separator that pulsed with WS messages, but the duplicated signal added visual noise on every sidebar refresh and was removed.
 
 **Glyph** (24px and 16px inline SVG, single-colour `currentColor`): an abstract "tracking diamond" — a rhombus with a triangular notch cut from the right corner indicating directionality, plus two concentric arc fragments representing RF sweep. Reads as both a compass and a radar at small sizes. Source: `apps/frontend/src/components/branding/Glyph.tsx`.
 
@@ -202,7 +202,7 @@ Current shared component inventory:
 
 ## 11. The "techy" effects budget
 
-**DO** (with discipline): page-bg grid texture, topbar scanline, wordmark `//` pulse, focus glow, fresh-data halo, mono identifiers, lab-mode chrome shift, xterm.js console on sensor detail.
+**DO** (with discipline): page-bg grid texture, topbar scanline, focus glow, fresh-data halo, mono identifiers, lab-mode chrome shift, xterm.js console on sensor detail. Live-data state lives on the topbar pill + per-entity LiveDots — not on the brand.
 
 **DO NOT**: Matrix rain, glitch text, fake boot sequences, CRT curvature, pulsing/glowing buttons at rest, animated gradients, decorative parallax, sounds, OCR-B / faux-LCD / pixel fonts, decorative neon edges. **Rule of thumb**: if a competent SOC operator wouldn't take it seriously, cut it.
 

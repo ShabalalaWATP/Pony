@@ -24,6 +24,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    // MapLibre is intrinsically large (~800 kB minified) and is the only
+    // chunk over the default 500 kB warning. It's lazy-imported in
+    // `MapView`, so the cost is only paid when the operator visits the
+    // map route — not on initial dashboard load. Raise the threshold to
+    // silence the noise; the lazy-load already gates the actual UX cost.
+    chunkSizeWarningLimit: 850,
+  },
   server: {
     port: 5173,
     strictPort: true,

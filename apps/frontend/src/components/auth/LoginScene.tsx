@@ -101,7 +101,7 @@ function BackgroundLayers(): JSX.Element {
 
 function BrandPanel(): JSX.Element {
   return (
-    <section className="relative flex flex-col items-center gap-6 text-center md:items-start md:gap-7 md:text-left">
+    <section className="relative flex flex-col items-center gap-6 text-center md:gap-7">
       <LogoWithGlow />
       <Wordmark />
       <p className="max-w-xs text-xs text-fg-60 md:max-w-sm md:text-sm">
@@ -125,11 +125,11 @@ function LogoWithGlow(): JSX.Element {
       <img
         src="/logo-256.png"
         srcSet="/logo-192.png 192w, /logo-256.png 256w, /logo-512.png 512w"
-        sizes="160px"
+        sizes="192px"
         alt="Cheeky Pony"
-        width={160}
-        height={160}
-        className="relative size-32 select-none md:size-40"
+        width={192}
+        height={192}
+        className="relative size-36 select-none md:size-48"
         draggable={false}
       />
     </div>
@@ -140,11 +140,7 @@ function Wordmark(): JSX.Element {
   return (
     <div className="flex flex-col gap-1">
       <h1 className="font-display text-3xl font-semibold uppercase tracking-[0.18em] text-fg-100 md:text-4xl">
-        CHEEKY
-        <span className="mx-1 text-mode" aria-hidden="true">
-          //
-        </span>
-        PONY
+        CHEEKY <span className="text-mode">PONY</span>
       </h1>
       <p className="text-2xs uppercase tracking-[0.32em] text-fg-60">operator console</p>
     </div>

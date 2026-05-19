@@ -8,20 +8,14 @@ describe("Wordmark", () => {
     expect(screen.getByLabelText("Cheeky Pony")).toBeInTheDocument();
   });
 
-  it("renders the // separator", () => {
+  it("renders both words of the brand mark", () => {
     const { container } = render(<Wordmark />);
-    expect(container.textContent).toContain("//");
+    expect(container.textContent).toContain("cheeky");
+    expect(container.textContent).toContain("pony");
   });
 
-  it("animates the separator in the live state", () => {
-    const { container } = render(<Wordmark forceState="live" />);
-    const separator = container.querySelector('[aria-hidden="true"]');
-    expect(separator?.className).toMatch(/cp-live-pulse/);
-  });
-
-  it("does not animate in the stale state", () => {
-    const { container } = render(<Wordmark forceState="stale" />);
-    const separator = container.querySelector('[aria-hidden="true"]');
-    expect(separator?.className).not.toMatch(/cp-live-pulse/);
+  it("does not render the legacy `//` separator", () => {
+    const { container } = render(<Wordmark />);
+    expect(container.textContent).not.toContain("//");
   });
 });
