@@ -22,7 +22,7 @@ export function MockTopbar({ labMode }: { labMode: boolean }): JSX.Element {
     >
       <div className="flex items-center gap-2.5">
         <Glyph className="size-6 text-mode" label="" />
-        <Wordmark forceState="live" />
+        <Wordmark />
       </div>
       <Separator orientation="vertical" className="mx-2 h-5" />
       <nav className="font-mono text-xs text-fg-60">

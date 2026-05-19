@@ -56,8 +56,8 @@ export function DesignSystem(): JSX.Element {
             </Badge>
           </div>
           <p className="mt-3 max-w-prose text-sm text-fg-60">
-            The visual identity of <Wordmark className="inline-flex text-sm" forceState="live" />.
-            Source of truth for tokens, primitives, and interaction patterns —{" "}
+            The visual identity of <Wordmark className="inline-flex text-sm" />. Source of truth for
+            tokens, primitives, and interaction patterns —{" "}
             <code className="font-mono text-fg-80">docs/frontend-design.md</code>.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -73,7 +73,7 @@ export function DesignSystem(): JSX.Element {
 
         <Section
           title="Brand"
-          description="Tracking-diamond glyph + CHEEKY//PONY wordmark. The // pulses live; reduced-motion users get the colour without the animation."
+          description="Tracking-diamond glyph + CHEEKY PONY wordmark. Live-data freshness now lives on the topbar's connection pill; the wordmark stays static."
         >
           <div className="flex flex-wrap items-end gap-12">
             <div className="flex flex-col items-center gap-3">
@@ -94,9 +94,8 @@ export function DesignSystem(): JSX.Element {
             </div>
             <Separator orientation="vertical" className="h-20" />
             <div className="flex flex-col gap-3">
-              <Wordmark forceState="live" />
-              <Wordmark forceState="stale" />
-              <code className="font-mono text-2xs text-fg-40">live · stale</code>
+              <Wordmark />
+              <code className="font-mono text-2xs text-fg-40">wordmark</code>
             </div>
           </div>
         </Section>
