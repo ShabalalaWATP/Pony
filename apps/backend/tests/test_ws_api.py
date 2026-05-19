@@ -4,18 +4,25 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from cheeky_pony_backend.api.ws import _handle_command_result
 from cheeky_pony_backend.config import Settings
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
+from cheeky_pony_backend.infra.operator_broker import OperatorBroker
+from cheeky_pony_backend.infra.sensor_command_broker import (
+    SensorCommandBroker,
+    SensorCommandMetadata,
+)
 from cheeky_pony_backend.main import create_app
 from cheeky_pony_backend.security import TokenService, sign_sensor_gateway_headers
-from cheeky_pony_shared import AlertRule, AlertSeverity, Sensor, SensorCapability
+from cheeky_pony_shared import AlertRule, AlertSeverity, CommandKind, Sensor, SensorCapability
 
 SENSOR_FINGERPRINT = "a" * 64
 SENSOR_HEADER_VALUE = "".join(["test-", "sensor-", "header-", "value-", "1234567890"])
@@ -76,6 +83,35 @@ def test_operator_gateway_requires_jwt_cookie() -> None:
             headers={"origin": OPERATOR_ORIGIN},
         ) as websocket:
             assert websocket.receive_json()["kind"] == "connected"
+
+
+def test_operator_gateway_rejects_disabled_users() -> None:
+    """Disabled accounts cannot keep receiving operator WebSocket traffic."""
+
+    settings = _settings()
+    store = InMemoryStore()
+    app = create_app(settings, store)
+    _run(
+        store.create_user(
+            UserRecord(
+                id="user-1",
+                email="admin@example.com",
+                password_hash="hash",
+                roles=["admin"],
+                disabled=True,
+            )
+        )
+    )
+    token = TokenService(settings).create_access_token("user-1", "csrf")
+
+    with TestClient(app) as client:
+        client.cookies.set("access_token", token)
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect(
+                "/ws/operator",
+                headers={"origin": OPERATOR_ORIGIN},
+            ):
+                pass
 
 
 def test_operator_gateway_rejects_foreign_origin() -> None:
@@ -264,6 +300,52 @@ def test_sensor_command_endpoint_sends_and_broadcasts_result() -> None:
     ]
 
 
+def test_command_result_rejects_wrong_sensor_without_consuming_command() -> None:
+    """A sensor cannot complete a command that was issued to another sensor."""
+
+    store = InMemoryStore()
+    command_broker = SensorCommandBroker()
+    operator_broker = _RecordingOperatorBroker()
+    _run(
+        command_broker.remember(
+            SensorCommandMetadata(
+                command_id="cmd-1",
+                sensor_id="pi-1",
+                command=CommandKind.SET_CHANNEL,
+                actor_id="user-1",
+                parameters={},
+                started_at=datetime.now(tz=UTC),
+                audit_id="audit-1",
+            )
+        )
+    )
+
+    _run(
+        _handle_command_result(
+            "pi-2",
+            _command_result_payload("cmd-1"),
+            store,
+            operator_broker,
+            command_broker,
+        )
+    )
+    _run(
+        _handle_command_result(
+            "pi-1",
+            _command_result_payload("cmd-1"),
+            store,
+            operator_broker,
+            command_broker,
+        )
+    )
+
+    assert store.audit_logs[0].action == "sensor.command_result.rejected"
+    assert store.audit_logs[0].outcome == "denied:sensor_mismatch"
+    assert store.audit_logs[1].action == "sensors.commands.set_channel.result"
+    assert len(operator_broker.messages) == 1
+    assert operator_broker.messages[0]["sensor_id"] == "pi-1"
+
+
 def _app_with_geo_sensor_and_user() -> tuple[Settings, FastAPI]:
     settings = _settings()
     store = InMemoryStore()
@@ -381,6 +463,15 @@ def _run(awaitable):  # type: ignore[no-untyped-def]
     import asyncio
 
     return asyncio.run(awaitable)
+
+
+class _RecordingOperatorBroker(OperatorBroker):
+    def __init__(self) -> None:
+        super().__init__()
+        self.messages: list[dict[str, Any]] = []
+
+    async def broadcast(self, payload: dict[str, Any]) -> None:
+        self.messages.append(payload)
 
 
 def _free_ssid_rule() -> AlertRule:

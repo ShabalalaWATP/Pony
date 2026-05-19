@@ -17,7 +17,7 @@ from cheeky_pony_backend.dependencies import reset_auth_rate_limiters
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
 from cheeky_pony_backend.main import create_app
-from cheeky_pony_backend.security import TokenService
+from cheeky_pony_backend.security import PasswordService, TokenService
 
 pytestmark = pytest.mark.asyncio
 
@@ -241,6 +241,54 @@ async def test_login_success_is_audited_without_password(
     assert audit.outcome == "ok"
     assert audit.target["email"] == "admin@example.com"
     assert "long-password-123" not in audit.model_dump_json()
+
+
+async def test_disabled_users_cannot_login_refresh_or_register_users(
+    backend_client: BackendClient,
+) -> None:
+    """Disabled accounts are rejected outside the current_user dependency too."""
+
+    settings = _test_settings()
+    await backend_client.store.create_user(
+        UserRecord(
+            id="disabled-admin",
+            email="disabled@example.com",
+            password_hash=PasswordService().hash_password("long-password-123"),
+            roles=["admin"],
+            totp_secret="JBSWY3DPEHPK3PXP",
+            totp_verified_at=datetime.now(tz=UTC),
+            disabled=True,
+        )
+    )
+
+    login = await backend_client.client.post(
+        "/api/v1/auth/login",
+        json={"email": "disabled@example.com", "password": "long-password-123"},
+    )
+    backend_client.client.cookies.set(
+        "refresh_token",
+        TokenService(settings).create_refresh_token("disabled-admin", 0),
+    )
+    refresh = await backend_client.client.post("/api/v1/auth/refresh")
+    backend_client.client.cookies.set(
+        "access_token",
+        TokenService(settings).create_access_token("disabled-admin", "csrf"),
+    )
+    registered = await backend_client.client.post(
+        "/api/v1/auth/register",
+        headers={"x-csrf-token": "csrf"},
+        json={"email": "operator@example.com", "password": "long-password-456"},
+    )
+
+    assert login.status_code == 401
+    assert refresh.status_code == 401
+    assert registered.status_code == 403
+    assert await backend_client.store.get_user_by_email("operator@example.com") is None
+    assert [log.outcome for log in backend_client.store.audit_logs] == [
+        "denied:disabled_user",
+        "denied:disabled_user",
+        "denied:not_first_admin",
+    ]
 
 
 async def test_register_extra_fields_are_forbidden(backend_client: BackendClient) -> None:
@@ -473,3 +521,13 @@ async def _register_first_admin(
             json={"email": "admin@example.com", "password": "long-password-123"},
         )
     return response.status_code, store.audit_logs[-1].outcome
+
+
+def _test_settings() -> Settings:
+    return Settings(
+        env="test",
+        cookie_secure=False,
+        jwt_secret="j" * 32,
+        bootstrap_token=BOOTSTRAP_TOKEN,
+        use_in_memory_store=True,
+    )

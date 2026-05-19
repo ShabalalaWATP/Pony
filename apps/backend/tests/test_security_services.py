@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from cheeky_pony_backend.config import Settings
+from cheeky_pony_backend.config import DEV_JWT_SECRET, Settings
 from cheeky_pony_backend.security import (
     CsrfService,
     PasswordService,
@@ -47,7 +47,7 @@ def test_production_settings_reject_development_secrets() -> None:
     """Production-like environments must not boot with known defaults."""
 
     with pytest.raises(ValueError, match="JWT_SECRET"):
-        Settings(env="prod")
+        Settings(env="prod", jwt_secret=DEV_JWT_SECRET)
 
 
 def test_sensor_gateway_signed_headers_are_bound_to_sensor_identity() -> None:

@@ -11,6 +11,9 @@ than by date because work lands as a fan-out of parallel PRs.
   paths so success and denial outcomes are audit-visible.
 - Added first-admin bootstrap token enforcement, stricter auth throttling, Bearer
   CSRF coverage, CORS wildcard rejection, and sensor-agent interface validation.
+- Restricted report exports to admin + recent TOTP, bound sensor command results
+  to the target sensor, and made disabled-account checks consistent across auth
+  refresh, registration, and operator WebSocket paths.
 
 ### Backend stage 9a — synthetic data and signal history
 

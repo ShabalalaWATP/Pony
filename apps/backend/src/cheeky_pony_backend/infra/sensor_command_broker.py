@@ -106,18 +106,29 @@ class SensorCommandBroker:
         except RuntimeError:
             await self._queue_after_failed_send(sensor_id, command, websocket)
 
-    async def complete(self, command_id: str) -> SensorCommandMetadata | None:
+    async def command_sensor_id(self, command_id: str) -> str | None:
+        """Return the sensor id associated with a pending command."""
+
+        async with self._lock:
+            metadata = self._metadata.get(command_id)
+            return None if metadata is None else metadata.sensor_id
+
+    async def complete(self, sensor_id: str, command_id: str) -> SensorCommandMetadata | None:
         """Pop metadata for a completed command.
 
         Args:
+            sensor_id: Reporting sensor identifier.
             command_id: Command identifier.
 
         Returns:
-            Stored metadata when known.
+            Stored metadata when known and owned by the reporting sensor.
         """
 
         async with self._lock:
-            return self._metadata.pop(command_id, None)
+            metadata = self._metadata.get(command_id)
+            if metadata is None or metadata.sensor_id != sensor_id:
+                return None
+            return self._metadata.pop(command_id)
 
     async def start_lab_command(self, record: LabCommandRecord) -> None:
         """Track an active lab command.

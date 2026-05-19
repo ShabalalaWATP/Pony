@@ -26,7 +26,10 @@ async def optional_user(
         claims = tokens.verify(token, "access")
     except jwt.InvalidTokenError:
         return None
-    return await store.get_user(str(claims["sub"]))
+    user = await store.get_user(str(claims["sub"]))
+    if user is None or user.disabled:
+        return None
+    return user
 
 
 def bearer_token(request: Request) -> str | None:

@@ -109,7 +109,7 @@ async def operator_gateway(websocket: WebSocket) -> None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     user = await store.get_user(str(claims["sub"]))
-    if user is None:
+    if user is None or user.disabled:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     broker: OperatorBroker = websocket.app.state.operator_broker
@@ -247,7 +247,13 @@ async def _handle_command_result(
     command_id = str(result.get("command_id", ""))
     if not command_id:
         return True
-    metadata = await command_broker.complete(command_id)
+    expected_sensor_id = await command_broker.command_sensor_id(command_id)
+    if expected_sensor_id is not None and expected_sensor_id != sensor_id:
+        await _audit_command_result_sensor_mismatch(
+            store, sensor_id, expected_sensor_id, command_id
+        )
+        return True
+    metadata = await command_broker.complete(sensor_id, command_id)
     if metadata is None:
         return True
     if metadata.lab_module is not None:
@@ -322,6 +328,25 @@ async def _audit_command_result(
         started_at=metadata.started_at,
         finished_at=finished_at,
         raw_tool_output_ref=f"sensor-command:{metadata.command_id}",
+    )
+
+
+async def _audit_command_result_sensor_mismatch(
+    store: Store,
+    sensor_id: str,
+    expected_sensor_id: str,
+    command_id: str,
+) -> AuditLog:
+    return await AuditLogger(store).record(
+        sensor_id,
+        "sensor.command_result.rejected",
+        {
+            "sensor_id": sensor_id,
+            "expected_sensor_id": expected_sensor_id,
+            "command_id": command_id,
+        },
+        {},
+        "denied:sensor_mismatch",
     )
 
 

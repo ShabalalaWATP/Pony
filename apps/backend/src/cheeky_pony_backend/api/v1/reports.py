@@ -11,7 +11,12 @@ from uuid import uuid4
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response, status
 
 from cheeky_pony_backend.config import Settings, get_settings
-from cheeky_pony_backend.dependencies import current_user, get_audit_logger, get_store
+from cheeky_pony_backend.dependencies import (
+    current_user,
+    get_audit_logger,
+    get_store,
+    require_admin_2fa,
+)
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.reports import (
@@ -41,6 +46,7 @@ async def create_report(
     user: Annotated[UserRecord, Depends(current_user)],
     store: Annotated[Store, Depends(get_store)],
     audit: Annotated[AuditLogger, Depends(get_audit_logger)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> ReportCreateResponse:
     """Create an engagement report request.
 
@@ -51,11 +57,13 @@ async def create_report(
         user: Current user.
         store: Application store.
         audit: Audit logger.
+        settings: Runtime settings.
 
     Returns:
         Created report identifier and initial status.
     """
 
+    await _require_report_admin_2fa(user, settings, audit, engagement_id, payload)
     engagement = await store.get_engagement(engagement_id)
     if engagement is None:
         await audit.record(
@@ -90,7 +98,7 @@ async def create_report(
 async def get_report_status(
     engagement_id: str,
     report_id: str,
-    _: Annotated[UserRecord, Depends(current_user)],
+    _: Annotated[UserRecord, Depends(require_admin_2fa)],
     store: Annotated[Store, Depends(get_store)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> ReportStatusResponse:
@@ -132,7 +140,7 @@ async def get_report_status(
 async def download_report(
     engagement_id: str,
     report_id: str,
-    _: Annotated[UserRecord, Depends(current_user)],
+    _: Annotated[UserRecord, Depends(require_admin_2fa)],
     store: Annotated[Store, Depends(get_store)],
     settings: Annotated[Settings, Depends(get_settings)],
     token: str = Query(min_length=1),
@@ -159,6 +167,25 @@ async def download_report(
     content = base64.b64decode(report.content_b64.encode())
     headers = {"Content-Disposition": f'attachment; filename="{report.filename or report.id}"'}
     return Response(content, media_type=report.content_type, headers=headers)
+
+
+async def _require_report_admin_2fa(
+    user: UserRecord,
+    settings: Settings,
+    audit: AuditLogger,
+    engagement_id: str,
+    payload: ReportCreateRequest,
+) -> None:
+    if user.is_admin() and user.has_recent_totp(settings.totp_recent_minutes):
+        return
+    await audit.record(
+        user.id,
+        "reports.create",
+        {"engagement_id": engagement_id},
+        payload.model_dump(mode="json"),
+        "denied:admin_2fa_required",
+    )
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin_2fa_required")
 
 
 async def _report_or_404(store: Store, engagement_id: str, report_id: str) -> ReportRecord:
