@@ -5,6 +5,12 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend stage 9c slice D — backend load testing
+
+- Added a manual Locust profile and `make load-test` target covering login,
+  paginated dashboard reads, operator WebSocket listeners, and low-rate
+  engagement lifecycle mutations.
+
 ### Backend stage 9c slice C — alert regex fuzzing
 
 - Added an Atheris smoke workflow for alert-rule regex predicates and tightened

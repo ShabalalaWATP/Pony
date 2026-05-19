@@ -88,6 +88,20 @@ sets a finite cadence; the default rate is 30 events/minute and the hard cap is
 Stream mode uses the same safety guards as static seeding and writes
 `demo.stream.start` plus `demo.stream.stop` audit entries.
 
+## Load testing
+
+Run `make load-test` against a local backend to exercise login/refresh,
+dashboard list reads, operator WebSocket listeners, and a low-rate engagement
+lifecycle. The profile expects a dedicated local admin account; set
+`CHEEKY_PONY_LOAD_EMAIL`, `CHEEKY_PONY_LOAD_PASSWORD`, and
+`CHEEKY_PONY_LOAD_TOTP_SECRET` before running the default 50-user profile.
+
+Use `LOAD_HOST`, `LOAD_USERS`, `LOAD_SPAWN_RATE`, and `LOAD_RUN_TIME` to tune
+the target and duration. Keep this profile on development or staging data only;
+it intentionally creates and ends engagements when admin TOTP is available.
+Detailed setup and baseline guidance live in
+[`docs/runbooks/load-testing.md`](runbooks/load-testing.md).
+
 ## First admin
 
 Set `CHEEKY_PONY_BOOTSTRAP_TOKEN` to a random value for first deploy. The first

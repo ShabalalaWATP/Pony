@@ -32,6 +32,7 @@ dev = [
   "atheris>=2.3; platform_system != 'Windows'",
   "bandit[toml]>=1.8",
   "hypothesis>=6.123",
+  "locust>=2.33,<3",
   "mypy>=1.14",
   "pip-audit>=2.7",
   "pytest>=8.3",
@@ -39,6 +40,7 @@ dev = [
   "pytest-cov>=6.0",
   "ruff>=0.8",
   "testcontainers[mongodb,redis]>=4.9",
+  "websocket-client>=1.8,<2",
 ]
 
 [project.scripts]
