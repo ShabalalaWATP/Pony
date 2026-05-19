@@ -5,6 +5,13 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend stage 9c slice A — demo stream mode
+
+- Added `seed_demo --stream` and `make seed-demo-stream` for dev-only synthetic
+  operator WebSocket topics with guarded execution and start/stop audit entries.
+- Added a Mongo-backed transient demo stream relay so the standalone CLI reaches
+  the backend's in-process operator broker without introducing a new HTTP surface.
+
 ### Security audit follow-up
 
 - Hardened auth, sensor admin, engagement, report, alert, and validation refusal

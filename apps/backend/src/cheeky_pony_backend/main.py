@@ -3,8 +3,9 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
-from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager, suppress
 
 import uvicorn
 from fastapi import FastAPI, Request, Response, status
@@ -30,6 +31,7 @@ from cheeky_pony_backend.config import Settings, get_settings
 from cheeky_pony_backend.domain.active_gates import ActiveGateDeniedError
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.ports import Store
+from cheeky_pony_backend.infra.demo_stream import DemoStreamRelay, demo_stream_queue
 from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
 from cheeky_pony_backend.infra.mongo_store import MongoStore
 from cheeky_pony_backend.infra.operator_broker import OperatorBroker
@@ -52,14 +54,15 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
     configure_logging()
     active_settings = settings or get_settings()
     active_store = store or _create_store(active_settings)
+    operator_broker = OperatorBroker()
     app = FastAPI(
         title="Cheeky Pony API",
         version="0.1.0",
-        lifespan=_lifespan(active_store),
+        lifespan=_lifespan(active_store, operator_broker),
     )
     app.state.settings = active_settings
     app.state.store = active_store
-    app.state.operator_broker = OperatorBroker()
+    app.state.operator_broker = operator_broker
     app.state.sensor_command_broker = SensorCommandBroker()
     app.dependency_overrides[get_settings] = lambda: active_settings
 
@@ -94,13 +97,33 @@ def _create_store(settings: Settings) -> Store:
     return MongoStore(settings.mongo_dsn, settings.mongo_db)
 
 
-def _lifespan(store: Store) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
+def _lifespan(
+    store: Store,
+    operator_broker: OperatorBroker,
+) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await store.ensure_indexes()
-        yield
+        relay_task = _start_demo_stream_relay(store, operator_broker)
+        try:
+            yield
+        finally:
+            if relay_task is not None:
+                relay_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await relay_task
 
     return lifespan
+
+
+def _start_demo_stream_relay(
+    store: Store,
+    operator_broker: OperatorBroker,
+) -> asyncio.Task[None] | None:
+    queue = demo_stream_queue(store)
+    if queue is None:
+        return None
+    return asyncio.create_task(DemoStreamRelay(queue, operator_broker).run())
 
 
 def _install_routes(app: FastAPI) -> None:

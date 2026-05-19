@@ -9,6 +9,7 @@ from typing import Any
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from cheeky_pony_backend.domain.reports import ReportRecord
+from cheeky_pony_backend.infra.mongo_demo_stream import MongoDemoStreamStoreMixin
 from cheeky_pony_backend.infra.mongo_engagements import MongoEngagementStoreMixin
 from cheeky_pony_backend.infra.mongo_users import MongoUserStoreMixin
 from cheeky_pony_backend.infra.signals_repo import MongoSignalsRepo, SignalsRepo
@@ -36,7 +37,7 @@ SYNTHETIC_COUNT_COLLECTIONS = (
 )
 
 
-class MongoStore(MongoUserStoreMixin, MongoEngagementStoreMixin):
+class MongoStore(MongoUserStoreMixin, MongoEngagementStoreMixin, MongoDemoStreamStoreMixin):
     """MongoDB implementation of the application store."""
 
     def __init__(self, dsn: str, database_name: str) -> None:
@@ -61,6 +62,7 @@ class MongoStore(MongoUserStoreMixin, MongoEngagementStoreMixin):
             unique=True,
         )
         await self.db.reports.create_index([("engagement_id", 1), ("id", 1)], unique=True)
+        await self.ensure_demo_stream_indexes()
 
     async def create_sensor(self, sensor: Sensor) -> Sensor:
         """Persist a sensor."""
