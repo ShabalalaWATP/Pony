@@ -3095,7 +3095,7 @@
     },
     "/api/v1/engagements/{engagement_id}/reports": {
       "post": {
-        "description": "Create an engagement report request.\n\nArgs:\n    engagement_id: Engagement identifier.\n    payload: Report request body.\n    background_tasks: FastAPI background task collector.\n    user: Current user.\n    store: Application store.\n    audit: Audit logger.\n\nReturns:\n    Created report identifier and initial status.",
+        "description": "Create an engagement report request.\n\nArgs:\n    engagement_id: Engagement identifier.\n    payload: Report request body.\n    background_tasks: FastAPI background task collector.\n    user: Current user.\n    store: Application store.\n    audit: Audit logger.\n    settings: Runtime settings.\n\nReturns:\n    Created report identifier and initial status.",
         "operationId": "create_report_api_v1_engagements__engagement_id__reports_post",
         "parameters": [
           {

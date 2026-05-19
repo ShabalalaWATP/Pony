@@ -692,6 +692,7 @@ export interface paths {
          *         user: Current user.
          *         store: Application store.
          *         audit: Audit logger.
+         *         settings: Runtime settings.
          *
          *     Returns:
          *         Created report identifier and initial status.
