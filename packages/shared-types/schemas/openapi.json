@@ -59,6 +59,48 @@
             "title": "Last Seen",
             "type": "string"
           },
+          "latitude": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -90.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude"
+          },
+          "location_source": {
+            "anyOf": [
+              {
+                "enum": [
+                  "sensor_gps",
+                  "wigle",
+                  "manual"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location Source"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": -180.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude"
+          },
           "signal_history": {
             "items": {
               "$ref": "#/components/schemas/SignalSample"
@@ -71,6 +113,11 @@
             "maxLength": 128,
             "title": "Ssid",
             "type": "string"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
           },
           "vendor_oui": {
             "anyOf": [
@@ -92,6 +139,7 @@
         "type": "object"
       },
       "AcknowledgementRequest": {
+        "additionalProperties": false,
         "description": "Authorized-operator acknowledgement request.",
         "properties": {
           "statement": {
@@ -107,7 +155,261 @@
         "title": "AcknowledgementRequest",
         "type": "object"
       },
+      "Alert": {
+        "additionalProperties": false,
+        "description": "Alert raised by rules or analysis workers.",
+        "properties": {
+          "acked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acked At"
+          },
+          "acked_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acked By"
+          },
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "related_entities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Entities",
+            "type": "array"
+          },
+          "rule_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/AlertSeverity"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "rule_id",
+          "severity"
+        ],
+        "title": "Alert",
+        "type": "object"
+      },
+      "AlertRule": {
+        "additionalProperties": false,
+        "description": "Operator-managed alert rule evaluated against normalized events.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Created By",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "predicate": {
+            "additionalProperties": true,
+            "title": "Predicate",
+            "type": "object"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/AlertSeverity"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "severity",
+          "predicate",
+          "created_by"
+        ],
+        "title": "AlertRule",
+        "type": "object"
+      },
+      "AlertRuleCreateRequest": {
+        "additionalProperties": false,
+        "description": "Alert rule creation request.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "predicate": {
+            "additionalProperties": true,
+            "title": "Predicate",
+            "type": "object"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/AlertSeverity"
+          }
+        },
+        "required": [
+          "name",
+          "severity",
+          "predicate"
+        ],
+        "title": "AlertRuleCreateRequest",
+        "type": "object"
+      },
+      "AlertRuleUpdateRequest": {
+        "additionalProperties": false,
+        "description": "Alert rule update request.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "predicate": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predicate"
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AlertSeverity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "AlertRuleUpdateRequest",
+        "type": "object"
+      },
+      "AlertSeverity": {
+        "description": "Alert severity buckets.",
+        "enum": [
+          "info",
+          "low",
+          "medium",
+          "high",
+          "critical"
+        ],
+        "title": "AlertSeverity",
+        "type": "string"
+      },
       "AllowTargetRequest": {
+        "additionalProperties": false,
         "description": "Allow-list target request.",
         "properties": {
           "kind": {
@@ -125,6 +427,27 @@
           "value"
         ],
         "title": "AllowTargetRequest",
+        "type": "object"
+      },
+      "AllowedTarget": {
+        "additionalProperties": false,
+        "description": "Engagement allow-list entry.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/TargetKind"
+          },
+          "value": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value"
+        ],
+        "title": "AllowedTarget",
         "type": "object"
       },
       "ApiPage_AccessPoint_": {
@@ -161,6 +484,114 @@
           "offset"
         ],
         "title": "ApiPage[AccessPoint]",
+        "type": "object"
+      },
+      "ApiPage_AlertRule_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AlertRule"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[AlertRule]",
+        "type": "object"
+      },
+      "ApiPage_Alert_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Alert"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[Alert]",
+        "type": "object"
+      },
+      "ApiPage_AllowedTarget_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AllowedTarget"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[AllowedTarget]",
         "type": "object"
       },
       "ApiPage_AuditLog_": {
@@ -235,6 +666,42 @@
         "title": "ApiPage[Client]",
         "type": "object"
       },
+      "ApiPage_Engagement_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Engagement"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[Engagement]",
+        "type": "object"
+      },
       "ApiPage_Event_": {
         "additionalProperties": false,
         "properties": {
@@ -271,6 +738,42 @@
         "title": "ApiPage[Event]",
         "type": "object"
       },
+      "ApiPage_LabActiveCommand_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LabActiveCommand"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[LabActiveCommand]",
+        "type": "object"
+      },
       "ApiPage_Sensor_": {
         "additionalProperties": false,
         "properties": {
@@ -305,6 +808,42 @@
           "offset"
         ],
         "title": "ApiPage[Sensor]",
+        "type": "object"
+      },
+      "ApiPage_UserPublic_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UserPublic"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[UserPublic]",
         "type": "object"
       },
       "AuditLog": {
@@ -440,6 +979,11 @@
             "title": "Signal History",
             "type": "array"
           },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
+          },
           "vendor_oui": {
             "anyOf": [
               {
@@ -457,6 +1001,33 @@
           "mac"
         ],
         "title": "Client",
+        "type": "object"
+      },
+      "DemoStatusResponse": {
+        "description": "Demo data presence summary.",
+        "properties": {
+          "last_seeded_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seeded At"
+          },
+          "synthetic_records": {
+            "minimum": 0.0,
+            "title": "Synthetic Records",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "synthetic_records"
+        ],
+        "title": "DemoStatusResponse",
         "type": "object"
       },
       "Engagement": {
@@ -499,6 +1070,11 @@
             "format": "date-time",
             "title": "Started At",
             "type": "string"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
           }
         },
         "required": [
@@ -509,6 +1085,7 @@
         "type": "object"
       },
       "EngagementCreateRequest": {
+        "additionalProperties": false,
         "description": "Engagement creation request.",
         "properties": {
           "name": {
@@ -562,6 +1139,11 @@
             "minLength": 1,
             "title": "Sensor Id",
             "type": "string"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
+            "type": "boolean"
           }
         },
         "required": [
@@ -578,6 +1160,8 @@
         "enum": [
           "access_point_seen",
           "client_seen",
+          "probe_request",
+          "association",
           "sensor_status",
           "command_result"
         ],
@@ -597,7 +1181,156 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "LabActiveCommand": {
+        "description": "Active lab command dashboard item.",
+        "properties": {
+          "command_id": {
+            "title": "Command Id",
+            "type": "string"
+          },
+          "engagement_id": {
+            "title": "Engagement Id",
+            "type": "string"
+          },
+          "module": {
+            "$ref": "#/components/schemas/LabModule"
+          },
+          "sensor_id": {
+            "title": "Sensor Id",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/LabTarget"
+          }
+        },
+        "required": [
+          "command_id",
+          "module",
+          "sensor_id",
+          "engagement_id",
+          "target",
+          "started_at"
+        ],
+        "title": "LabActiveCommand",
+        "type": "object"
+      },
+      "LabModule": {
+        "description": "Supported active lab modules.",
+        "enum": [
+          "rogue-ap",
+          "deauth",
+          "evil-twin",
+          "captive-portal",
+          "mitm"
+        ],
+        "title": "LabModule",
+        "type": "string"
+      },
+      "LabModuleStartRequest": {
+        "additionalProperties": false,
+        "description": "Active lab module start request.",
+        "properties": {
+          "engagement_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Engagement Id",
+            "type": "string"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "sensor_id": {
+            "maxLength": 96,
+            "minLength": 1,
+            "title": "Sensor Id",
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/LabTarget"
+          }
+        },
+        "required": [
+          "sensor_id",
+          "engagement_id",
+          "target"
+        ],
+        "title": "LabModuleStartRequest",
+        "type": "object"
+      },
+      "LabModuleStartResponse": {
+        "description": "Active lab module start response.",
+        "properties": {
+          "command_id": {
+            "title": "Command Id",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id",
+          "started_at"
+        ],
+        "title": "LabModuleStartResponse",
+        "type": "object"
+      },
+      "LabStatusResponse": {
+        "description": "Current lab gate status for operator UI banners.",
+        "properties": {
+          "acknowledgement_on_file": {
+            "title": "Acknowledgement On File",
+            "type": "boolean"
+          },
+          "is_admin_2fa": {
+            "title": "Is Admin 2Fa",
+            "type": "boolean"
+          },
+          "lab_mode": {
+            "title": "Lab Mode",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "lab_mode",
+          "acknowledgement_on_file",
+          "is_admin_2fa"
+        ],
+        "title": "LabStatusResponse",
+        "type": "object"
+      },
+      "LabTarget": {
+        "additionalProperties": false,
+        "description": "Active lab command target.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/TargetKind"
+          },
+          "value": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value"
+        ],
+        "title": "LabTarget",
+        "type": "object"
+      },
       "LoginRequest": {
+        "additionalProperties": false,
         "description": "User login request.",
         "properties": {
           "email": {
@@ -638,6 +1371,7 @@
         "type": "object"
       },
       "RegisterRequest": {
+        "additionalProperties": false,
         "description": "User registration request.",
         "properties": {
           "email": {
@@ -659,6 +1393,106 @@
         "title": "RegisterRequest",
         "type": "object"
       },
+      "ReportCreateRequest": {
+        "additionalProperties": false,
+        "description": "Report creation request.",
+        "properties": {
+          "format": {
+            "$ref": "#/components/schemas/ReportFormat"
+          },
+          "since": {
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          },
+          "until": {
+            "format": "date-time",
+            "title": "Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "format",
+          "since",
+          "until"
+        ],
+        "title": "ReportCreateRequest",
+        "type": "object"
+      },
+      "ReportCreateResponse": {
+        "description": "Report creation response.",
+        "properties": {
+          "report_id": {
+            "title": "Report Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReportStatus"
+          }
+        },
+        "required": [
+          "report_id",
+          "status"
+        ],
+        "title": "ReportCreateResponse",
+        "type": "object"
+      },
+      "ReportFormat": {
+        "description": "Supported engagement report formats.",
+        "enum": [
+          "pdf",
+          "html",
+          "pcap",
+          "jsonl"
+        ],
+        "title": "ReportFormat",
+        "type": "string"
+      },
+      "ReportStatus": {
+        "description": "Engagement report generation states.",
+        "enum": [
+          "pending",
+          "ready",
+          "failed"
+        ],
+        "title": "ReportStatus",
+        "type": "string"
+      },
+      "ReportStatusResponse": {
+        "description": "Report status response.",
+        "properties": {
+          "download_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Download Url"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReportStatus"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "ReportStatusResponse",
+        "type": "object"
+      },
       "Sensor": {
         "additionalProperties": false,
         "description": "Registered sensor identity and health metadata.",
@@ -669,6 +1503,18 @@
             },
             "title": "Capabilities",
             "type": "array"
+          },
+          "client_cert_fingerprint_sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Cert Fingerprint Sha256"
           },
           "id": {
             "maxLength": 96,
@@ -697,6 +1543,11 @@
           "revoked": {
             "default": false,
             "title": "Revoked",
+            "type": "boolean"
+          },
+          "synthetic": {
+            "default": false,
+            "title": "Synthetic",
             "type": "boolean"
           },
           "tailnet_ip": {
@@ -731,12 +1582,28 @@
           "deauth",
           "evil_twin",
           "captive_portal",
-          "mitm"
+          "mitm",
+          "geo"
         ],
         "title": "SensorCapability",
         "type": "string"
       },
+      "SensorCommandAcceptedResponse": {
+        "description": "Sensor command acceptance response.",
+        "properties": {
+          "command_id": {
+            "title": "Command Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command_id"
+        ],
+        "title": "SensorCommandAcceptedResponse",
+        "type": "object"
+      },
       "SensorRegisterRequest": {
+        "additionalProperties": false,
         "description": "Sensor registration payload.",
         "properties": {
           "capabilities": {
@@ -806,6 +1673,33 @@
           "ca_certificate_pem"
         ],
         "title": "SensorRegisterResponse",
+        "type": "object"
+      },
+      "SetChannelRequest": {
+        "additionalProperties": false,
+        "description": "Set-channel command body.",
+        "properties": {
+          "band": {
+            "enum": [
+              "2.4",
+              "5",
+              "6"
+            ],
+            "title": "Band",
+            "type": "string"
+          },
+          "channel": {
+            "maximum": 196.0,
+            "minimum": 1.0,
+            "title": "Channel",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "channel",
+          "band"
+        ],
+        "title": "SetChannelRequest",
         "type": "object"
       },
       "SignalSample": {
@@ -896,6 +1790,7 @@
         "type": "object"
       },
       "TotpVerifyRequest": {
+        "additionalProperties": false,
         "description": "TOTP verification request.",
         "properties": {
           "code": {
@@ -945,6 +1840,37 @@
           "email"
         ],
         "title": "UserPublic",
+        "type": "object"
+      },
+      "UserUpdateRequest": {
+        "additionalProperties": false,
+        "description": "Admin user update request.",
+        "properties": {
+          "reset_totp": {
+            "default": false,
+            "title": "Reset Totp",
+            "type": "boolean"
+          },
+          "roles": {
+            "anyOf": [
+              {
+                "items": {
+                  "enum": [
+                    "admin",
+                    "operator"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roles"
+          }
+        },
+        "title": "UserUpdateRequest",
         "type": "object"
       },
       "ValidationError": {
@@ -1095,6 +2021,384 @@
         ]
       }
     },
+    "/api/v1/access_points/{bssid}/clients": {
+      "get": {
+        "description": "List client devices associated with one access point.\n\nArgs:\n    bssid: Access point BSSID.\n    _: Current user.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated associated client list.",
+        "operationId": "list_access_point_clients_api_v1_access_points__bssid__clients_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bssid",
+            "required": true,
+            "schema": {
+              "title": "Bssid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_Client_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Access Point Clients",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/alerts": {
+      "get": {
+        "description": "List alerts with severity and acknowledgement filters.\n\nArgs:\n    _: Current user.\n    store: Application store.\n    severity: Optional repeated severity filter.\n    acked: Optional acknowledgement-state filter.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated alert list.",
+        "operationId": "list_alerts_api_v1_alerts_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "severity",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/AlertSeverity"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Severity"
+            }
+          },
+          {
+            "in": "query",
+            "name": "acked",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Acked"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_Alert_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Alerts",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/api/v1/alerts/rules": {
+      "get": {
+        "description": "List alert rules.\n\nArgs:\n    _: Current user.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated alert-rule list.",
+        "operationId": "list_alert_rules_api_v1_alerts_rules_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_AlertRule_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Alert Rules",
+        "tags": [
+          "alerts"
+        ]
+      },
+      "post": {
+        "description": "Create an alert rule.\n\nArgs:\n    payload: Rule payload.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n\nReturns:\n    Created alert rule.",
+        "operationId": "create_alert_rule_api_v1_alerts_rules_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertRuleCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertRule"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Alert Rule",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/api/v1/alerts/rules/{rule_id}": {
+      "delete": {
+        "description": "Delete an alert rule.\n\nArgs:\n    rule_id: Alert rule identifier.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.",
+        "operationId": "delete_alert_rule_api_v1_alerts_rules__rule_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "title": "Rule Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Alert Rule",
+        "tags": [
+          "alerts"
+        ]
+      },
+      "patch": {
+        "description": "Update an alert rule.\n\nArgs:\n    rule_id: Alert rule identifier.\n    payload: Rule update payload.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n\nReturns:\n    Updated alert rule.",
+        "operationId": "update_alert_rule_api_v1_alerts_rules__rule_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "rule_id",
+            "required": true,
+            "schema": {
+              "title": "Rule Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertRuleUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertRule"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Alert Rule",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/api/v1/alerts/{alert_id}/ack": {
+      "post": {
+        "description": "Acknowledge an alert.\n\nArgs:\n    alert_id: Alert identifier.\n    user: Current user.\n    store: Application store.\n    audit: Audit logger.",
+        "operationId": "ack_alert_api_v1_alerts__alert_id__ack_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "title": "Alert Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ack Alert",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
     "/api/v1/audit": {
       "get": {
         "description": "List audit entries.\n\nArgs:\n    _: Current admin with verified TOTP.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated audit entries.",
@@ -1154,7 +2458,7 @@
     },
     "/api/v1/auth/2fa/setup": {
       "post": {
-        "description": "Create or return a TOTP secret for the current user.\n\nArgs:\n    user: Current user.\n    store: Application store.\n    totp: TOTP service.\n\nReturns:\n    TOTP setup data.",
+        "description": "Create or rotate a TOTP secret for the current user.\n\nArgs:\n    user: Current user.\n    store: Application store.\n    totp: TOTP service.\n    settings: Runtime settings.\n\nReturns:\n    TOTP setup data.",
         "operationId": "setup_totp_api_v1_auth_2fa_setup_post",
         "responses": {
           "200": {
@@ -1258,6 +2562,21 @@
         ]
       }
     },
+    "/api/v1/auth/logout": {
+      "post": {
+        "description": "Clear browser session cookies and record a logout audit event.\n\nArgs:\n    response: FastAPI response.\n    user: Current authenticated user.\n    audit: Audit logger.\n    store: Application store.\n    settings: Runtime settings.",
+        "operationId": "logout_api_v1_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Logout",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/refresh": {
       "post": {
         "description": "Refresh an authenticated browser session.\n\nArgs:\n    request: FastAPI request.\n    response: FastAPI response.\n    store: Application store.\n    csrf: CSRF service.\n    tokens: Token service.\n    settings: Runtime settings.\n\nReturns:\n    Public user and new CSRF token.",
@@ -1282,7 +2601,7 @@
     },
     "/api/v1/auth/register": {
       "post": {
-        "description": "Register the first admin or an admin-created user.\n\nArgs:\n    payload: Registration payload.\n    request: FastAPI request.\n    store: Application store.\n    passwords: Password service.\n    tokens: Token service.\n\nReturns:\n    Created public user.",
+        "description": "Register the first admin or an admin-created user.\n\nArgs:\n    payload: Registration payload.\n    request: FastAPI request.\n    store: Application store.\n    passwords: Password service.\n    tokens: Token service.\n    settings: Runtime settings.\n\nReturns:\n    Created public user.",
         "operationId": "register_api_v1_auth_register_post",
         "requestBody": {
           "content": {
@@ -1423,8 +2742,63 @@
       }
     },
     "/api/v1/engagements": {
+      "get": {
+        "description": "List engagements.\n\nArgs:\n    _: Current user.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated engagements.",
+        "operationId": "list_engagements_api_v1_engagements_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_Engagement_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Engagements",
+        "tags": [
+          "engagements"
+        ]
+      },
       "post": {
-        "description": "Create an engagement.\n\nArgs:\n    payload: Engagement payload.\n    _: Current admin with verified TOTP.\n    store: Application store.\n\nReturns:\n    Created engagement.",
+        "description": "Create an engagement.\n\nArgs:\n    payload: Engagement payload.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n\nReturns:\n    Created engagement.",
         "operationId": "create_engagement_api_v1_engagements_post",
         "requestBody": {
           "content": {
@@ -1464,9 +2838,182 @@
         ]
       }
     },
+    "/api/v1/engagements/active": {
+      "get": {
+        "description": "Return the active engagement.\n\nArgs:\n    _: Current user.\n    store: Application store.\n\nReturns:\n    Active engagement.",
+        "operationId": "get_active_engagement_api_v1_engagements_active_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Engagement"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Active Engagement",
+        "tags": [
+          "engagements"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}": {
+      "get": {
+        "description": "Return a single engagement by id.\n\nArgs:\n    engagement_id: Engagement identifier.\n    _: Current user.\n    store: Application store.\n\nReturns:\n    Matching engagement.",
+        "operationId": "get_engagement_api_v1_engagements__engagement_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Engagement"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Engagement",
+        "tags": [
+          "engagements"
+        ]
+      }
+    },
     "/api/v1/engagements/{engagement_id}/allow-list": {
+      "delete": {
+        "description": "Remove a target from an engagement allow-list.\n\nArgs:\n    engagement_id: Engagement identifier.\n    payload: Target payload.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.",
+        "operationId": "remove_allowed_target_api_v1_engagements__engagement_id__allow_list_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AllowTargetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Allowed Target",
+        "tags": [
+          "engagements"
+        ]
+      },
+      "get": {
+        "description": "List targets allowed for an engagement.\n\nArgs:\n    engagement_id: Engagement identifier.\n    _: Current user.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated allowed targets.",
+        "operationId": "list_allowed_targets_api_v1_engagements__engagement_id__allow_list_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_AllowedTarget_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Allowed Targets",
+        "tags": [
+          "engagements"
+        ]
+      },
       "post": {
-        "description": "Add a target to an engagement allow-list.\n\nArgs:\n    engagement_id: Engagement identifier.\n    payload: Target payload.\n    _: Current admin with verified TOTP.\n    store: Application store.",
+        "description": "Add a target to an engagement allow-list.\n\nArgs:\n    engagement_id: Engagement identifier.\n    payload: Target payload.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.",
         "operationId": "allow_target_api_v1_engagements__engagement_id__allow_list_post",
         "parameters": [
           {
@@ -1505,6 +3052,248 @@
           }
         },
         "summary": "Allow Target",
+        "tags": [
+          "engagements"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}/end": {
+      "post": {
+        "description": "End an engagement and cancel scoped lab commands.\n\nArgs:\n    engagement_id: Engagement identifier.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n    command_broker: Sensor command broker.\n    operator_broker: Operator broker.",
+        "operationId": "end_engagement_api_v1_engagements__engagement_id__end_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "End Engagement",
+        "tags": [
+          "engagements"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}/reports": {
+      "post": {
+        "description": "Create an engagement report request.\n\nArgs:\n    engagement_id: Engagement identifier.\n    payload: Report request body.\n    background_tasks: FastAPI background task collector.\n    user: Current user.\n    store: Application store.\n    audit: Audit logger.\n    settings: Runtime settings.\n\nReturns:\n    Created report identifier and initial status.",
+        "operationId": "create_report_api_v1_engagements__engagement_id__reports_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportCreateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}/reports/{report_id}": {
+      "get": {
+        "description": "Return report generation status.\n\nArgs:\n    engagement_id: Engagement identifier.\n    report_id: Report identifier.\n    _: Current user.\n    store: Application store.\n    settings: Runtime settings.\n\nReturns:\n    Report status response with a signed download URL when ready.",
+        "operationId": "get_report_status_api_v1_engagements__engagement_id__reports__report_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Report Status",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}/reports/{report_id}/download": {
+      "get": {
+        "description": "Download a ready report through a signed URL.\n\nArgs:\n    engagement_id: Engagement identifier.\n    report_id: Report identifier.\n    _: Current user.\n    store: Application store.\n    settings: Runtime settings.\n    token: Signed download token.\n\nReturns:\n    Report file response.",
+        "operationId": "download_report_api_v1_engagements__engagement_id__reports__report_id__download_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "title": "Report Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Report",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}/resume": {
+      "post": {
+        "description": "Resume an ended engagement when no other engagement is active.\n\nArgs:\n    engagement_id: Engagement identifier.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n\nReturns:\n    Resumed engagement.",
+        "operationId": "resume_engagement_api_v1_engagements__engagement_id__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Engagement"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resume Engagement",
         "tags": [
           "engagements"
         ]
@@ -1610,6 +3399,181 @@
         ]
       }
     },
+    "/api/v1/lab/active": {
+      "get": {
+        "description": "List active lab commands.\n\nArgs:\n    _: Current user.\n    broker: Sensor command broker.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated active lab commands.",
+        "operationId": "list_active_lab_commands_api_v1_lab_active_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_LabActiveCommand_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Active Lab Commands",
+        "tags": [
+          "lab"
+        ]
+      }
+    },
+    "/api/v1/lab/status": {
+      "get": {
+        "description": "Return the current active-lab gate status.\n\nArgs:\n    user: Current user.\n    store: Application store.\n    settings: Runtime settings.\n\nReturns:\n    Lab mode, acknowledgement, and admin 2FA status.",
+        "operationId": "get_lab_status_api_v1_lab_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Lab Status",
+        "tags": [
+          "lab"
+        ]
+      }
+    },
+    "/api/v1/lab/{module}/start": {
+      "post": {
+        "description": "Start one gated active lab module.\n\nArgs:\n    module: Active lab module.\n    payload: Start request payload.\n    user: Current user.\n    store: Application store.\n    audit: Audit logger.\n    command_broker: Sensor command broker.\n    operator_broker: Operator broker.\n    settings: Runtime settings.\n\nReturns:\n    Accepted command identifier and start timestamp.",
+        "operationId": "start_lab_module_api_v1_lab__module__start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "module",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/LabModule"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabModuleStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabModuleStartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Lab Module",
+        "tags": [
+          "lab"
+        ]
+      }
+    },
+    "/api/v1/lab/{module}/stop/{command_id}": {
+      "post": {
+        "description": "Stop one gated active lab module.\n\nArgs:\n    module: Active lab module.\n    command_id: Active lab command identifier.\n    user: Current user.\n    store: Application store.\n    audit: Audit logger.\n    command_broker: Sensor command broker.\n    settings: Runtime settings.",
+        "operationId": "stop_lab_module_api_v1_lab__module__stop__command_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "module",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/LabModule"
+            }
+          },
+          {
+            "in": "path",
+            "name": "command_id",
+            "required": true,
+            "schema": {
+              "title": "Command Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stop Lab Module",
+        "tags": [
+          "lab"
+        ]
+      }
+    },
     "/api/v1/sensors": {
       "get": {
         "description": "List sensors.\n\nArgs:\n    _: Current admin with verified TOTP.\n    store: Application store.\n\nReturns:\n    Paginated sensor list.",
@@ -1632,7 +3596,7 @@
         ]
       },
       "post": {
-        "description": "Register a sensor and issue client certificate material.\n\nArgs:\n    payload: Sensor registration payload.\n    _: Current admin with verified TOTP.\n    store: Application store.\n\nReturns:\n    Registered sensor and certificate bundle.",
+        "description": "Register a sensor and issue client certificate material.\n\nArgs:\n    payload: Sensor registration payload.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n\nReturns:\n    Registered sensor and certificate bundle.",
         "operationId": "register_sensor_api_v1_sensors_post",
         "requestBody": {
           "content": {
@@ -1715,9 +3679,148 @@
         ]
       }
     },
+    "/api/v1/sensors/{sensor_id}/commands/restart": {
+      "post": {
+        "description": "Queue a sensor restart command.\n\nArgs:\n    sensor_id: Sensor identifier.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n    broker: Sensor command broker.\n\nReturns:\n    Accepted command identifier.",
+        "operationId": "restart_sensor_api_v1_sensors__sensor_id__commands_restart_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sensor_id",
+            "required": true,
+            "schema": {
+              "title": "Sensor Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorCommandAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Restart Sensor",
+        "tags": [
+          "sensors"
+        ]
+      }
+    },
+    "/api/v1/sensors/{sensor_id}/commands/set-channel": {
+      "post": {
+        "description": "Queue a sensor channel-change command.\n\nArgs:\n    sensor_id: Sensor identifier.\n    payload: Channel payload.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n    broker: Sensor command broker.\n\nReturns:\n    Accepted command identifier.",
+        "operationId": "set_sensor_channel_api_v1_sensors__sensor_id__commands_set_channel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sensor_id",
+            "required": true,
+            "schema": {
+              "title": "Sensor Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetChannelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorCommandAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Sensor Channel",
+        "tags": [
+          "sensors"
+        ]
+      }
+    },
+    "/api/v1/sensors/{sensor_id}/commands/update": {
+      "post": {
+        "description": "Queue a sensor update command.\n\nArgs:\n    sensor_id: Sensor identifier.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n    broker: Sensor command broker.\n\nReturns:\n    Accepted command identifier.",
+        "operationId": "update_sensor_agent_api_v1_sensors__sensor_id__commands_update_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sensor_id",
+            "required": true,
+            "schema": {
+              "title": "Sensor Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorCommandAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Sensor Agent",
+        "tags": [
+          "sensors"
+        ]
+      }
+    },
     "/api/v1/sensors/{sensor_id}/revoke": {
       "post": {
-        "description": "Revoke a sensor.\n\nArgs:\n    sensor_id: Sensor identifier.\n    _: Current admin with verified TOTP.\n    store: Application store.",
+        "description": "Revoke a sensor.\n\nArgs:\n    sensor_id: Sensor identifier.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.",
         "operationId": "revoke_sensor_api_v1_sensors__sensor_id__revoke_post",
         "parameters": [
           {
@@ -1790,6 +3893,138 @@
         "summary": "Create Authorized Operator Acknowledgement",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/system/demo-status": {
+      "get": {
+        "description": "Return demo data presence metadata.\n\nArgs:\n    _: Current user.\n    store: Application store.\n\nReturns:\n    Synthetic record count and last seed timestamp.",
+        "operationId": "demo_status_api_v1_system_demo_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Demo Status",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "description": "List users for admin settings.\n\nArgs:\n    _: Current admin with verified TOTP.\n    store: Application store.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated public users.",
+        "operationId": "list_users_api_v1_users_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_UserPublic_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Users",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/{user_id}": {
+      "patch": {
+        "description": "Update roles or reset TOTP for one user.\n\nArgs:\n    user_id: Target user identifier.\n    payload: Requested update.\n    actor: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n\nReturns:\n    Updated public user.",
+        "operationId": "update_user_api_v1_users__user_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update User",
+        "tags": [
+          "users"
         ]
       }
     },

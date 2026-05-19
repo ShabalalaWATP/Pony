@@ -4,10 +4,14 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, replace
+from datetime import UTC, datetime
 from typing import Any
 
 from cheeky_pony_shared import CommandKind, SensorCapability, SensorCommand
+
+_INTERFACE_RE = re.compile(r"^wlan[0-9]+$")
 
 
 @dataclass(frozen=True)
@@ -18,6 +22,9 @@ class CommandResult:
     accepted: bool
     outcome: str
     output: str = ""
+    command: str = ""
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
 
 
 class ToolRunner:
@@ -72,10 +79,27 @@ class CommandDispatcher:
             Command execution result.
         """
 
+        started_at = datetime.now(tz=UTC)
+        try:
+            result = await self._dispatch(command)
+        except Exception as exc:  # noqa: BLE001
+            result = CommandResult(command.id, False, "error", str(exc))
+        return replace(
+            result,
+            command=command.kind.value,
+            started_at=started_at,
+            finished_at=datetime.now(tz=UTC),
+        )
+
+    async def _dispatch(self, command: SensorCommand) -> CommandResult:
         if command.kind == CommandKind.START_MODULE:
             return await self._start_module(command)
         if command.kind == CommandKind.STOP_MODULE:
             return CommandResult(command.id, True, "stopped")
+        if command.kind == CommandKind.RESTART:
+            return await self._restart(command)
+        if command.kind == CommandKind.UPDATE:
+            return await self._update(command)
         if command.kind == CommandKind.START_CAPTURE:
             self._capturing = True
             return CommandResult(command.id, True, "capture_started")
@@ -88,11 +112,32 @@ class CommandDispatcher:
 
     async def _set_channel(self, command: SensorCommand) -> CommandResult:
         channel = int(command.parameters.get("channel", 0))
-        interface = str(command.parameters.get("interface", "wlan1"))
+        interface = command.interface or "wlan1"
         if SensorCapability.CHANNEL_CONTROL not in self._capabilities:
             return CommandResult(command.id, False, "capability_not_advertised")
+        if not _INTERFACE_RE.fullmatch(interface):
+            return CommandResult(command.id, False, "denied:invalid_interface")
         output = await self._runner.run(["iw", "dev", interface, "set", "channel", str(channel)])
         return CommandResult(command.id, True, "channel_set", output)
+
+    async def _restart(self, command: SensorCommand) -> CommandResult:
+        output = await self._runner.run(
+            [
+                "systemd-run",
+                "--user",
+                "--on-active=2",
+                "systemctl",
+                "--user",
+                "restart",
+                "cheeky-pony-sensor.service",
+            ],
+            timeout_seconds=10.0,
+        )
+        return CommandResult(command.id, True, "restart_requested", output)
+
+    async def _update(self, command: SensorCommand) -> CommandResult:
+        output = await self._runner.run(["cheeky-pony-sensor-update"], timeout_seconds=120.0)
+        return CommandResult(command.id, True, "update_requested", output)
 
     async def _start_module(self, command: SensorCommand) -> CommandResult:
         module = str(command.parameters.get("module", ""))
@@ -127,9 +172,16 @@ def result_payload(result: CommandResult) -> dict[str, Any]:
         JSON-ready command result payload.
     """
 
-    return {
+    payload = {
         "command_id": result.command_id,
         "accepted": result.accepted,
         "outcome": result.outcome,
         "output": result.output,
     }
+    if result.command:
+        payload["command"] = result.command
+    if result.started_at is not None:
+        payload["started_at"] = result.started_at.isoformat()
+    if result.finished_at is not None:
+        payload["finished_at"] = result.finished_at.isoformat()
+    return payload

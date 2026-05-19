@@ -14,10 +14,26 @@ from cryptography.x509.oid import NameOID
 class SensorCertificateBundle:
     """PEM-encoded certificate material returned once at registration."""
 
-    def __init__(self, certificate_pem: str, private_key_pem: str, ca_certificate_pem: str) -> None:
+    def __init__(
+        self,
+        certificate_pem: str,
+        private_key_pem: str,
+        ca_certificate_pem: str,
+        fingerprint_sha256: str,
+    ) -> None:
+        """Initialize a sensor certificate bundle.
+
+        Args:
+            certificate_pem: Client certificate PEM.
+            private_key_pem: Client private key PEM.
+            ca_certificate_pem: CA certificate PEM for client trust.
+            fingerprint_sha256: Client certificate SHA-256 fingerprint.
+        """
+
         self.certificate_pem = certificate_pem
         self.private_key_pem = private_key_pem
         self.ca_certificate_pem = ca_certificate_pem
+        self.fingerprint_sha256 = fingerprint_sha256
 
 
 def issue_sensor_certificate(sensor_id: str) -> SensorCertificateBundle:
@@ -55,4 +71,9 @@ def issue_sensor_certificate(sensor_id: str) -> SensorCertificateBundle:
         serialization.PrivateFormat.PKCS8,
         serialization.NoEncryption(),
     ).decode("ascii")
-    return SensorCertificateBundle(cert_pem, key_pem, cert_pem)
+    return SensorCertificateBundle(
+        cert_pem,
+        key_pem,
+        cert_pem,
+        cert.fingerprint(hashes.SHA256()).hex(),
+    )

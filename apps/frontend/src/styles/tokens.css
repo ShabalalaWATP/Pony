@@ -1,0 +1,48 @@
+/*
+ * Design tokens — see /docs/frontend-design.md §2 for full rationale.
+ * The raw HSL component values live here so we can compose colour-mix / alpha
+ * variants. Tailwind 4 `@theme` mappings live in globals.css and reference these.
+ */
+
+:root {
+  /* Surfaces */
+  --bg-0: 220 18% 4%;
+  --bg-1: 220 16% 7%;
+  --bg-2: 220 14% 10%;
+  --bg-3: 220 12% 14%;
+  --bg-inset: 220 22% 3%;
+
+  /* Foreground */
+  --fg-100: 220 14% 98%;
+  --fg-80: 220 12% 82%;
+  --fg-60: 220 10% 62%;
+  --fg-40: 220 8% 42%;
+  --fg-20: 220 6% 22%;
+
+  /* Accents — used sparingly. */
+  --accent-cyan: 188 95% 56%;
+  --accent-violet: 264 90% 70%;
+  --accent-amber: 38 100% 60%;
+  --accent-red: 0 90% 62%;
+  --accent-green: 142 70% 50%;
+
+  /* Mode signal — switches to violet when LAB_MODE is engaged. */
+  --mode-accent: var(--accent-cyan);
+
+  /* Glow — only on focus, active sensor, and fresh data. */
+  --glow-cyan: 0 0 0 1px hsl(var(--accent-cyan) / 0.4), 0 0 24px hsl(var(--accent-cyan) / 0.18);
+  --glow-violet:
+    0 0 0 1px hsl(var(--accent-violet) / 0.4), 0 0 24px hsl(var(--accent-violet) / 0.18);
+  --glow-mode: 0 0 0 1px hsl(var(--mode-accent) / 0.4), 0 0 24px hsl(var(--mode-accent) / 0.18);
+
+  /* Grid texture overlay — 32px grid, 1px lines at 4% opacity. */
+  --texture-grid-color: hsl(220 14% 98% / 0.04);
+  --texture-grid:
+    linear-gradient(var(--texture-grid-color) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(90deg, var(--texture-grid-color) 1px, transparent 1px) 0 0 / 32px 32px;
+}
+
+/* Lab-mode chrome shift — the only place the page chrome changes colour. */
+:root[data-lab-mode="true"] {
+  --mode-accent: var(--accent-violet);
+}

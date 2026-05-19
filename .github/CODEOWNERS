@@ -1,0 +1,20 @@
+# CODEOWNERS — declares which assistant owns which area of the repo.
+# All paths default to the repo owner; the patterns below make the
+# cross-agent split explicit so PRs surface the right scope at a glance.
+
+* @ShabalalaWATP
+
+# Backend, sensor-agent, infra, shared schemas, CI — owned by Codex
+/apps/backend/                  @ShabalalaWATP
+/apps/sensor-agent/             @ShabalalaWATP
+/infra/                         @ShabalalaWATP
+/packages/shared-types/         @ShabalalaWATP
+/scripts/                       @ShabalalaWATP
+/.github/workflows/sast.yml     @ShabalalaWATP
+/.github/workflows/sca.yml      @ShabalalaWATP
+/.github/workflows/dast.yml     @ShabalalaWATP
+/.github/workflows/release.yml  @ShabalalaWATP
+
+# Frontend, frontend design spec, frontend ADRs — owned by Claude Code
+/apps/frontend/                 @ShabalalaWATP
+/docs/frontend-design.md        @ShabalalaWATP

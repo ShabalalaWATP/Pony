@@ -3,8 +3,12 @@
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import re
 import secrets
 from collections import defaultdict, deque
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -76,11 +80,12 @@ class TokenService:
             csrf,
         )
 
-    def create_refresh_token(self, subject: str) -> str:
+    def create_refresh_token(self, subject: str, refresh_token_version: int) -> str:
         """Create a signed refresh token.
 
         Args:
             subject: User identifier.
+            refresh_token_version: User refresh-token version claim.
 
         Returns:
             Encoded JWT.
@@ -91,6 +96,7 @@ class TokenService:
             "refresh",
             timedelta(days=self._settings.refresh_token_days),
             None,
+            refresh_token_version,
         )
 
     def verify(self, token: str, expected_type: str) -> dict[str, Any]:
@@ -121,6 +127,7 @@ class TokenService:
         token_type: str,
         lifetime: timedelta,
         csrf: str | None,
+        refresh_token_version: int | None = None,
     ) -> str:
         now = datetime.now(tz=UTC)
         claims: dict[str, Any] = {
@@ -132,6 +139,8 @@ class TokenService:
         }
         if csrf:
             claims["csrf"] = csrf
+        if refresh_token_version is not None:
+            claims["rv"] = refresh_token_version
         return jwt.encode(claims, self._settings.jwt_secret, algorithm="HS256")
 
 
@@ -226,3 +235,118 @@ class RateLimiter:
             return False
         hits.append(now)
         return True
+
+    def reset(self, key: str) -> None:
+        """Clear rate-limit state for one key."""
+
+        self._hits.pop(key, None)
+
+    def clear(self) -> None:
+        """Clear all rate-limit state."""
+
+        self._hits.clear()
+
+
+_SUBJECT_CN_PATTERN = re.compile(r"(?:^|[,/])\s*CN\s*=\s*([^,/]+)")
+
+
+def sign_sensor_gateway_headers(
+    secret: str,
+    sensor_id: str,
+    subject: str,
+    fingerprint_sha256: str,
+    timestamp: int | None = None,
+) -> dict[str, str]:
+    """Create signed headers for a verified sensor-client certificate.
+
+    Args:
+        secret: Shared proxy/backend header-signing secret.
+        sensor_id: Sensor identifier from the verified certificate identity.
+        subject: Verified certificate subject.
+        fingerprint_sha256: Verified certificate SHA-256 fingerprint.
+        timestamp: Optional Unix timestamp.
+
+    Returns:
+        Headers consumed by the backend sensor gateway.
+    """
+
+    issued_at = timestamp or int(datetime.now(tz=UTC).timestamp())
+    signature = _sensor_gateway_signature(secret, sensor_id, subject, fingerprint_sha256, issued_at)
+    return {
+        "x-client-cert-subject": subject,
+        "x-client-cert-sha256": fingerprint_sha256.lower(),
+        "x-client-cert-timestamp": str(issued_at),
+        "x-client-cert-signature": signature,
+    }
+
+
+def verified_sensor_gateway_headers(
+    headers: Mapping[str, str],
+    secret: str | None,
+    sensor_id: str,
+    expected_fingerprint_sha256: str | None,
+    skew_seconds: int,
+    now: datetime | None = None,
+) -> bool:
+    """Validate proxy-signed mTLS identity headers for a sensor gateway.
+
+    Args:
+        headers: Incoming WebSocket headers.
+        secret: Shared proxy/backend header-signing secret.
+        sensor_id: Sensor id from the WebSocket query.
+        expected_fingerprint_sha256: Stored certificate fingerprint.
+        skew_seconds: Allowed signature timestamp skew.
+        now: Optional current time for deterministic tests.
+
+    Returns:
+        True when the signed identity matches the registered sensor.
+    """
+
+    if secret is None or expected_fingerprint_sha256 is None:
+        return False
+    subject = headers.get("x-client-cert-subject")
+    fingerprint = headers.get("x-client-cert-sha256")
+    timestamp = _header_timestamp(headers.get("x-client-cert-timestamp"))
+    actual_signature = headers.get("x-client-cert-signature")
+    if not subject or not fingerprint or timestamp is None or not actual_signature:
+        return False
+    if _common_name(subject) != sensor_id:
+        return False
+    if not secrets.compare_digest(fingerprint.lower(), expected_fingerprint_sha256.lower()):
+        return False
+    current = now or datetime.now(tz=UTC)
+    if abs(int(current.timestamp()) - timestamp) > skew_seconds:
+        return False
+    expected_signature = _sensor_gateway_signature(
+        secret,
+        sensor_id,
+        subject,
+        fingerprint.lower(),
+        timestamp,
+    )
+    return secrets.compare_digest(expected_signature, actual_signature)
+
+
+def _sensor_gateway_signature(
+    secret: str,
+    sensor_id: str,
+    subject: str,
+    fingerprint_sha256: str,
+    timestamp: int,
+) -> str:
+    message = "\n".join([sensor_id, subject, fingerprint_sha256.lower(), str(timestamp)])
+    return hmac.new(secret.encode(), message.encode(), hashlib.sha256).hexdigest()
+
+
+def _header_timestamp(value: str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
+def _common_name(subject: str) -> str | None:
+    match = _SUBJECT_CN_PATTERN.search(subject)
+    return match.group(1).strip() if match else None

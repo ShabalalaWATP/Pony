@@ -38,7 +38,9 @@ def main() -> None:
 
 
 def _write_json(path: Path, payload: Any) -> None:
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n"
+    )
 
 
 def _write_ts(path: Path, openapi: dict[str, Any]) -> None:
@@ -55,7 +57,7 @@ def _write_ts(path: Path, openapi: dict[str, Any]) -> None:
     for path_name in sorted(paths):
         body.append(f"  {json.dumps(path_name)}: Record<string, unknown>;")
     body.extend(["}", ""])
-    path.write_text("\n".join(body), encoding="utf-8")
+    path.write_text("\n".join(body), encoding="utf-8", newline="\n")
 
 
 if __name__ == "__main__":

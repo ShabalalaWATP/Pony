@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -31,6 +31,7 @@ class SensorCapability(StrEnum):
     EVIL_TWIN = "evil_twin"
     CAPTIVE_PORTAL = "captive_portal"
     MITM = "mitm"
+    GEO = "geo"
 
 
 class EventKind(StrEnum):
@@ -38,6 +39,8 @@ class EventKind(StrEnum):
 
     ACCESS_POINT_SEEN = "access_point_seen"
     CLIENT_SEEN = "client_seen"
+    PROBE_REQUEST = "probe_request"
+    ASSOCIATION = "association"
     SENSOR_STATUS = "sensor_status"
     COMMAND_RESULT = "command_result"
 
@@ -63,6 +66,8 @@ class TargetKind(StrEnum):
 class CommandKind(StrEnum):
     """Commands sent from backend to sensors."""
 
+    RESTART = "restart"
+    UPDATE = "update"
     START_CAPTURE = "start_capture"
     STOP_CAPTURE = "stop_capture"
     SET_CHANNEL = "set_channel"
@@ -93,6 +98,11 @@ class Sensor(StrictBase):
     capabilities: list[SensorCapability] = Field(default_factory=list)
     version: str = Field(min_length=1, max_length=64)
     revoked: bool = False
+    client_cert_fingerprint_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    synthetic: bool = False
 
 
 class AccessPoint(StrictBase):
@@ -108,6 +118,10 @@ class AccessPoint(StrictBase):
     signal_history: list[SignalSample] = Field(default_factory=list)
     vendor_oui: str | None = Field(default=None, max_length=128)
     flags: list[str] = Field(default_factory=list)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    location_source: Literal["sensor_gps", "wigle", "manual"] | None = None
+    synthetic: bool = False
 
 
 class Client(StrictBase):
@@ -123,6 +137,7 @@ class Client(StrictBase):
     first_seen: datetime = Field(default_factory=utc_now)
     last_seen: datetime = Field(default_factory=utc_now)
     signal_history: list[SignalSample] = Field(default_factory=list)
+    synthetic: bool = False
 
 
 class Event(StrictBase):
@@ -133,6 +148,7 @@ class Event(StrictBase):
     kind: EventKind
     payload: dict[str, Any]
     occurred_at: datetime = Field(default_factory=utc_now)
+    synthetic: bool = False
 
 
 class Alert(StrictBase):
@@ -144,6 +160,21 @@ class Alert(StrictBase):
     related_entities: list[str] = Field(default_factory=list)
     acked_by: str | None = None
     acked_at: datetime | None = None
+    synthetic: bool = False
+
+
+class AlertRule(StrictBase):
+    """Operator-managed alert rule evaluated against normalized events."""
+
+    id: str = Field(min_length=1, max_length=128)
+    name: str = Field(min_length=1, max_length=128)
+    description: str | None = Field(default=None, max_length=512)
+    severity: AlertSeverity
+    enabled: bool = True
+    predicate: dict[str, Any]
+    created_by: str = Field(min_length=1, max_length=128)
+    created_at: datetime = Field(default_factory=utc_now)
+    synthetic: bool = False
 
 
 class AuditLog(StrictBase):
@@ -169,6 +200,14 @@ class Engagement(StrictBase):
     scope_rules: list[dict[str, Any]] = Field(default_factory=list)
     started_at: datetime = Field(default_factory=utc_now)
     ended_at: datetime | None = None
+    synthetic: bool = False
+
+
+class AllowedTarget(StrictBase):
+    """Engagement allow-list entry."""
+
+    kind: TargetKind
+    value: str = Field(min_length=1, max_length=128)
 
 
 class UserPublic(StrictBase):
@@ -195,6 +234,7 @@ class SensorCommand(StrictBase):
     id: str = Field(min_length=1, max_length=128)
     kind: CommandKind
     parameters: dict[str, Any] = Field(default_factory=dict)
+    interface: str | None = Field(default=None, max_length=64)
     lab_mode: bool = False
 
     @field_validator("parameters")

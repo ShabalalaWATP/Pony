@@ -12,6 +12,8 @@ from cheeky_pony_backend.config import Settings, get_settings
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.users import UserRecord
+from cheeky_pony_backend.infra.operator_broker import OperatorBroker
+from cheeky_pony_backend.infra.sensor_command_broker import SensorCommandBroker
 from cheeky_pony_backend.security import (
     CsrfService,
     PasswordService,
@@ -23,7 +25,8 @@ from cheeky_pony_backend.security import (
 PASSWORD_SERVICE = PasswordService()
 TOTP_SERVICE = TotpService()
 CSRF_SERVICE = CsrfService()
-AUTH_RATE_LIMITER = RateLimiter(limit=100)
+AUTH_RATE_LIMITER = RateLimiter(limit=10)
+ACCOUNT_AUTH_RATE_LIMITER = RateLimiter(limit=10)
 
 
 def get_store(request: Request) -> Store:
@@ -37,6 +40,32 @@ def get_store(request: Request) -> Store:
     """
 
     return cast(Store, request.app.state.store)
+
+
+def get_sensor_command_broker(request: Request) -> SensorCommandBroker:
+    """Return the sensor command broker from FastAPI state.
+
+    Args:
+        request: FastAPI request.
+
+    Returns:
+        Sensor command broker.
+    """
+
+    return cast(SensorCommandBroker, request.app.state.sensor_command_broker)
+
+
+def get_operator_broker(request: Request) -> OperatorBroker:
+    """Return the operator broker from FastAPI state.
+
+    Args:
+        request: FastAPI request.
+
+    Returns:
+        Operator broker.
+    """
+
+    return cast(OperatorBroker, request.app.state.operator_broker)
 
 
 def get_password_service() -> PasswordService:
@@ -148,17 +177,21 @@ async def require_admin(user: Annotated[UserRecord, Depends(current_user)]) -> U
     return user
 
 
-async def require_admin_2fa(user: Annotated[UserRecord, Depends(require_admin)]) -> UserRecord:
+async def require_admin_2fa(
+    user: Annotated[UserRecord, Depends(require_admin)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> UserRecord:
     """Require admin role and verified TOTP.
 
     Args:
         user: Current admin user.
+        settings: Runtime settings.
 
     Returns:
         Current admin user with TOTP verification.
     """
 
-    if not user.has_recent_totp():
+    if not user.has_recent_totp(settings.totp_recent_minutes):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="totp_required")
     return user
 
@@ -176,6 +209,33 @@ def check_auth_rate_limit(request: Request) -> None:
     host = request.client.host if request.client else "unknown"
     if not AUTH_RATE_LIMITER.allow(host):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="rate_limited")
+
+
+def check_account_auth_rate_limit(email: str) -> None:
+    """Apply the account-level auth endpoint rate limit.
+
+    Args:
+        email: Target account email address.
+
+    Raises:
+        HTTPException: When the limit is exceeded.
+    """
+
+    if not ACCOUNT_AUTH_RATE_LIMITER.allow(email.lower()):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="rate_limited")
+
+
+def reset_account_auth_rate_limit(email: str) -> None:
+    """Clear account-level auth throttling after successful login."""
+
+    ACCOUNT_AUTH_RATE_LIMITER.reset(email.lower())
+
+
+def reset_auth_rate_limiters() -> None:
+    """Clear in-process auth throttles for isolated tests."""
+
+    AUTH_RATE_LIMITER.clear()
+    ACCOUNT_AUTH_RATE_LIMITER.clear()
 
 
 def _bearer_token(request: Request) -> str | None:

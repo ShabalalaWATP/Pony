@@ -4,7 +4,9 @@
 from cheeky_pony_shared.models import (
     AccessPoint,
     Alert,
+    AlertRule,
     AlertSeverity,
+    AllowedTarget,
     ApiPage,
     AuditLog,
     Client,
@@ -24,7 +26,9 @@ from cheeky_pony_shared.models import (
 __all__ = [
     "AccessPoint",
     "Alert",
+    "AlertRule",
     "AlertSeverity",
+    "AllowedTarget",
     "ApiPage",
     "AuditLog",
     "Client",

@@ -1,0 +1,139 @@
+import "@testing-library/jest-dom/vitest";
+import { afterAll, afterEach, beforeAll } from "vitest";
+import { act, cleanup } from "@testing-library/react";
+import { server } from "./msw/server";
+import { SilentWebSocket } from "./silentWebSocket";
+
+// One msw server for every test. Files that need bespoke handlers use
+// `server.use(...)` inside their own beforeEach. Unhandled requests fail
+// immediately so missing mocks surface as errors instead of hangs.
+//
+// msw v2 patches the global `WebSocket` constructor when `listen()`
+// runs so it can intercept connections. We don't want that — our
+// SilentWebSocket already swallows the unit-test WS chatter. Reapply
+// the silent stub after listen so msw's wrapper never receives a
+// `new WebSocket(...)` call.
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: "error" });
+  installSilentWebSocket();
+});
+afterEach(() => {
+  // Wrap unmount in `act` so any sync state updates the components
+  // fire during teardown are observed inside this test's scope
+  // rather than logged as "not wrapped in act(...)" against the next
+  // test.
+  act(() => {
+    cleanup();
+  });
+  server.resetHandlers();
+  // Tests that swap WebSocket via `vi.stubGlobal` are responsible for
+  // their own teardown; `vi.unstubAllGlobals` in their `afterEach`
+  // restores the silent stub installed below.
+});
+afterAll(() => server.close());
+
+function installSilentWebSocket(): void {
+  Object.defineProperty(globalThis, "WebSocket", {
+    writable: true,
+    configurable: true,
+    value: SilentWebSocket,
+  });
+}
+
+const noop = (): void => undefined;
+
+// jsdom doesn't implement matchMedia — used by useReducedMotion.
+if (typeof window !== "undefined" && !window.matchMedia) {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: noop,
+      removeListener: noop,
+      addEventListener: noop,
+      removeEventListener: noop,
+      dispatchEvent: () => false,
+    }),
+  });
+}
+
+// jsdom defines `window.scrollTo` as a function that throws
+// `Not implemented: window.scrollTo`. TanStack Router calls it during
+// route mount, so we have to overwrite it unconditionally — checking
+// `typeof === "function"` would leave the throwing stub in place.
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "scrollTo", {
+    writable: true,
+    configurable: true,
+    value: noop,
+  });
+}
+
+// jsdom doesn't implement Element.scrollIntoView — TanStack Router's
+// <Link> calls it on intent-preload, which would otherwise throw and
+// trigger the route's CatchBoundary, leaving the test DOM empty.
+if (typeof Element !== "undefined" && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = noop;
+}
+
+// jsdom returns 0 for layout dimensions. TanStack Virtual's measurement
+// path (offsetHeight + getBoundingClientRect) then reports an empty
+// viewport and refuses to render rows. Stub both with sensible defaults
+// so virtualised tables render in tests.
+if (typeof window !== "undefined") {
+  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+    configurable: true,
+    get() {
+      const fromAttr = (this as HTMLElement).getAttribute?.("data-test-height");
+      return fromAttr ? Number(fromAttr) : 600;
+    },
+  });
+  Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+    configurable: true,
+    get() {
+      return 800;
+    },
+  });
+  Element.prototype.getBoundingClientRect = function getBoundingClientRect(this: Element): DOMRect {
+    // Always return a non-zero rect — TanStack Virtual and Recharts
+    // refuse to render anything when measurements come back 0×0.
+    return {
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 800,
+      bottom: 600,
+      width: 800,
+      height: 600,
+      toJSON: () => "",
+    };
+  };
+}
+
+// jsdom doesn't implement ResizeObserver — cmdk's <Command.List> uses it
+// to size itself.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  class StubResizeObserver {
+    observe(): void {
+      // noop
+    }
+    unobserve(): void {
+      // noop
+    }
+    disconnect(): void {
+      // noop
+    }
+  }
+  Object.defineProperty(globalThis, "ResizeObserver", {
+    writable: true,
+    value: StubResizeObserver,
+  });
+}
+
+// Initial install — msw's `server.listen()` in the `beforeAll` above
+// will reinstall this after patching the global so the silent stub
+// always wins.
+installSilentWebSocket();

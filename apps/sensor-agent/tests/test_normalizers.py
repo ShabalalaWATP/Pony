@@ -35,6 +35,7 @@ def test_normalize_access_point_event() -> None:
 
     assert events[0].kind == EventKind.ACCESS_POINT_SEEN
     assert events[0].payload["bssid"] == "AA:BB:CC:DD:EE:FF"
+    assert "synthetic" not in events[0].payload
 
 
 def test_normalize_client_event() -> None:
@@ -51,3 +52,4 @@ def test_normalize_client_event() -> None:
 
     assert events[0].kind == EventKind.CLIENT_SEEN
     assert events[0].payload["mac"] == "11:22:33:44:55:66"
+    assert "synthetic" not in events[0].payload

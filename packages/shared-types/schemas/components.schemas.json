@@ -57,6 +57,48 @@
         "title": "Last Seen",
         "type": "string"
       },
+      "latitude": {
+        "anyOf": [
+          {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Latitude"
+      },
+      "location_source": {
+        "anyOf": [
+          {
+            "enum": [
+              "sensor_gps",
+              "wigle",
+              "manual"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Location Source"
+      },
+      "longitude": {
+        "anyOf": [
+          {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Longitude"
+      },
       "signal_history": {
         "items": {
           "$ref": "#/components/schemas/SignalSample"
@@ -69,6 +111,11 @@
         "maxLength": 128,
         "title": "Ssid",
         "type": "string"
+      },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
+        "type": "boolean"
       },
       "vendor_oui": {
         "anyOf": [
@@ -90,6 +137,7 @@
     "type": "object"
   },
   "AcknowledgementRequest": {
+    "additionalProperties": false,
     "description": "Authorized-operator acknowledgement request.",
     "properties": {
       "statement": {
@@ -105,7 +153,261 @@
     "title": "AcknowledgementRequest",
     "type": "object"
   },
+  "Alert": {
+    "additionalProperties": false,
+    "description": "Alert raised by rules or analysis workers.",
+    "properties": {
+      "acked_at": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Acked At"
+      },
+      "acked_by": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Acked By"
+      },
+      "id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Id",
+        "type": "string"
+      },
+      "related_entities": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Related Entities",
+        "type": "array"
+      },
+      "rule_id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Rule Id",
+        "type": "string"
+      },
+      "severity": {
+        "$ref": "#/components/schemas/AlertSeverity"
+      },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "id",
+      "rule_id",
+      "severity"
+    ],
+    "title": "Alert",
+    "type": "object"
+  },
+  "AlertRule": {
+    "additionalProperties": false,
+    "description": "Operator-managed alert rule evaluated against normalized events.",
+    "properties": {
+      "created_at": {
+        "format": "date-time",
+        "title": "Created At",
+        "type": "string"
+      },
+      "created_by": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Created By",
+        "type": "string"
+      },
+      "description": {
+        "anyOf": [
+          {
+            "maxLength": 512,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Description"
+      },
+      "enabled": {
+        "default": true,
+        "title": "Enabled",
+        "type": "boolean"
+      },
+      "id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Id",
+        "type": "string"
+      },
+      "name": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "predicate": {
+        "additionalProperties": true,
+        "title": "Predicate",
+        "type": "object"
+      },
+      "severity": {
+        "$ref": "#/components/schemas/AlertSeverity"
+      },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "id",
+      "name",
+      "severity",
+      "predicate",
+      "created_by"
+    ],
+    "title": "AlertRule",
+    "type": "object"
+  },
+  "AlertRuleCreateRequest": {
+    "additionalProperties": false,
+    "description": "Alert rule creation request.",
+    "properties": {
+      "description": {
+        "anyOf": [
+          {
+            "maxLength": 512,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Description"
+      },
+      "enabled": {
+        "default": true,
+        "title": "Enabled",
+        "type": "boolean"
+      },
+      "name": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      },
+      "predicate": {
+        "additionalProperties": true,
+        "title": "Predicate",
+        "type": "object"
+      },
+      "severity": {
+        "$ref": "#/components/schemas/AlertSeverity"
+      }
+    },
+    "required": [
+      "name",
+      "severity",
+      "predicate"
+    ],
+    "title": "AlertRuleCreateRequest",
+    "type": "object"
+  },
+  "AlertRuleUpdateRequest": {
+    "additionalProperties": false,
+    "description": "Alert rule update request.",
+    "properties": {
+      "description": {
+        "anyOf": [
+          {
+            "maxLength": 512,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Description"
+      },
+      "enabled": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Enabled"
+      },
+      "name": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name"
+      },
+      "predicate": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Predicate"
+      },
+      "severity": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/AlertSeverity"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "title": "AlertRuleUpdateRequest",
+    "type": "object"
+  },
+  "AlertSeverity": {
+    "description": "Alert severity buckets.",
+    "enum": [
+      "info",
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ],
+    "title": "AlertSeverity",
+    "type": "string"
+  },
   "AllowTargetRequest": {
+    "additionalProperties": false,
     "description": "Allow-list target request.",
     "properties": {
       "kind": {
@@ -123,6 +425,27 @@
       "value"
     ],
     "title": "AllowTargetRequest",
+    "type": "object"
+  },
+  "AllowedTarget": {
+    "additionalProperties": false,
+    "description": "Engagement allow-list entry.",
+    "properties": {
+      "kind": {
+        "$ref": "#/components/schemas/TargetKind"
+      },
+      "value": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Value",
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind",
+      "value"
+    ],
+    "title": "AllowedTarget",
     "type": "object"
   },
   "ApiPage_AccessPoint_": {
@@ -159,6 +482,114 @@
       "offset"
     ],
     "title": "ApiPage[AccessPoint]",
+    "type": "object"
+  },
+  "ApiPage_AlertRule_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/AlertRule"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[AlertRule]",
+    "type": "object"
+  },
+  "ApiPage_Alert_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/Alert"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[Alert]",
+    "type": "object"
+  },
+  "ApiPage_AllowedTarget_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/AllowedTarget"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[AllowedTarget]",
     "type": "object"
   },
   "ApiPage_AuditLog_": {
@@ -233,6 +664,42 @@
     "title": "ApiPage[Client]",
     "type": "object"
   },
+  "ApiPage_Engagement_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/Engagement"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[Engagement]",
+    "type": "object"
+  },
   "ApiPage_Event_": {
     "additionalProperties": false,
     "properties": {
@@ -269,6 +736,42 @@
     "title": "ApiPage[Event]",
     "type": "object"
   },
+  "ApiPage_LabActiveCommand_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/LabActiveCommand"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[LabActiveCommand]",
+    "type": "object"
+  },
   "ApiPage_Sensor_": {
     "additionalProperties": false,
     "properties": {
@@ -303,6 +806,42 @@
       "offset"
     ],
     "title": "ApiPage[Sensor]",
+    "type": "object"
+  },
+  "ApiPage_UserPublic_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/UserPublic"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[UserPublic]",
     "type": "object"
   },
   "AuditLog": {
@@ -438,6 +977,11 @@
         "title": "Signal History",
         "type": "array"
       },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
+        "type": "boolean"
+      },
       "vendor_oui": {
         "anyOf": [
           {
@@ -455,6 +999,33 @@
       "mac"
     ],
     "title": "Client",
+    "type": "object"
+  },
+  "DemoStatusResponse": {
+    "description": "Demo data presence summary.",
+    "properties": {
+      "last_seeded_at": {
+        "anyOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Last Seeded At"
+      },
+      "synthetic_records": {
+        "minimum": 0.0,
+        "title": "Synthetic Records",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "synthetic_records"
+    ],
+    "title": "DemoStatusResponse",
     "type": "object"
   },
   "Engagement": {
@@ -497,6 +1068,11 @@
         "format": "date-time",
         "title": "Started At",
         "type": "string"
+      },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
+        "type": "boolean"
       }
     },
     "required": [
@@ -507,6 +1083,7 @@
     "type": "object"
   },
   "EngagementCreateRequest": {
+    "additionalProperties": false,
     "description": "Engagement creation request.",
     "properties": {
       "name": {
@@ -560,6 +1137,11 @@
         "minLength": 1,
         "title": "Sensor Id",
         "type": "string"
+      },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
+        "type": "boolean"
       }
     },
     "required": [
@@ -576,6 +1158,8 @@
     "enum": [
       "access_point_seen",
       "client_seen",
+      "probe_request",
+      "association",
       "sensor_status",
       "command_result"
     ],
@@ -595,7 +1179,156 @@
     "title": "HTTPValidationError",
     "type": "object"
   },
+  "LabActiveCommand": {
+    "description": "Active lab command dashboard item.",
+    "properties": {
+      "command_id": {
+        "title": "Command Id",
+        "type": "string"
+      },
+      "engagement_id": {
+        "title": "Engagement Id",
+        "type": "string"
+      },
+      "module": {
+        "$ref": "#/components/schemas/LabModule"
+      },
+      "sensor_id": {
+        "title": "Sensor Id",
+        "type": "string"
+      },
+      "started_at": {
+        "format": "date-time",
+        "title": "Started At",
+        "type": "string"
+      },
+      "target": {
+        "$ref": "#/components/schemas/LabTarget"
+      }
+    },
+    "required": [
+      "command_id",
+      "module",
+      "sensor_id",
+      "engagement_id",
+      "target",
+      "started_at"
+    ],
+    "title": "LabActiveCommand",
+    "type": "object"
+  },
+  "LabModule": {
+    "description": "Supported active lab modules.",
+    "enum": [
+      "rogue-ap",
+      "deauth",
+      "evil-twin",
+      "captive-portal",
+      "mitm"
+    ],
+    "title": "LabModule",
+    "type": "string"
+  },
+  "LabModuleStartRequest": {
+    "additionalProperties": false,
+    "description": "Active lab module start request.",
+    "properties": {
+      "engagement_id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Engagement Id",
+        "type": "string"
+      },
+      "parameters": {
+        "additionalProperties": true,
+        "title": "Parameters",
+        "type": "object"
+      },
+      "sensor_id": {
+        "maxLength": 96,
+        "minLength": 1,
+        "title": "Sensor Id",
+        "type": "string"
+      },
+      "target": {
+        "$ref": "#/components/schemas/LabTarget"
+      }
+    },
+    "required": [
+      "sensor_id",
+      "engagement_id",
+      "target"
+    ],
+    "title": "LabModuleStartRequest",
+    "type": "object"
+  },
+  "LabModuleStartResponse": {
+    "description": "Active lab module start response.",
+    "properties": {
+      "command_id": {
+        "title": "Command Id",
+        "type": "string"
+      },
+      "started_at": {
+        "format": "date-time",
+        "title": "Started At",
+        "type": "string"
+      }
+    },
+    "required": [
+      "command_id",
+      "started_at"
+    ],
+    "title": "LabModuleStartResponse",
+    "type": "object"
+  },
+  "LabStatusResponse": {
+    "description": "Current lab gate status for operator UI banners.",
+    "properties": {
+      "acknowledgement_on_file": {
+        "title": "Acknowledgement On File",
+        "type": "boolean"
+      },
+      "is_admin_2fa": {
+        "title": "Is Admin 2Fa",
+        "type": "boolean"
+      },
+      "lab_mode": {
+        "title": "Lab Mode",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "lab_mode",
+      "acknowledgement_on_file",
+      "is_admin_2fa"
+    ],
+    "title": "LabStatusResponse",
+    "type": "object"
+  },
+  "LabTarget": {
+    "additionalProperties": false,
+    "description": "Active lab command target.",
+    "properties": {
+      "kind": {
+        "$ref": "#/components/schemas/TargetKind"
+      },
+      "value": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Value",
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind",
+      "value"
+    ],
+    "title": "LabTarget",
+    "type": "object"
+  },
   "LoginRequest": {
+    "additionalProperties": false,
     "description": "User login request.",
     "properties": {
       "email": {
@@ -636,6 +1369,7 @@
     "type": "object"
   },
   "RegisterRequest": {
+    "additionalProperties": false,
     "description": "User registration request.",
     "properties": {
       "email": {
@@ -657,6 +1391,106 @@
     "title": "RegisterRequest",
     "type": "object"
   },
+  "ReportCreateRequest": {
+    "additionalProperties": false,
+    "description": "Report creation request.",
+    "properties": {
+      "format": {
+        "$ref": "#/components/schemas/ReportFormat"
+      },
+      "since": {
+        "format": "date-time",
+        "title": "Since",
+        "type": "string"
+      },
+      "until": {
+        "format": "date-time",
+        "title": "Until",
+        "type": "string"
+      }
+    },
+    "required": [
+      "format",
+      "since",
+      "until"
+    ],
+    "title": "ReportCreateRequest",
+    "type": "object"
+  },
+  "ReportCreateResponse": {
+    "description": "Report creation response.",
+    "properties": {
+      "report_id": {
+        "title": "Report Id",
+        "type": "string"
+      },
+      "status": {
+        "$ref": "#/components/schemas/ReportStatus"
+      }
+    },
+    "required": [
+      "report_id",
+      "status"
+    ],
+    "title": "ReportCreateResponse",
+    "type": "object"
+  },
+  "ReportFormat": {
+    "description": "Supported engagement report formats.",
+    "enum": [
+      "pdf",
+      "html",
+      "pcap",
+      "jsonl"
+    ],
+    "title": "ReportFormat",
+    "type": "string"
+  },
+  "ReportStatus": {
+    "description": "Engagement report generation states.",
+    "enum": [
+      "pending",
+      "ready",
+      "failed"
+    ],
+    "title": "ReportStatus",
+    "type": "string"
+  },
+  "ReportStatusResponse": {
+    "description": "Report status response.",
+    "properties": {
+      "download_url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Download Url"
+      },
+      "error": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Error"
+      },
+      "status": {
+        "$ref": "#/components/schemas/ReportStatus"
+      }
+    },
+    "required": [
+      "status"
+    ],
+    "title": "ReportStatusResponse",
+    "type": "object"
+  },
   "Sensor": {
     "additionalProperties": false,
     "description": "Registered sensor identity and health metadata.",
@@ -667,6 +1501,18 @@
         },
         "title": "Capabilities",
         "type": "array"
+      },
+      "client_cert_fingerprint_sha256": {
+        "anyOf": [
+          {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Client Cert Fingerprint Sha256"
       },
       "id": {
         "maxLength": 96,
@@ -695,6 +1541,11 @@
       "revoked": {
         "default": false,
         "title": "Revoked",
+        "type": "boolean"
+      },
+      "synthetic": {
+        "default": false,
+        "title": "Synthetic",
         "type": "boolean"
       },
       "tailnet_ip": {
@@ -729,12 +1580,28 @@
       "deauth",
       "evil_twin",
       "captive_portal",
-      "mitm"
+      "mitm",
+      "geo"
     ],
     "title": "SensorCapability",
     "type": "string"
   },
+  "SensorCommandAcceptedResponse": {
+    "description": "Sensor command acceptance response.",
+    "properties": {
+      "command_id": {
+        "title": "Command Id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "command_id"
+    ],
+    "title": "SensorCommandAcceptedResponse",
+    "type": "object"
+  },
   "SensorRegisterRequest": {
+    "additionalProperties": false,
     "description": "Sensor registration payload.",
     "properties": {
       "capabilities": {
@@ -804,6 +1671,33 @@
       "ca_certificate_pem"
     ],
     "title": "SensorRegisterResponse",
+    "type": "object"
+  },
+  "SetChannelRequest": {
+    "additionalProperties": false,
+    "description": "Set-channel command body.",
+    "properties": {
+      "band": {
+        "enum": [
+          "2.4",
+          "5",
+          "6"
+        ],
+        "title": "Band",
+        "type": "string"
+      },
+      "channel": {
+        "maximum": 196.0,
+        "minimum": 1.0,
+        "title": "Channel",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "channel",
+      "band"
+    ],
+    "title": "SetChannelRequest",
     "type": "object"
   },
   "SignalSample": {
@@ -894,6 +1788,7 @@
     "type": "object"
   },
   "TotpVerifyRequest": {
+    "additionalProperties": false,
     "description": "TOTP verification request.",
     "properties": {
       "code": {
@@ -943,6 +1838,37 @@
       "email"
     ],
     "title": "UserPublic",
+    "type": "object"
+  },
+  "UserUpdateRequest": {
+    "additionalProperties": false,
+    "description": "Admin user update request.",
+    "properties": {
+      "reset_totp": {
+        "default": false,
+        "title": "Reset Totp",
+        "type": "boolean"
+      },
+      "roles": {
+        "anyOf": [
+          {
+            "items": {
+              "enum": [
+                "admin",
+                "operator"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Roles"
+      }
+    },
+    "title": "UserUpdateRequest",
     "type": "object"
   },
   "ValidationError": {

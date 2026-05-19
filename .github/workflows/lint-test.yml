@@ -24,9 +24,40 @@ jobs:
       - run: ruff check apps packages scripts
       - run: ruff format --check apps packages scripts
       - run: mypy apps/backend/src apps/sensor-agent/src packages/shared-types/src scripts
-      - run: pytest apps/backend/tests apps/sensor-agent/tests --cov=cheeky_pony_backend --cov=cheeky_pony_sensor --cov=cheeky_pony_shared --cov-report=xml --cov-report=term-missing --cov-fail-under=85
+      - run: pytest apps/backend/tests apps/sensor-agent/tests -m "not slow" --cov=cheeky_pony_backend --cov=cheeky_pony_sensor --cov=cheeky_pony_shared --cov-report=xml --cov-report=term-missing --cov-fail-under=85
       - run: python scripts/generate-openapi-types.py
       - run: git diff --ignore-space-at-eol --exit-code packages/shared-types
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install workspace deps
+        run: pnpm install --no-frozen-lockfile
+      - name: Regenerate frontend API types
+        run: pnpm --filter @cheeky-pony/frontend run generate:api-types
+      - name: Fail if generated frontend types drift from committed copy
+        run: git diff --ignore-space-at-eol --exit-code apps/frontend/src/services/api/openapi.d.ts
+      - name: Regenerate frontend route tree
+        run: pnpm --filter @cheeky-pony/frontend run generate:routes
+      - name: Fail if generated route tree drifts from committed copy
+        run: git diff --ignore-space-at-eol --exit-code apps/frontend/src/routeTree.gen.ts
+      - name: Type-check
+        run: pnpm --filter @cheeky-pony/frontend run typecheck
+      - name: Lint
+        run: pnpm --filter @cheeky-pony/frontend run lint
+      - name: Format check
+        run: pnpm --filter @cheeky-pony/frontend run format:check
+      - name: Test
+        run: pnpm --filter @cheeky-pony/frontend run test
+      - name: Build
+        run: pnpm --filter @cheeky-pony/frontend run build
 
   slow:
     runs-on: ubuntu-latest
