@@ -29,6 +29,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "atheris>=2.3; platform_system != 'Windows'",
   "bandit[toml]>=1.8",
   "hypothesis>=6.123",
   "mypy>=1.14",

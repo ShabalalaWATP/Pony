@@ -5,6 +5,11 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend stage 9c slice C — alert regex fuzzing
+
+- Added an Atheris smoke workflow for alert-rule regex predicates and tightened
+  the safe subset to reject repeated complex groups before matching.
+
 ### Backend stage 9c slice B — SBOM signing
 
 - Narrowed release image publishing to the backend image and added cosign signing

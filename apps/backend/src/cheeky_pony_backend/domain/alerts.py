@@ -12,7 +12,11 @@ from cheeky_pony_shared import Alert, AlertRule, Event
 MAX_ALERT_REGEX_LENGTH = 128
 MAX_ALERT_MATCH_VALUE_LENGTH = 256
 _UNSAFE_REGEX_PATTERNS = (
-    re.compile(r"\((?:[^()\\]|\\.)*[+*](?:[^()\\]|\\.)*\)\s*(?:[+*]|\{\d*,?\d*\})"),
+    re.compile(
+        r"\((?:[^()\\]|\\.)*(?:[+*?]|\{\d*,?\d*\})(?:[^()\\]|\\.)*\)"
+        r"\s*(?:[+*?]|\{\d*,?\d*\})"
+    ),
+    re.compile(r"\((?:[^()\\]|\\.)*\|(?:[^()\\]|\\.)*\)\s*(?:[+*?]|\{\d*,?\d*\})"),
     re.compile(r"\\[1-9]"),
     re.compile(r"\(\?"),
 )
