@@ -15,6 +15,39 @@ Default local URLs:
 - backend health: `http://localhost:8000/health`
 - OpenAPI: `http://localhost:8000/openapi.json`
 
+## Verifying release artifacts
+
+Release tags build and publish the backend image to GHCR, generate an SPDX JSON
+SBOM, and sign both artifacts through GitHub Actions OIDC keyless cosign.
+
+```shell
+TAG=v0.1.0
+IMAGE=ghcr.io/shabalalawatp/pony/backend:$TAG
+IDENTITY="https://github.com/ShabalalaWATP/Pony/.github/workflows/release.yml@refs/tags/$TAG"
+
+cosign verify "$IMAGE" \
+  --certificate-identity "$IDENTITY" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+gh release download "$TAG" \
+  --pattern backend.spdx.json \
+  --pattern backend.spdx.json.sig \
+  --pattern backend.spdx.json.pem
+
+cosign verify-blob backend.spdx.json \
+  --signature backend.spdx.json.sig \
+  --certificate backend.spdx.json.pem \
+  --certificate-identity "$IDENTITY" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+To run the release workflow without creating a GitHub release, dispatch it with a
+temporary backend image tag:
+
+```shell
+gh workflow run release.yml --ref feat/milestone-0-bootstrap -f image_tag=sbom-test-001
+```
+
 ## Demo data
 
 Local development can seed a believable synthetic dataset:
