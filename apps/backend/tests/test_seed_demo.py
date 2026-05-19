@@ -5,16 +5,29 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 
 import cheeky_pony_backend.infra.seed_demo as seed_demo
 from cheeky_pony_backend.config import Settings
+from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.infra.demo_dataset import EVENT_COUNT, build_demo_dataset
+from cheeky_pony_backend.infra.demo_stream import (
+    DemoStreamKind,
+    DemoStreamOptions,
+    DemoStreamProducer,
+    DemoStreamRecord,
+    DemoStreamRelay,
+    DemoStreamSummary,
+    stream_demo_records,
+)
+from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
 from cheeky_pony_backend.infra.mongo_store import MongoStore
+from cheeky_pony_backend.infra.operator_broker import OperatorBroker
 from cheeky_pony_backend.infra.seed_demo import SeedOptions, _clean, _refusal_reason, _seed
 from cheeky_pony_backend.infra.signals_repo import SIGNAL_HISTORY_CAP
-from cheeky_pony_shared import AccessPoint, EventKind, Sensor
+from cheeky_pony_shared import AccessPoint, Event, EventKind, Sensor
 
 
 @pytest.fixture
@@ -93,6 +106,21 @@ async def test_seed_demo_refuses_when_real_sensor_recent(mongo_store: MongoStore
     assert await _refusal_reason(settings, mongo_store, force=True) is None
 
 
+@pytest.mark.slow
+async def test_demo_stream_queue_round_trips_through_mongo(mongo_store: MongoStore) -> None:
+    """Mongo persists and removes transient demo stream records."""
+
+    await mongo_store.ensure_indexes()
+    record = DemoStreamProducer.from_seed_dataset().next_record()
+
+    await mongo_store.enqueue_demo_stream_record(record)
+    pending = await mongo_store.pending_demo_stream_records(10)
+    await mongo_store.delete_demo_stream_record(record.id)
+
+    assert pending == [record]
+    assert await mongo_store.pending_demo_stream_records(10) == []
+
+
 async def test_seed_demo_refuses_outside_dev() -> None:
     """The environment guard refuses non-dev settings."""
 
@@ -107,6 +135,23 @@ async def test_seed_demo_refuses_outside_dev() -> None:
     refusal = await _refusal_reason(settings, None, force=False)  # type: ignore[arg-type]
 
     assert refusal == "CHEEKY_PONY_ENV must be dev"
+    assert await _refusal_reason(settings, None, force=True) is None  # type: ignore[arg-type]
+
+
+async def test_seed_demo_refuses_while_lab_mode_enabled() -> None:
+    """The safety guard refuses when lab mode is live unless forced."""
+
+    settings = Settings(
+        env="dev",
+        lab_mode=True,
+        cookie_secure=False,
+        jwt_secret="d" * 32,
+    )
+
+    refusal = await _refusal_reason(settings, None, force=False)  # type: ignore[arg-type]
+
+    assert refusal == "CHEEKY_PONY_LAB_MODE must be false"
+    assert await _refusal_reason(settings, None, force=True) is None  # type: ignore[arg-type]
 
 
 def test_demo_dataset_shape_and_safety_markers() -> None:
@@ -135,6 +180,52 @@ def test_demo_dataset_shape_and_safety_markers() -> None:
     }
 
 
+async def test_demo_stream_emits_synthetic_topics_and_audits() -> None:
+    """Stream mode queues synthetic records, audits start and stop, and relays them."""
+
+    queue = FakeDemoStreamQueue()
+    store = InMemoryStore()
+    summary = await stream_demo_records(
+        queue,
+        AuditLogger(store),
+        DemoStreamOptions(rate_per_minute=600, duration_seconds=0.22, actor_id="tester"),
+    )
+
+    assert summary.emitted >= 2
+    assert [log.action for log in store.audit_logs] == ["demo.stream.start", "demo.stream.stop"]
+    assert store.audit_logs[-1].parameters["emitted"] == summary.emitted
+    assert all(record.synthetic and record.payload["synthetic"] is True for record in queue.records)
+
+    broker = OperatorBroker()
+    receiver = RecordingWebSocket()
+    await broker.connect(receiver)  # type: ignore[arg-type]
+    await broker.connect(DroppingWebSocket())  # type: ignore[arg-type]
+    relayed = await DemoStreamRelay(queue, broker).flush_once()
+
+    assert relayed == summary.emitted
+    assert queue.records == []
+    assert len(receiver.messages) == summary.emitted
+
+
+def test_demo_stream_records_keep_synthetic_mac_prefixes() -> None:
+    """Generated AP and client stream topics keep the obvious fake MAC prefix."""
+
+    timestamp = datetime(2026, 5, 19, 12, tzinfo=UTC)
+    producer = DemoStreamProducer.from_seed_dataset()
+    records = [producer.next_record(timestamp) for _ in range(20)]
+
+    for record in records:
+        assert record.payload["synthetic"] is True
+        if record.kind == DemoStreamKind.EVENT_APPEND:
+            event = Event.model_validate(record.payload)
+            assert event.synthetic is True
+            assert event.occurred_at <= timestamp
+        if record.kind == DemoStreamKind.ACCESS_POINT_UPSERT:
+            assert str(record.payload["bssid"]).startswith("02:00:")
+        if record.kind == DemoStreamKind.CLIENT_UPSERT:
+            assert str(record.payload["mac"]).startswith("02:00:")
+
+
 async def test_seed_demo_run_dispatches_seed_and_clean(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     """The CLI runner dispatches seed and clean operations and closes Mongo."""
 
@@ -159,6 +250,26 @@ async def test_seed_demo_run_dispatches_seed_and_clean(monkeypatch) -> None:  # 
     assert fake_store.cleaned is True
 
 
+async def test_seed_demo_run_dispatches_stream(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """The CLI runner dispatches stream mode through the queue boundary."""
+
+    fake_store = FakeMongoStore("mongodb://unused", "unused")
+    fake_queue = FakeDemoStreamQueue()
+    monkeypatch.setattr(seed_demo, "MongoStore", lambda _dsn, _db: fake_store)
+    monkeypatch.setattr(seed_demo, "get_settings", _dev_settings)
+    monkeypatch.setattr(seed_demo, "_refusal_reason", _allow_run)
+    monkeypatch.setattr(seed_demo, "demo_stream_queue", lambda _store: fake_queue)
+    monkeypatch.setattr(seed_demo, "stream_demo_records", _fake_stream)
+
+    stream_code = await seed_demo.run(
+        SeedOptions(stream=True, force=False, actor_id="tester", rate=600, duration=0.1)
+    )
+
+    assert stream_code == 0
+    assert fake_store.client.closed is True
+    assert fake_queue.streamed is True
+
+
 async def test_seed_demo_run_returns_refusal(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     """The CLI runner returns a failing exit code when a guard refuses."""
 
@@ -179,8 +290,12 @@ def test_seed_demo_parse_args() -> None:
     """CLI arguments map onto SeedOptions."""
 
     options = seed_demo._parse_args(["--clean", "--with-active", "--force", "--actor-id", "me"])
+    stream = seed_demo._parse_args(["--stream", "--with-seed", "--rate", "60", "--duration", "2.5"])
 
     assert options == SeedOptions(clean=True, with_active=True, force=True, actor_id="me")
+    assert stream == SeedOptions(stream=True, with_seed=True, rate=60, duration=2.5)
+    with pytest.raises(SystemExit):
+        seed_demo._parse_args(["--stream", "--rate", "601"])
 
 
 class FakeClient:
@@ -207,6 +322,51 @@ class FakeMongoStore:
         """No-op index creation."""
 
 
+class FakeDemoStreamQueue:
+    """In-memory demo stream queue for tests."""
+
+    def __init__(self) -> None:
+        self.records: list[DemoStreamRecord] = []
+        self.streamed = False
+
+    async def enqueue_demo_stream_record(self, record: DemoStreamRecord) -> DemoStreamRecord:
+        """Queue one stream record."""
+
+        self.records.append(record)
+        return record
+
+    async def pending_demo_stream_records(self, limit: int) -> list[DemoStreamRecord]:
+        """Return queued stream records."""
+
+        return list(self.records[:limit])
+
+    async def delete_demo_stream_record(self, record_id: str) -> None:
+        """Remove a queued stream record."""
+
+        self.records = [record for record in self.records if record.id != record_id]
+
+
+class RecordingWebSocket:
+    """WebSocket stand-in that records JSON messages."""
+
+    def __init__(self) -> None:
+        self.messages: list[dict[str, Any]] = []
+
+    async def send_json(self, payload: dict[str, Any]) -> None:
+        """Record one JSON payload."""
+
+        self.messages.append(payload)
+
+
+class DroppingWebSocket:
+    """WebSocket stand-in that simulates a disconnected subscriber."""
+
+    async def send_json(self, _payload: dict[str, Any]) -> None:
+        """Raise the same exception shape the broker catches for dropped sockets."""
+
+        raise RuntimeError("subscriber dropped")
+
+
 def _dev_settings() -> Settings:
     return Settings(
         env="dev",
@@ -231,3 +391,8 @@ async def _fake_seed(store, _options):  # type: ignore[no-untyped-def]
 async def _fake_clean(store, _actor_id):  # type: ignore[no-untyped-def]
     store.cleaned = True
     return {"cleaned": 1}
+
+
+async def _fake_stream(queue, _audit, _options):  # type: ignore[no-untyped-def]
+    queue.streamed = True
+    return DemoStreamSummary(emitted=1)

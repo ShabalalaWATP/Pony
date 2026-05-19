@@ -13,6 +13,14 @@ from datetime import UTC, datetime, timedelta
 from cheeky_pony_backend.config import Settings, get_settings
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.infra.demo_dataset import DemoDataset, build_demo_dataset
+from cheeky_pony_backend.infra.demo_stream import (
+    DEFAULT_STREAM_RATE_PER_MINUTE,
+    MAX_STREAM_RATE_PER_MINUTE,
+    DemoStreamOptions,
+    demo_stream_queue,
+    stream_demo_records,
+)
+from cheeky_pony_backend.infra.mongo_demo_stream import DEMO_STREAM_COLLECTION
 from cheeky_pony_backend.infra.mongo_store import SYNTHETIC_COUNT_COLLECTIONS, MongoStore
 from cheeky_pony_shared import (
     AccessPoint,
@@ -27,16 +35,21 @@ from cheeky_pony_shared import (
 
 LOGGER = logging.getLogger(__name__)
 DEFAULT_ACTOR = "system:seed"
+SYNTHETIC_CLEAN_COLLECTIONS = (*SYNTHETIC_COUNT_COLLECTIONS, DEMO_STREAM_COLLECTION)
 
 
 @dataclass(frozen=True)
 class SeedOptions:
     """Command-line options for the demo seeder."""
 
-    clean: bool
-    with_active: bool
-    force: bool
-    actor_id: str
+    clean: bool = False
+    with_active: bool = False
+    force: bool = False
+    actor_id: str = DEFAULT_ACTOR
+    stream: bool = False
+    with_seed: bool = False
+    rate: int = DEFAULT_STREAM_RATE_PER_MINUTE
+    duration: float = 0
 
 
 def main() -> None:
@@ -61,6 +74,25 @@ async def run(options: SeedOptions) -> int:
             counts = await _clean(store, options.actor_id)
             LOGGER.info("removed synthetic demo records: %s", counts)
             return 0
+        if options.stream:
+            if options.with_seed:
+                counts = await _seed(store, options)
+                LOGGER.info("seeded synthetic demo records: %s", counts)
+            queue = demo_stream_queue(store)
+            if queue is None:
+                LOGGER.error("demo stream requires a store with stream queue support")
+                return 1
+            summary = await stream_demo_records(
+                queue,
+                AuditLogger(store),
+                DemoStreamOptions(
+                    rate_per_minute=options.rate,
+                    duration_seconds=options.duration,
+                    actor_id=options.actor_id,
+                ),
+            )
+            LOGGER.info("queued synthetic demo stream records: %s", summary.emitted)
+            return 0
         counts = await _seed(store, options)
         LOGGER.info("seeded synthetic demo records: %s", counts)
         return 0
@@ -84,7 +116,7 @@ async def _seed(store: MongoStore, options: SeedOptions) -> dict[str, int]:
 
 async def _clean(store: MongoStore, actor_id: str) -> dict[str, int]:
     deleted: dict[str, int] = {}
-    for collection_name in SYNTHETIC_COUNT_COLLECTIONS:
+    for collection_name in SYNTHETIC_CLEAN_COLLECTIONS:
         result = await store.db[collection_name].delete_many({"synthetic": True})
         deleted[collection_name] = int(result.deleted_count)
     await AuditLogger(store).record(actor_id, "demo.seed.clean", {}, {"deleted": deleted}, "ok")
@@ -226,14 +258,44 @@ def _parse_args(argv: Sequence[str] | None) -> SeedOptions:
     parser = argparse.ArgumentParser(description="Seed synthetic Cheeky Pony demo data.")
     parser.add_argument("--clean", action="store_true", help="remove synthetic demo records")
     parser.add_argument("--with-active", action="store_true", help="seed one active engagement")
+    parser.add_argument("--stream", action="store_true", help="stream synthetic operator topics")
+    parser.add_argument(
+        "--with-seed",
+        action="store_true",
+        help="seed static records before streaming synthetic operator topics",
+    )
+    parser.add_argument(
+        "--rate",
+        type=int,
+        default=DEFAULT_STREAM_RATE_PER_MINUTE,
+        help="synthetic stream rate in events/minute",
+    )
+    parser.add_argument(
+        "--duration",
+        type=float,
+        default=0,
+        help="synthetic stream duration in seconds; 0 runs until interrupted",
+    )
     parser.add_argument("--force", action="store_true", help="override local safety refusals")
     parser.add_argument("--actor-id", default=DEFAULT_ACTOR, help="actor id for audit entries")
     args = parser.parse_args(argv)
+    if args.clean and args.stream:
+        parser.error("--clean cannot be combined with --stream")
+    if args.with_seed and not args.stream:
+        parser.error("--with-seed requires --stream")
+    if not 1 <= args.rate <= MAX_STREAM_RATE_PER_MINUTE:
+        parser.error(f"--rate must be between 1 and {MAX_STREAM_RATE_PER_MINUTE}")
+    if args.duration < 0:
+        parser.error("--duration must be non-negative")
     return SeedOptions(
         clean=bool(args.clean),
         with_active=bool(args.with_active),
         force=bool(args.force),
         actor_id=str(args.actor_id),
+        stream=bool(args.stream),
+        with_seed=bool(args.with_seed),
+        rate=int(args.rate),
+        duration=float(args.duration),
     )
 
 

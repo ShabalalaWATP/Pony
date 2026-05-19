@@ -35,19 +35,24 @@ flowchart LR
       API["REST API<br/>/api/v1/*"]
       SGW["sensor gateway WS<br/>/ws/sensor-gateway"]
       OWS["operator WS<br/>/ws/operator"]
+      DSR["demo stream relay"]
       GATE["lab gate stack"]
       AUDIT["audit logger"]
     end
-    MONGO[(MongoDB 7<br/>events, devices, audit,<br/>users, engagements)]
+    MONGO[(MongoDB 7<br/>events, devices, audit,<br/>users, engagements,<br/>demo stream queue)]
     REDIS[(Redis<br/>pub/sub + queue)]
     FE["React frontend<br/>Vite + TS strict"]
+    DEMO["seed_demo CLI<br/>--stream"]
 
     API --- MONGO
     API --- REDIS
     SGW --- MONGO
+    DSR --- MONGO
+    DSR --> OWS
     OWS --- REDIS
     GATE -.->|guards| API
     AUDIT --- MONGO
+    DEMO -.->|dev-only synthetic topics| MONGO
     FE -->|cookie auth + CSRF| API
     FE -->|JWT WS| OWS
   end
@@ -71,7 +76,10 @@ fingerprint stored on the backend, not just the WebSocket handshake.
    out operator WebSocket topics such as `events.append`, `aps.upsert`,
    `devices.upsert`, `sensors.update`, `alerts.fire`, `command_result`, and
    `lab.*`.
-4. The frontend invalidates TanStack Query caches from those WebSocket topics and
+4. In local development, `seed_demo --stream` writes transient synthetic topic
+   records into MongoDB. The backend relay polls that queue and publishes through
+   the same operator topic helpers used by real sensor events.
+5. The frontend invalidates TanStack Query caches from those WebSocket topics and
    keeps route state shareable through TanStack Router.
 
 ```mermaid

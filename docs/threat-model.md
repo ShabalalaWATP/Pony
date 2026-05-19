@@ -56,11 +56,11 @@ Method: STRIDE per major component.
 
 ## Demo Data Seeder
 
-- Spoofing: CLI seed and clean actions are attributed to the invoking actor id or `system:seed`.
+- Spoofing: CLI seed, clean, and stream actions are attributed to the invoking actor id or `system:seed`.
 - Tampering: the seeder refuses outside `CHEEKY_PONY_ENV=dev`, refuses while lab mode is live, and refuses when a non-synthetic sensor has checked in recently unless `--force` is supplied.
-- Repudiation: seed and clean operations append `demo.seed.run` and `demo.seed.clean` audit entries.
+- Repudiation: seed and clean operations append `demo.seed.run` and `demo.seed.clean` audit entries. Stream mode appends one `demo.stream.start` and one `demo.stream.stop` audit entry rather than auditing every emitted topic.
 - Information disclosure: synthetic MACs use the `02:00:` locally administered range and no real sensor identifiers are copied into the seeded dataset.
-- Denial of service: seeded signal histories are capped at the same 200-sample repository boundary as real telemetry.
+- Denial of service: seeded signal histories are capped at the same 200-sample repository boundary as real telemetry. Stream mode caps the CLI rate at 600 topics/minute, stores only transient queue records, and drops disconnected operator sockets through the existing broker behavior.
 - Elevation of privilege: seeded records are metadata only; production read and lab-gating behavior does not trust the `synthetic` marker.
 
 ## Sensor Lifecycle Commands

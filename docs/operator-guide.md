@@ -46,6 +46,15 @@ audit entries intact because audit logs are append-only.
 The frontend can check `GET /api/v1/system/demo-status` after login to show
 whether synthetic records are present.
 
+Run `make seed-demo-stream` while the backend is running to drip live synthetic
+topics into the operator WebSocket. This is useful for screenshots, demos, and
+verifying the frontend's live pulse and connection pill against fixture data.
+`python -m cheeky_pony_backend.infra.seed_demo --stream --rate 120 --duration 60`
+sets a finite cadence; the default rate is 30 events/minute and the hard cap is
+600 events/minute. Add `--with-seed` to load the static dataset before streaming.
+Stream mode uses the same safety guards as static seeding and writes
+`demo.stream.start` plus `demo.stream.stop` audit entries.
+
 ## First admin
 
 Set `CHEEKY_PONY_BOOTSTRAP_TOKEN` to a random value for first deploy. The first

@@ -51,7 +51,8 @@ plane and every operator-facing route the frontend exposes:
   revoke / lifecycle, APs, clients, events, alerts + alert rules, audit (no
   delete route), authorized-operator acknowledgements, engagements + allow-lists
   + single-engagement read, admin user listing and mutation, reporting + signed
-  download URLs, and operator/sensor WebSockets
+  download URLs, operator/sensor WebSockets, and synthetic demo data streaming via
+  `make seed-demo-stream`
 - active lab command endpoints for `rogue-ap`, `deauth`, `evil-twin`,
   `captive-portal`, and `mitm`, with default-deny gates (see
   [`docs/architecture.md`](docs/architecture.md#lab-gate-stack) for the gate
