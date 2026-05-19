@@ -19,6 +19,7 @@ WebSockets.
 | STRIDE threat model per component | [`docs/threat-model.md`](docs/threat-model.md) |
 | Frontend design spec (tokens, motion, components) | [`docs/frontend-design.md`](docs/frontend-design.md) |
 | Local development runbook | [`docs/runbooks/local-development.md`](docs/runbooks/local-development.md) |
+| Backend load-testing runbook | [`docs/runbooks/load-testing.md`](docs/runbooks/load-testing.md) |
 | Architecture Decision Records | [`docs/adr/`](docs/adr) |
 | Release-history / per-PR log | [`CHANGELOG.md`](CHANGELOG.md) |
 | Vulnerability reporting | [`SECURITY.md`](SECURITY.md) |
@@ -53,6 +54,8 @@ plane and every operator-facing route the frontend exposes:
   + single-engagement read, admin user listing and mutation, reporting + signed
   download URLs, operator/sensor WebSockets, and synthetic demo data streaming via
   `make seed-demo-stream`
+- manual Locust load profile for backend REST and operator WebSocket paths via
+  `make load-test`
 - active lab command endpoints for `rogue-ap`, `deauth`, `evil-twin`,
   `captive-portal`, and `mitm`, with default-deny gates (see
   [`docs/architecture.md`](docs/architecture.md#lab-gate-stack) for the gate
@@ -97,6 +100,18 @@ If `uv` or `pnpm` are not installed, install them first or use Python directly:
 python -m venv .venv
 .venv/Scripts/python -m pip install -e "packages/shared-types[dev]" -e "apps/backend[dev]" -e "apps/sensor-agent[dev]"
 ```
+
+Run the backend load profile against a local stack:
+
+```bash
+CHEEKY_PONY_LOAD_EMAIL=admin@example.com \
+CHEEKY_PONY_LOAD_PASSWORD='replace-with-local-password' \
+CHEEKY_PONY_LOAD_TOTP_SECRET='replace-with-local-secret' \
+make load-test
+```
+
+See [`docs/runbooks/load-testing.md`](docs/runbooks/load-testing.md) for the
+full setup, session-cookie shortcut, and baseline recording process.
 
 ## Contracts
 
