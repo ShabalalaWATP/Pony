@@ -33,8 +33,17 @@ Method: STRIDE per major component.
 - Tampering: predicates are constrained to the v1 JSON shape and are evaluated against normalized event models.
 - Repudiation: rule create, update, delete, and alert acknowledgement operations append audit entries.
 - Information disclosure: alert records expose severity and related entity identifiers only; predicate matches must not persist packet payloads or credentials.
-- Denial of service: regex predicates are length-limited and invalid expressions fail closed without firing.
+- Denial of service: regex predicates are length-limited, repeated complex
+  groups are rejected, and invalid expressions fail closed without firing.
 - Elevation of privilege: non-admin users can list and acknowledge alerts but cannot create, modify, or delete rules.
+
+### Continuous Fuzzing
+
+The `fuzz-smoke` workflow runs the Atheris target at
+`apps/backend/tests/fuzz/test_alert_regex_fuzz.py` against alert-rule regex
+predicates for every push and pull request. The smoke run uses a 60-second
+budget; manual workflow dispatch defaults to a one-hour burn for release or
+incident hardening checks.
 
 ## Privileged User Mutation
 
