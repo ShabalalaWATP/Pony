@@ -5,6 +5,11 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend stage 9c slice B — SBOM signing
+
+- Narrowed release image publishing to the backend image and added cosign signing
+  plus verification for the generated SPDX SBOM.
+
 ### Backend stage 9c slice A — demo stream mode
 
 - Added `seed_demo --stream` and `make seed-demo-stream` for dev-only synthetic
