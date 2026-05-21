@@ -126,6 +126,93 @@ describe("MapView", () => {
     expect(await screen.findByText(/from sensors/i)).toBeInTheDocument();
   });
 
+  it("surfaces a no-GPS hint when APs exist but none carry geo coords", async () => {
+    useMapPinsStore.setState({ pins: {} });
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({ items: sampleAps, total: 2, limit: 500, offset: 0 }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<MapView />);
+    render(node);
+    expect(await screen.findByTestId("map-no-geo-hint")).toBeInTheDocument();
+    expect(screen.getByText(/no gps coordinates on these access points yet/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /scatter 2 unplaced access points as demo pins/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the no-GPS hint as soon as one server-side coord shows up", async () => {
+    useMapPinsStore.setState({ pins: {} });
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({
+          items: [
+            {
+              bssid: "aa:bb:cc:dd:ee:01",
+              ssid: "Alpha",
+              channel: 6,
+              signal_history: [],
+              latitude: 51.5,
+              longitude: -0.1,
+              location_source: "sensor_gps",
+            },
+            { bssid: "aa:bb:cc:dd:ee:02", ssid: "Bravo", channel: 11, signal_history: [] },
+          ],
+          total: 2,
+          limit: 500,
+          offset: 0,
+        }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<MapView />);
+    render(node);
+    await screen.findByText("Alpha");
+    expect(screen.queryByTestId("map-no-geo-hint")).toBeNull();
+  });
+
+  it("scatters demo pins for every unplaced AP when the button is clicked", async () => {
+    useMapPinsStore.setState({ pins: {} });
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({ items: sampleAps, total: 2, limit: 500, offset: 0 }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<MapView />);
+    render(node);
+    await screen.findByTestId("map-no-geo-hint");
+    await userEvent.click(screen.getByTestId("map-scatter-demo-pins"));
+    // Both APs now have manual pins; the merged-pins map reaches the
+    // canvas stub as "2 pins".
+    expect(await screen.findByText(/2 pins/)).toBeInTheDocument();
+    // The hint disappears once manual pins exist for every unplaced AP.
+    expect(screen.queryByTestId("map-no-geo-hint")).toBeNull();
+    // Pins persisted in the Zustand store, lowercased.
+    const stored = useMapPinsStore.getState().pins;
+    expect(Object.keys(stored)).toEqual(
+      expect.arrayContaining(["aa:bb:cc:dd:ee:01", "aa:bb:cc:dd:ee:02"]),
+    );
+  });
+
+  it("scattering is deterministic — repeat clicks land at the same coords", async () => {
+    useMapPinsStore.setState({ pins: {} });
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({ items: sampleAps, total: 2, limit: 500, offset: 0 }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<MapView />);
+    render(node);
+    await userEvent.click(await screen.findByTestId("map-scatter-demo-pins"));
+    const first = { ...useMapPinsStore.getState().pins };
+    // Clear manually then re-scatter — the hash-derived coords should match.
+    useMapPinsStore.getState().clear();
+    // Re-render is implicit; the no-geo hint comes back, scatter again.
+    await screen.findByTestId("map-no-geo-hint");
+    await userEvent.click(screen.getByTestId("map-scatter-demo-pins"));
+    expect(useMapPinsStore.getState().pins).toEqual(first);
+  });
+
   it("operator pin overrides server coords for the same BSSID", async () => {
     useMapPinsStore.setState({
       pins: { "aa:bb:cc:dd:ee:01": { lat: 0, lng: 0 } },

@@ -122,6 +122,24 @@ export function useVerify2FA() {
       qc.setQueryData<LoginResponse | null>(AUTH_QUERY_KEY, (prev) =>
         prev ? { ...prev, user } : prev,
       );
+      // The recent-TOTP claim is now fresh server-side. Any query that
+      // previously failed with `403` (sensors, users, alert rules, lab,
+      // audit, anything else that's admin-gated) is still holding that
+      // cached error and will keep returning it until its staleTime
+      // expires. Invalidate every 403-cached query so the next render
+      // refetches and the gate clears without the operator having to
+      // hard-refresh the page.
+      // `invalidateQueries` returns a Promise that resolves once
+      // every refetch has settled. We deliberately don't await it —
+      // the verify mutation is allowed to return success the moment
+      // the auth cache is updated; the dependent queries finish in
+      // the background and the UI re-renders when each settles.
+      void qc.invalidateQueries({
+        predicate: (query) => {
+          const err = query.state.error;
+          return err instanceof ApiError && err.status === 403;
+        },
+      });
     },
   });
 }

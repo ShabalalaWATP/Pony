@@ -11,6 +11,14 @@ interface MapCanvasProps {
    * crosshair-state is visible.
    */
   pending?: { bssid: string; label: string } | null;
+  /**
+   * Imperative camera move. When the *identity* of this object changes
+   * (i.e. a new object is passed, not the same reference), the map
+   * animates to the new center and zoom. Used by the "Scatter demo
+   * pins" affordance so the operator can see the scattered pins
+   * immediately instead of being left at world-zoom.
+   */
+  flyTo?: { center: [number, number]; zoom: number } | null;
   onMapClick: (lngLat: { lng: number; lat: number }) => void;
   onPinClick: (bssid: string) => void;
 }
@@ -29,7 +37,13 @@ const STYLE_URL =
  * marker fires `onPinClick`. The actual storage layer (Zustand) lives
  * upstream so this component is purely a renderer.
  */
-export function MapCanvas({ pins, pending, onMapClick, onPinClick }: MapCanvasProps): JSX.Element {
+export function MapCanvas({
+  pins,
+  pending,
+  flyTo,
+  onMapClick,
+  onPinClick,
+}: MapCanvasProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<Map<string, Marker>>(new Map());
@@ -99,6 +113,15 @@ export function MapCanvas({ pins, pending, onMapClick, onPinClick }: MapCanvasPr
     if (!containerRef.current) return;
     containerRef.current.style.cursor = pending ? "crosshair" : "";
   }, [pending]);
+
+  // Imperative camera move. Re-runs when `flyTo` *identity* changes —
+  // pass a fresh object to retrigger.
+  useEffect(() => {
+    if (!flyTo) return;
+    const map = mapRef.current;
+    if (!map) return;
+    map.flyTo({ center: flyTo.center, zoom: flyTo.zoom, duration: 1200 });
+  }, [flyTo]);
 
   return (
     <div
