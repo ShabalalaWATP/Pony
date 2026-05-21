@@ -6,12 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Separator } from "@/components/ui/Separator";
 import { TotpInput } from "./TotpInput";
 import { TotpStepUp } from "./TotpStepUp";
-import {
-  isTotpRequired,
-  useSetup2FA,
-  useVerify2FA,
-  type UserPublic,
-} from "@/services/auth/hooks";
+import { isTotpRequired, useSetup2FA, useVerify2FA, type UserPublic } from "@/services/auth/hooks";
 import { cn } from "@/lib/cn";
 
 interface TotpSetupCardProps {
