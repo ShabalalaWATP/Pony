@@ -106,6 +106,35 @@ def test_operator_gateway_rejects_foreign_origin() -> None:
                 pass
 
 
+def test_operator_gateway_rejects_disabled_user() -> None:
+    """Disabled users cannot keep receiving operator WebSocket telemetry."""
+
+    settings = _settings()
+    store = InMemoryStore()
+    app = create_app(settings, store)
+    _run(
+        store.create_user(
+            UserRecord(
+                id="user-1",
+                email="admin@example.com",
+                password_hash="hash",
+                roles=["admin"],
+                disabled=True,
+            )
+        )
+    )
+    token = TokenService(settings).create_access_token("user-1", "csrf")
+
+    with TestClient(app) as client:
+        client.cookies.set("access_token", token)
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect(
+                "/ws/operator",
+                headers={"origin": OPERATOR_ORIGIN},
+            ):
+                pass
+
+
 def test_sensor_gateway_rejects_unsigned_certificate_headers() -> None:
     """Sensor identity headers must be signed by the trusted proxy layer."""
 

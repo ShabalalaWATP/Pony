@@ -11,7 +11,12 @@ from uuid import uuid4
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response, status
 
 from cheeky_pony_backend.config import Settings, get_settings
-from cheeky_pony_backend.dependencies import current_user, get_audit_logger, get_store
+from cheeky_pony_backend.dependencies import (
+    current_user,
+    get_audit_logger,
+    get_store,
+    require_admin_2fa,
+)
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.reports import (
@@ -41,6 +46,7 @@ async def create_report(
     user: Annotated[UserRecord, Depends(current_user)],
     store: Annotated[Store, Depends(get_store)],
     audit: Annotated[AuditLogger, Depends(get_audit_logger)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> ReportCreateResponse:
     """Create an engagement report request.
 
@@ -56,13 +62,22 @@ async def create_report(
         Created report identifier and initial status.
     """
 
+    parameters = payload.model_dump(mode="json")
+    await _require_report_admin_2fa(
+        user,
+        settings,
+        audit,
+        {"engagement_id": engagement_id},
+        parameters,
+    )
+
     engagement = await store.get_engagement(engagement_id)
     if engagement is None:
         await audit.record(
             user.id,
             "reports.create",
             {"engagement_id": engagement_id},
-            payload.model_dump(mode="json"),
+            parameters,
             "denied:engagement_not_found",
         )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="engagement_not_found")
@@ -79,7 +94,7 @@ async def create_report(
         user.id,
         "reports.create",
         {"engagement_id": engagement_id, "report_id": report.id},
-        payload.model_dump(mode="json"),
+        parameters,
         "pending",
     )
     background_tasks.add_task(generate_report, {"store": store}, report.id)
@@ -90,7 +105,7 @@ async def create_report(
 async def get_report_status(
     engagement_id: str,
     report_id: str,
-    _: Annotated[UserRecord, Depends(current_user)],
+    _: Annotated[UserRecord, Depends(require_admin_2fa)],
     store: Annotated[Store, Depends(get_store)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> ReportStatusResponse:
@@ -132,7 +147,7 @@ async def get_report_status(
 async def download_report(
     engagement_id: str,
     report_id: str,
-    _: Annotated[UserRecord, Depends(current_user)],
+    _: Annotated[UserRecord, Depends(require_admin_2fa)],
     store: Annotated[Store, Depends(get_store)],
     settings: Annotated[Settings, Depends(get_settings)],
     token: str = Query(min_length=1),
@@ -166,3 +181,18 @@ async def _report_or_404(store: Store, engagement_id: str, report_id: str) -> Re
     if report is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="report_not_found")
     return report
+
+
+async def _require_report_admin_2fa(
+    user: UserRecord,
+    settings: Settings,
+    audit: AuditLogger,
+    target: dict[str, str],
+    parameters: dict[str, object],
+) -> None:
+    if not user.is_admin():
+        await audit.record(user.id, "reports.create", target, parameters, "denied:admin_required")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin_required")
+    if not user.has_recent_totp(settings.totp_recent_minutes):
+        await audit.record(user.id, "reports.create", target, parameters, "denied:totp_required")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="totp_required")
