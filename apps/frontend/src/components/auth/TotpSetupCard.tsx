@@ -1,11 +1,17 @@
 import { QRCodeSVG } from "qrcode.react";
-import { Check, Copy, RotateCw, ShieldCheck } from "lucide-react";
+import { Check, Copy, KeyRound, RotateCw, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Separator } from "@/components/ui/Separator";
 import { TotpInput } from "./TotpInput";
-import { useSetup2FA, useVerify2FA, type UserPublic } from "@/services/auth/hooks";
+import { TotpStepUp } from "./TotpStepUp";
+import {
+  isTotpRequired,
+  useSetup2FA,
+  useVerify2FA,
+  type UserPublic,
+} from "@/services/auth/hooks";
 import { cn } from "@/lib/cn";
 
 interface TotpSetupCardProps {
@@ -13,7 +19,20 @@ interface TotpSetupCardProps {
 }
 
 /**
- * Two-step TOTP enrollment widget:
+ * Active-card mode for the recent-TOTP step-up:
+ *
+ * - `idle`            — show the active card with "Re-verify" + "Re-enrol".
+ * - `verify-only`     — user clicked "Re-verify". Render `TotpStepUp`;
+ *                       on success, just confirm and return to idle.
+ * - `reenrol-stepup`  — user clicked "Re-enrol" and the backend returned
+ *                       `403 totp_required`. Render `TotpStepUp`; on
+ *                       success, auto-retry `setup.mutate()` so the
+ *                       operator lands on the QR view.
+ */
+type ActiveMode = "idle" | "verify-only" | "reenrol-stepup";
+
+/**
+ * Two-step TOTP enrollment widget plus recent-verification step-up.
  *
  *   1. Click "Begin setup" → POST /auth/2fa/setup → backend returns the
  *      provisioning URI and the raw secret.
@@ -23,17 +42,28 @@ interface TotpSetupCardProps {
  * On success the parent `useCurrentUser` cache is updated by
  * `useVerify2FA` so the user's `totp_enabled` flips.
  *
- * Re-enrolment: when `totp_enabled` is already true, the active-state
- * card surfaces a "Re-enrol" button. Clicking it kicks the same
- * `setup.mutate()` flow with a fresh secret — useful when the
- * operator loses their authenticator device or rotates secrets
- * pre-emptively. The verify step then overwrites the server-side
- * secret on success.
+ * Re-enrolment + re-verification (`totp_enabled === true`):
+ *
+ * - **Re-verify a recent code** — primary action when the operator
+ *   landed here from another admin-gated view (Sensors, Audit, Users,
+ *   Alert rules, Lab) that returned `403 totp_required`. Calls
+ *   `/auth/2fa/verify` only; the secret is preserved. This is the
+ *   lightweight path back from a stale recent-TOTP claim and avoids
+ *   forcing the operator to log out / log in just to refresh the
+ *   server-side `totp_verified_at` field.
+ *
+ * - **Re-enrol** — ghost action that rotates the TOTP secret. The
+ *   backend gates this on recent verification, so a stale claim is
+ *   handled by stepping up first: we surface the `TotpStepUp` prompt,
+ *   call `/auth/2fa/verify` with the entered code, then retry
+ *   `/auth/2fa/setup` once the claim is fresh. The QR view appears
+ *   automatically on success.
  */
 export function TotpSetupCard({ user }: TotpSetupCardProps): JSX.Element {
   const setup = useSetup2FA();
   const verify = useVerify2FA();
   const [copied, setCopied] = useState(false);
+  const [mode, setMode] = useState<ActiveMode>("idle");
 
   const handleCopy = async (text: string): Promise<void> => {
     if (!navigator.clipboard) return;
@@ -46,34 +76,105 @@ export function TotpSetupCard({ user }: TotpSetupCardProps): JSX.Element {
     }
   };
 
+  const startReenrol = (): void => {
+    setup.mutate(undefined, {
+      onError: (err) => {
+        if (isTotpRequired(err)) setMode("reenrol-stepup");
+      },
+    });
+  };
+
+  // Step-up success handler for the destructive Re-enrol path: the
+  // backend has now accepted the verify, so the recent-TOTP claim is
+  // fresh and the next `/auth/2fa/setup` call will succeed. Reset the
+  // step-up state first, then kick the setup again so the parent
+  // renders the QR view.
+  const handleReenrolStepUpSuccess = (): void => {
+    verify.reset();
+    setMode("idle");
+    setup.reset();
+    setup.mutate();
+  };
+
+  // Verify-only success handler: keep the "Verified — continuing…"
+  // banner visible briefly, then return to the idle active card. The
+  // recent-TOTP claim is now fresh server-side; whoever sent the
+  // operator here (e.g. Sensors 403) can navigate back and retry.
+  const handleVerifyOnlySuccess = (): void => {
+    window.setTimeout(() => {
+      verify.reset();
+      setMode("idle");
+    }, 1200);
+  };
+
   if (user.totp_enabled && !setup.data) {
     return (
-      <div
-        className="flex flex-wrap items-center gap-3 rounded-md border border-accent-green/40 bg-accent-green/10 px-4 py-3 text-sm text-accent-green"
-        data-testid="totp-active-card"
-      >
-        <ShieldCheck className="size-4" aria-hidden="true" />
-        <div className="flex-1">
-          <div className="font-medium">Two-factor authentication is enabled.</div>
-          <div className="text-xs text-fg-80">
-            Codes from your authenticator app will be required for privileged actions.
+      <div className="flex flex-col gap-3" data-testid="totp-active-card">
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-accent-green/40 bg-accent-green/10 px-4 py-3 text-sm text-accent-green">
+          <ShieldCheck className="size-4" aria-hidden="true" />
+          <div className="flex-1">
+            <div className="font-medium">Two-factor authentication is enabled.</div>
+            <div className="text-xs text-fg-80">
+              Codes from your authenticator app are required for privileged actions. The recent-
+              verification window expires after a short interval — use{" "}
+              <span className="font-medium">Re-verify</span> to refresh it without rotating your
+              secret.
+            </div>
           </div>
+          <Badge tone="green" outline>
+            Active
+          </Badge>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setMode("verify-only")}
+            disabled={mode !== "idle"}
+            aria-label="Re-verify a recent two-factor code"
+          >
+            <KeyRound className="size-3.5" aria-hidden="true" />
+            Re-verify
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={startReenrol}
+            disabled={setup.isPending || mode !== "idle"}
+            aria-label="Re-enrol two-factor authentication"
+          >
+            <RotateCw className="size-3.5" aria-hidden="true" />
+            {setup.isPending ? "Generating…" : "Re-enrol"}
+          </Button>
         </div>
-        <Badge tone="green" outline>
-          Active
-        </Badge>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setup.mutate()}
-          disabled={setup.isPending}
-          aria-label="Re-enrol two-factor authentication"
-        >
-          <RotateCw className="size-3.5" aria-hidden="true" />
-          {setup.isPending ? "Generating…" : "Re-enrol"}
-        </Button>
-        {setup.error && (
-          <div role="alert" className="w-full text-xs text-accent-red">
+
+        {mode === "verify-only" && (
+          <TotpStepUp
+            title="Re-verify a recent code"
+            description="Type the current code from your authenticator app to refresh the recent-verification window. Your existing secret is preserved."
+            onSuccess={handleVerifyOnlySuccess}
+            onCancel={() => {
+              verify.reset();
+              setMode("idle");
+            }}
+            testId="totp-reverify"
+          />
+        )}
+
+        {mode === "reenrol-stepup" && (
+          <TotpStepUp
+            title="Re-verify to rotate your secret"
+            description="Type your current authenticator code first. After that, you'll see a fresh QR and secret to scan."
+            onSuccess={handleReenrolStepUpSuccess}
+            onCancel={() => {
+              verify.reset();
+              setup.reset();
+              setMode("idle");
+            }}
+            testId="totp-reenrol-stepup"
+          />
+        )}
+
+        {setup.error && !isTotpRequired(setup.error) && (
+          <div role="alert" className="text-xs text-accent-red">
             {setup.error.message}
           </div>
         )}
