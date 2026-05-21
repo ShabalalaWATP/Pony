@@ -32,13 +32,14 @@ describe("OverviewKPIs", () => {
     });
   });
 
-  it("renders an em-dash for sensors when the backend returns 403", async () => {
+  it("renders a 'Gated' lock state on the sensors tile when the backend returns 403", async () => {
     const { node } = withQueryAndRouter(<OverviewKPIs />);
     render(node);
-    // Default sensors handler is 403 — the tile shows the em-dash.
+    // Default sensors handler is 403 — the tile flips to the gated
+    // visual (lock icon + amber 'Gated' label) instead of an em-dash so
+    // the operator can't misread it as "no data on file".
     await waitFor(() => {
-      const dashes = screen.getAllByText("—");
-      expect(dashes.length).toBeGreaterThan(0);
+      expect(screen.getByText(/^Gated$/)).toBeInTheDocument();
     });
   });
 });

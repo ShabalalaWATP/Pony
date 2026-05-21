@@ -1,6 +1,6 @@
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { type ColumnDef } from "@tanstack/react-table";
-import { MapPin, Plus } from "lucide-react";
+import { KeyRound, MapPin, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -148,8 +148,21 @@ export function SensorsView(): JSX.Element {
       <div className="flex flex-col gap-4">
         <PageHeader title="Sensors" />
         <EmptyState
-          title="Admin + 2FA required"
-          description="Sensor inventory is gated. Sign in as an admin and complete TOTP verification to view this list."
+          title="Admin + recent 2FA required"
+          description="Sensor inventory is gated to admins with a TOTP verification inside the recent-verification window. If you've been signed in for a while, your recent-TOTP claim has likely expired — re-verify to continue. Mock sensor data (synth-pi-0/1/2) is loaded and will appear once the gate clears."
+          action={
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button asChild variant="primary" size="sm">
+                <Link to="/settings/account">
+                  <KeyRound className="size-3.5" aria-hidden="true" />
+                  Re-verify 2FA
+                </Link>
+              </Button>
+              <Button asChild variant="secondary" size="sm">
+                <Link to="/settings/system">View gate status</Link>
+              </Button>
+            </div>
+          }
         />
       </div>
     );
