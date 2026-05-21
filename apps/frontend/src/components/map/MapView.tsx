@@ -9,6 +9,9 @@ import { EmptyState } from "@/components/domain/EmptyState";
 import { MacAddress } from "@/components/domain/MacAddress";
 import { useAccessPointsList, type AccessPoint } from "@/services/api/queries";
 import { type MapPin, useMapPinsStore } from "@/stores/useMapPinsStore";
+import { useMapStyleStore } from "@/stores/useMapStyleStore";
+import { MapStyleSwitcher } from "./MapStyleSwitcher";
+import { styleDefFor } from "./mapStyles";
 
 const MapCanvas = lazy(() => import("./MapCanvas").then((m) => ({ default: m.MapCanvas })));
 
@@ -86,6 +89,8 @@ export function MapView(): JSX.Element {
   const setPin = useMapPinsStore((s) => s.setPin);
   const removePin = useMapPinsStore((s) => s.removePin);
   const clear = useMapPinsStore((s) => s.clear);
+  const styleId = useMapStyleStore((s) => s.styleId);
+  const styleSpec = useMemo(() => styleDefFor(styleId).style, [styleId]);
 
   const [filter, setFilter] = useState("");
   const [pending, setPending] = useState<Pending | null>(null);
@@ -182,6 +187,7 @@ export function MapView(): JSX.Element {
               Clear manual pins
             </Button>
           )}
+          <MapStyleSwitcher />
         </div>
       </PageHeader>
 
@@ -239,6 +245,7 @@ export function MapView(): JSX.Element {
             <Suspense fallback={<Skeleton className="h-full w-full" />}>
               <MapCanvas
                 pins={mergedPins}
+                style={styleSpec}
                 pending={pending}
                 flyTo={flyTo}
                 onMapClick={onMapClick}

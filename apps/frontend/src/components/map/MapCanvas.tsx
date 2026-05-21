@@ -1,10 +1,23 @@
-import maplibregl, { type Map as MapLibreMap, type Marker } from "maplibre-gl";
+import maplibregl, {
+  type Map as MapLibreMap,
+  type Marker,
+  type StyleSpecification,
+} from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef } from "react";
 import { type MapPin } from "@/stores/useMapPinsStore";
 
 interface MapCanvasProps {
   pins: Record<string, MapPin>;
+  /**
+   * MapLibre style — URL or full spec. `MapView` resolves the
+   * operator-selected base layer from `mapStyles.ts` and passes it
+   * down. The canvas does not import the catalogue itself, so the
+   * data-source contract stays one-way (dependency inversion: this
+   * component depends on the StyleSpecification shape, not the
+   * concrete list of basemaps).
+   */
+  style: string | StyleSpecification;
   /**
    * Optional pending pin label — when the operator has selected an AP
    * in the sidebar but not yet clicked the map. Used so the cursor
@@ -23,11 +36,6 @@ interface MapCanvasProps {
   onPinClick: (bssid: string) => void;
 }
 
-const STYLE_URL =
-  // OSM raster tiles via the demo MapLibre style. No API key needed; for
-  // production Stage 8 we'd swap in a self-hosted PMTiles bundle.
-  "https://demotiles.maplibre.org/style.json";
-
 /**
  * Thin React wrapper around a MapLibre GL instance.
  *
@@ -39,6 +47,7 @@ const STYLE_URL =
  */
 export function MapCanvas({
   pins,
+  style,
   pending,
   flyTo,
   onMapClick,
@@ -52,11 +61,16 @@ export function MapCanvas({
   const callbacksRef = useRef({ onMapClick, onPinClick });
   callbacksRef.current = { onMapClick, onPinClick };
 
+  // Hold the initial style in a ref so the map-create effect can read
+  // it without forcing a re-create when the operator later switches
+  // layer (that's the dedicated effect below, which uses `setStyle`).
+  const initialStyleRef = useRef(style);
+
   useEffect(() => {
     if (!containerRef.current) return;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: STYLE_URL,
+      style: initialStyleRef.current,
       center: [0, 30],
       zoom: 1.5,
       attributionControl: { compact: true },
@@ -72,6 +86,23 @@ export function MapCanvas({
       markers.clear();
     };
   }, []);
+
+  // Swap the base layer when the operator picks a different style.
+  // MapLibre's setStyle replaces sources + layers but preserves Marker
+  // overlays (they live in the DOM, not the style graph), so pins
+  // stay put across the transition. We deliberately skip the very
+  // first render — the create effect already applied
+  // `initialStyleRef.current`.
+  const isFirstStyleRender = useRef(true);
+  useEffect(() => {
+    if (isFirstStyleRender.current) {
+      isFirstStyleRender.current = false;
+      return;
+    }
+    const map = mapRef.current;
+    if (!map) return;
+    map.setStyle(style);
+  }, [style]);
 
   // Sync markers with pins prop.
   useEffect(() => {
