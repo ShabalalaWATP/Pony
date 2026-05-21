@@ -1,19 +1,36 @@
 import { HttpResponse, http } from "msw";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MapView } from "@/components/map/MapView";
 import { withQueryAndRouter } from "./helpers";
 import { useMapPinsStore } from "@/stores/useMapPinsStore";
+import { useMapStyleStore } from "@/stores/useMapStyleStore";
 import { server } from "./msw/server";
 
 // `MapCanvas` is dynamically imported and pulls in MapLibre. It expects
 // a real WebGL context and DOM measurements that jsdom doesn't supply,
 // so we stub the lazy-loaded module wholesale for tests.
 vi.mock("@/components/map/MapCanvas", () => ({
-  MapCanvas: ({ pins }: { pins: Record<string, unknown> }) => (
-    <div data-testid="map-canvas-stub">{Object.keys(pins).length} pins</div>
-  ),
+  MapCanvas: ({ pins, style }: { pins: Record<string, unknown>; style: unknown }) => {
+    // Surface the style descriptor through the stub so integration
+    // tests can assert which base-layer descriptor MapView resolved.
+    const styleId =
+      typeof style === "string"
+        ? "street"
+        : style && typeof style === "object" && "sources" in style
+          ? Object.keys((style as { sources: Record<string, unknown> }).sources).includes(
+              "esri-labels",
+            )
+            ? "hybrid"
+            : "satellite"
+          : "unknown";
+    return (
+      <div data-testid="map-canvas-stub" data-style-id={styleId}>
+        {Object.keys(pins).length} pins
+      </div>
+    );
+  },
 }));
 
 const sampleAps = [
@@ -38,6 +55,12 @@ const sampleAps = [
 ];
 
 describe("MapView", () => {
+  beforeEach(() => {
+    // Map base layer is persisted to localStorage in real use — reset
+    // between tests so the switcher integration cases start clean.
+    useMapStyleStore.setState({ styleId: "street" });
+  });
+
   it("lists the access points in the sidebar", async () => {
     useMapPinsStore.setState({ pins: {} });
     server.use(
@@ -244,5 +267,57 @@ describe("MapView", () => {
     expect(await screen.findByText(/1 manual/i)).toBeInTheDocument();
     // …and "from sensors" badge is NOT shown (server count drops to 0).
     expect(screen.queryByText(/from sensors/i)).toBeNull();
+  });
+
+  it("renders the base-layer switcher in the header", async () => {
+    useMapPinsStore.setState({ pins: {} });
+    const { node } = withQueryAndRouter(<MapView />);
+    render(node);
+    expect(await screen.findByTestId("map-style-switcher")).toBeInTheDocument();
+  });
+
+  it("passes the street style descriptor to MapCanvas by default", async () => {
+    useMapPinsStore.setState({ pins: {} });
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({ items: sampleAps, total: 2, limit: 500, offset: 0 }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<MapView />);
+    render(node);
+    const canvas = await screen.findByTestId("map-canvas-stub");
+    expect(canvas).toHaveAttribute("data-style-id", "street");
+  });
+
+  it("switches MapCanvas style when the operator picks satellite", async () => {
+    useMapPinsStore.setState({ pins: {} });
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({ items: sampleAps, total: 2, limit: 500, offset: 0 }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<MapView />);
+    render(node);
+    await screen.findByTestId("map-canvas-stub");
+    await userEvent.click(screen.getByTestId("map-style-satellite"));
+    await waitFor(() => {
+      expect(screen.getByTestId("map-canvas-stub")).toHaveAttribute("data-style-id", "satellite");
+    });
+  });
+
+  it("switches MapCanvas style to hybrid when the operator picks it", async () => {
+    useMapPinsStore.setState({ pins: {} });
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({ items: sampleAps, total: 2, limit: 500, offset: 0 }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<MapView />);
+    render(node);
+    await screen.findByTestId("map-canvas-stub");
+    await userEvent.click(screen.getByTestId("map-style-hybrid"));
+    await waitFor(() => {
+      expect(screen.getByTestId("map-canvas-stub")).toHaveAttribute("data-style-id", "hybrid");
+    });
   });
 });
