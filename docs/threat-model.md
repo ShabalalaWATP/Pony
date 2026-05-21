@@ -116,3 +116,36 @@ Method: STRIDE per major component.
 - Information disclosure: download tokens are HMAC-signed and short-lived; audit exports omit raw tool output references and generated artifacts stay behind authenticated routes.
 - Denial of service: v1 report generation caps event, alert, and audit source reads to bounded pages while async worker wiring is introduced.
 - Elevation of privilege: reports are scoped to an existing engagement and cannot be fetched by id without matching the engagement path.
+
+## Accepted advisory exceptions
+
+Specific SCA advisories that the project has explicitly assessed and
+accepted as not-applicable to Cheeky Pony. Every entry here MUST be
+mirrored in `osv-scanner.toml` and in the `pip-audit --ignore-vuln`
+flags inside `.github/workflows/sca.yml` so the two scanners agree.
+Re-review on every major release; drop the exception the moment
+upstream issues a fix and bump the package instead.
+
+### PYSEC-2025-183 — pyjwt key-length advisory (disputed upstream)
+
+- **Advisory**: pyjwt allows the calling application to choose an HMAC
+  key of arbitrary length, including very short ones, which would
+  produce weak signatures.
+- **Maintainer position**: disputed. The OSV record explicitly states
+  "this is disputed by the Supplier because the key length is chosen
+  by the application that uses the library." No upstream fix has been
+  issued and no patched version exists at the time of acceptance.
+- **CVSS**: `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:H` — high
+  attack complexity, low confidentiality + integrity impact. Only
+  exploitable against an application that has chosen a short key.
+- **Cheeky Pony impact**: none in any realistic threat model.
+  - `CHEEKY_PONY_JWT_SECRET` is documented as ≥32 random bytes across
+    `README.md`, `docs/operator-guide.md`, and `.env.example`.
+  - `apps/backend/.../config.py` rejects known development defaults at
+    startup whenever `CHEEKY_PONY_ENV` is not in
+    `{dev, test, dast, local}`.
+  - There is no operator-facing affordance to set or rotate the JWT
+    secret from the UI — the only path is operator-controlled env.
+- **Decision**: accept. Ignored in both `pip-audit` and `osv-scanner`
+  with explanatory comments pointing back to this section. Re-review
+  if upstream issues a pyjwt 2.13+ release that addresses it.

@@ -5,6 +5,12 @@ email-validator==2.2.0
 fastapi==0.136.1
 fastapi-users==15.0.5
 httpx==0.28.1
+# Pinned transitively to dodge GHSA-65pc-fj4g-8rjx (DoS in idna.encode
+# on arbitrarily large inputs). Fixed in 3.15. We don't pass user input
+# straight into idna, but the cost of pinning is zero and the scanner
+# is right to flag it. Drop the pin once httpx/email-validator/etc.
+# require >=3.15 themselves.
+idna==3.15
 motor==3.7.0
 opentelemetry-api==1.30.0
 opentelemetry-sdk==1.30.0

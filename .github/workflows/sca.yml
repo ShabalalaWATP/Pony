@@ -17,7 +17,19 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install pip-audit
-      - run: pip-audit -r apps/backend/requirements.lock -r apps/sensor-agent/requirements.lock
+      # Ignored advisories — see `osv-scanner.toml` for the same list +
+      # the documented reason. Mirror the ignores here so pip-audit and
+      # osv-scanner agree about what's accepted risk vs. real finding.
+      #   PYSEC-2025-183 — disputed pyjwt advisory; key length is the
+      #     caller's responsibility, `CHEEKY_PONY_JWT_SECRET` is required
+      #     ≥32 random bytes and `config.py` rejects known dev defaults
+      #     in prod. No upstream fix; maintainer disputes. See
+      #     docs/threat-model.md "Accepted advisory exceptions".
+      - run: >
+          pip-audit
+          --ignore-vuln PYSEC-2025-183
+          -r apps/backend/requirements.lock
+          -r apps/sensor-agent/requirements.lock
       - name: Install OSV-Scanner
         run: |
           curl -sSfL -o /tmp/osv-scanner https://github.com/google/osv-scanner/releases/download/v2.3.8/osv-scanner_linux_amd64
@@ -27,7 +39,7 @@ jobs:
           mkdir -p /tmp/osv-input/backend /tmp/osv-input/sensor
           cp apps/backend/requirements.lock /tmp/osv-input/backend/requirements.txt
           cp apps/sensor-agent/requirements.lock /tmp/osv-input/sensor/requirements.txt
-          osv-scanner scan source -r /tmp/osv-input
+          osv-scanner scan source --config osv-scanner.toml -r /tmp/osv-input
       - name: Install Trivy
         run: |
           curl -sSfL -o /tmp/trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.70.0/trivy_0.70.0_Linux-64bit.tar.gz
