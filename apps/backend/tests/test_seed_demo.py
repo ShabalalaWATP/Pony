@@ -47,6 +47,9 @@ async def test_seed_demo_counts_idempotency_and_clean(mongo_store: MongoStore) -
 
     counts = await _seed(mongo_store, options)
     await _seed(mongo_store, options)
+    synthetic_aps, total_access_points = await mongo_store.list_access_points(500, 0)
+    synthetic_aps = [ap for ap in synthetic_aps if ap.synthetic]
+    geolocated_aps = [ap for ap in synthetic_aps if ap.latitude is not None]
 
     assert counts == {
         "sensors": 3,
@@ -58,6 +61,11 @@ async def test_seed_demo_counts_idempotency_and_clean(mongo_store: MongoStore) -
         "engagements": 1,
         "allow_list": 3,
     }
+    assert total_access_points == 51
+    assert len(synthetic_aps) == 50
+    assert len(geolocated_aps) >= 45
+    assert all(ap.longitude is not None for ap in geolocated_aps)
+    assert all(ap.location_source == "sensor_gps" for ap in geolocated_aps)
     assert await mongo_store.count_synthetic_records() == sum(counts.values())
 
     deleted = await _clean(mongo_store, "tester")
@@ -112,6 +120,9 @@ async def test_seed_demo_refuses_outside_dev() -> None:
 def test_demo_dataset_shape_and_safety_markers() -> None:
     now = datetime(2026, 5, 18, 12, tzinfo=UTC)
     dataset = build_demo_dataset(now, with_active=True)
+    repeat_dataset = build_demo_dataset(now, with_active=True)
+    geolocated_aps = [ap for ap in dataset.access_points if ap.latitude is not None]
+    ungeolocated_aps = [ap for ap in dataset.access_points if ap.latitude is None]
 
     assert len(dataset.sensors) == 3
     assert len(dataset.access_points) == 50
@@ -125,6 +136,14 @@ def test_demo_dataset_shape_and_safety_markers() -> None:
     assert all(sensor.id.startswith("synth-pi-") for sensor in dataset.sensors)
     assert all(ap.bssid.startswith("02:00:") and ap.synthetic for ap in dataset.access_points)
     assert all(len(ap.signal_history) == SIGNAL_HISTORY_CAP for ap in dataset.access_points)
+    assert len(geolocated_aps) >= 45
+    assert len(ungeolocated_aps) >= 1
+    assert all(ap.longitude is not None for ap in geolocated_aps)
+    assert all(ap.location_source == "sensor_gps" for ap in geolocated_aps)
+    assert all(ap.longitude is None and ap.location_source is None for ap in ungeolocated_aps)
+    assert all(-90 <= ap.latitude <= 90 for ap in geolocated_aps if ap.latitude is not None)
+    assert all(-180 <= ap.longitude <= 180 for ap in geolocated_aps if ap.longitude is not None)
+    assert _ap_locations(dataset.access_points) == _ap_locations(repeat_dataset.access_points)
     assert all(client.mac.startswith("02:00:") and client.synthetic for client in dataset.clients)
     assert all(event.synthetic and event.occurred_at <= now for event in dataset.events)
     assert {event.kind for event in dataset.events} == {
@@ -231,3 +250,10 @@ async def _fake_seed(store, _options):  # type: ignore[no-untyped-def]
 async def _fake_clean(store, _actor_id):  # type: ignore[no-untyped-def]
     store.cleaned = True
     return {"cleaned": 1}
+
+
+def _ap_locations(access_points: list[AccessPoint]) -> dict[str, tuple[float | None, float | None]]:
+    return {
+        access_point.bssid: (access_point.latitude, access_point.longitude)
+        for access_point in access_points
+    }

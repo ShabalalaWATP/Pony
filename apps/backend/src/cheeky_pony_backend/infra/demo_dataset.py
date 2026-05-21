@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import random
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 
 from cheeky_pony_backend.infra.signals_repo import SIGNAL_HISTORY_CAP
 from cheeky_pony_shared import (
@@ -25,6 +27,13 @@ from cheeky_pony_shared import (
 )
 
 EVENT_COUNT = 5000
+DEMO_CENTER_LATITUDE = 51.5074
+DEMO_CENTER_LONGITUDE = -0.1278
+DEMO_GEO_SPREAD_DEGREES = 0.3
+GEOLESS_AP_INTERVAL = 10
+
+AP_CHANNELS = [1, 6, 11, 36, 44, 149]
+AP_ENCRYPTION_PROFILES = [["WPA2"], ["WPA2", "WPA3"], ["open"]]
 
 
 @dataclass(frozen=True)
@@ -85,24 +94,47 @@ def _sensors(now: datetime) -> list[Sensor]:
 
 
 def _access_points(rng: random.Random, now: datetime) -> list[AccessPoint]:
-    channels = [1, 6, 11, 36, 44, 149]
-    encryption = [["WPA2"], ["WPA2", "WPA3"], ["open"]]
-    return [
-        AccessPoint(
-            bssid=_mac(0xA0, index),
-            ssid=f"synth-ap-{index:02d}",
-            channel=channels[index % len(channels)],
-            band="2.4" if channels[index % len(channels)] <= 14 else "5",
-            encryption=encryption[index % len(encryption)],
-            first_seen=now - timedelta(days=20 + index % 10, minutes=index),
-            last_seen=now - timedelta(minutes=5, seconds=index * 11),
-            signal_history=_signal_history(rng, now, -45 - (index % 20)),
-            vendor_oui="Synthetic",
-            flags=["synthetic", "demo"],
-            synthetic=True,
-        )
-        for index in range(50)
-    ]
+    return [_access_point(rng, now, index) for index in range(50)]
+
+
+def _access_point(rng: random.Random, now: datetime, index: int) -> AccessPoint:
+    bssid = _mac(0xA0, index)
+    channel = AP_CHANNELS[index % len(AP_CHANNELS)]
+    geo = _access_point_geo(bssid, index)
+    latitude = None if geo is None else geo[0]
+    longitude = None if geo is None else geo[1]
+    location_source: Literal["sensor_gps"] | None = None if geo is None else "sensor_gps"
+    return AccessPoint(
+        bssid=bssid,
+        ssid=f"synth-ap-{index:02d}",
+        channel=channel,
+        band="2.4" if channel <= 14 else "5",
+        encryption=AP_ENCRYPTION_PROFILES[index % len(AP_ENCRYPTION_PROFILES)],
+        first_seen=now - timedelta(days=20 + index % 10, minutes=index),
+        last_seen=now - timedelta(minutes=5, seconds=index * 11),
+        signal_history=_signal_history(rng, now, -45 - (index % 20)),
+        vendor_oui="Synthetic",
+        flags=["synthetic", "demo"],
+        latitude=latitude,
+        longitude=longitude,
+        location_source=location_source,
+        synthetic=True,
+    )
+
+
+def _access_point_geo(bssid: str, index: int) -> tuple[float, float] | None:
+    if index % GEOLESS_AP_INTERVAL == GEOLESS_AP_INTERVAL - 1:
+        return None
+    digest = hashlib.sha256(bssid.encode("ascii")).digest()
+    latitude = DEMO_CENTER_LATITUDE + _geo_offset(digest[:4])
+    longitude = DEMO_CENTER_LONGITUDE + _geo_offset(digest[4:8])
+    return round(latitude, 6), round(longitude, 6)
+
+
+def _geo_offset(raw_bytes: bytes) -> float:
+    raw_value = int.from_bytes(raw_bytes, byteorder="big")
+    scale = raw_value / 0xFFFFFFFF
+    return ((scale * 2) - 1) * DEMO_GEO_SPREAD_DEGREES
 
 
 def _clients(rng: random.Random, now: datetime, access_points: list[AccessPoint]) -> list[Client]:

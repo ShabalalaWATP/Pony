@@ -5,6 +5,12 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend demo data geo
+
+- Synthetic demo access points now include deterministic London-centered GPS
+  coordinates on 45 of 50 APs so the map renders backend-provided markers on a
+  fresh seed while retaining a small ungeolocated mixed-state sample.
+
 ### CI — unblock SCA: pin idna, accept disputed pyjwt advisory
 
 - Pinned `idna==3.15` transitively in `apps/backend/requirements.lock`

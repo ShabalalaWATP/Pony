@@ -9,6 +9,7 @@ import pytest
 from conftest import BackendClient
 from helpers import create_verified_admin
 
+from cheeky_pony_backend.infra.demo_dataset import build_demo_dataset
 from cheeky_pony_shared import AccessPoint, AuditLog, Client, Event, EventKind
 
 pytestmark = pytest.mark.asyncio
@@ -85,6 +86,29 @@ async def test_access_point_clients_are_paginated_and_sorted(
         "22:33:44:55:66:77",
         "11:22:33:44:55:66",
     ]
+
+
+async def test_access_points_api_returns_seeded_demo_geo(
+    backend_client: BackendClient,
+) -> None:
+    """Synthetic AP geo fields are visible through the normal read path."""
+
+    await create_verified_admin(backend_client)
+    dataset = build_demo_dataset(datetime(2026, 5, 18, 12, tzinfo=UTC), with_active=False)
+    for access_point in dataset.access_points:
+        await backend_client.store.upsert_access_point(access_point)
+
+    response = await backend_client.client.get("/api/v1/access_points?limit=500")
+    items = response.json()["items"]
+    geolocated = [item for item in items if item["latitude"] is not None]
+    ungeolocated = [item for item in items if item["latitude"] is None]
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 50
+    assert len(geolocated) >= 45
+    assert len(ungeolocated) >= 1
+    assert all(item["longitude"] is not None for item in geolocated)
+    assert all(item["location_source"] == "sensor_gps" for item in geolocated)
 
 
 async def test_authorized_acknowledgement_requires_exact_statement(
