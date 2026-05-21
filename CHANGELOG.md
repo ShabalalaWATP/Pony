@@ -5,6 +5,22 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### CI — unblock SCA: pin idna, accept disputed pyjwt advisory
+
+- Pinned `idna==3.15` transitively in `apps/backend/requirements.lock`
+  and `apps/sensor-agent/requirements.lock` to dodge
+  GHSA-65pc-fj4g-8rjx (DoS in `idna.encode` on arbitrarily large
+  inputs, fixed in 3.15). Real fix available, real bump preferred over
+  an exception. Drop the explicit pin once httpx / email-validator /
+  cryptography all require `idna>=3.15` themselves.
+- `pip-audit` + `osv-scanner` now ignore PYSEC-2025-183 with an
+  inline comment and a new top-level `osv-scanner.toml`. The advisory
+  is disputed upstream and concerns key-length choice in the calling
+  application; Cheeky Pony enforces ≥32-byte JWT secrets and rejects
+  dev defaults in prod. Reasoning recorded in
+  `docs/threat-model.md` under "Accepted advisory exceptions". Drop
+  the ignore the moment upstream issues a fix.
+
 ### Security audit follow-up
 
 - Hardened auth, sensor admin, engagement, report, alert, and validation refusal

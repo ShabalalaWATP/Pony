@@ -1,0 +1,23 @@
+# OSV-Scanner configuration
+#
+# Accepted-risk advisory exceptions for the SCA pipeline. Every entry
+# below MUST also be ignored in `pip-audit` (see `.github/workflows/sca.yml`)
+# so the two scanners agree, and MUST be documented in
+# `docs/threat-model.md` under "Accepted advisory exceptions" so the
+# reasoning is auditable.
+#
+# Re-review every entry on each major release. If upstream issues a
+# fix, drop the ignore and bump the package instead.
+
+[[IgnoredVulns]]
+id = "PYSEC-2025-183"
+reason = """
+Disputed advisory against pyjwt: 'key length is chosen by the
+application that uses the library'. Cheeky Pony's
+CHEEKY_PONY_JWT_SECRET is required to be at least 32 random bytes,
+and config.py rejects known dev defaults at startup in prod-like
+environments. Upstream maintainer disputes the advisory and no
+patched release exists. CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:H
+— high attack complexity, low impact, applicable only to apps
+choosing very short keys. Not us.
+"""
