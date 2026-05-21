@@ -109,7 +109,7 @@ export function DataTable<T>({
 
   const headerGroup = table.getHeaderGroups()[0];
   const columnsTemplate =
-    headerGroup?.headers.map((h) => h.column.columnDef.size ?? "minmax(0,1fr)").join(" ") ?? "1fr";
+    headerGroup?.headers.map((h) => columnTrack(h.column.columnDef.size)).join(" ") ?? "1fr";
 
   if (rows.length === 0 && emptyState) {
     return (
@@ -163,6 +163,20 @@ export function DataTable<T>({
   );
 }
 
+/**
+ * Numeric column sizes from TanStack Table arrive as plain integers
+ * (e.g. `200`). CSS grid won't accept unitless numbers in
+ * `grid-template-columns` — the whole declaration is invalid and the
+ * browser falls back to `1fr 1fr 1fr ...` which collapses dense tables
+ * into a smear of stacked cells. Wrap each numeric track with `px`;
+ * leave `minmax(0,1fr)` for the unsized (flex-fill) columns.
+ */
+function columnTrack(size: unknown): string {
+  return typeof size === "number" && Number.isFinite(size) && size > 0
+    ? `${size}px`
+    : "minmax(0,1fr)";
+}
+
 interface HeaderProps<T> {
   headerGroup:
     | ReturnType<ReturnType<typeof useReactTable<T>>["getHeaderGroups"]>[number]
@@ -190,7 +204,10 @@ function TableHeader<T>({ headerGroup, columnsTemplate }: HeaderProps<T>): JSX.E
             onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
             disabled={!canSort}
             className={cn(
-              "flex h-8 items-center gap-1 truncate px-3 text-left text-2xs font-medium uppercase tracking-wide text-fg-60",
+              // `min-w-0` lets the column shrink inside its grid track so
+              // `truncate` actually clips; grid items default to
+              // `min-width: auto` which would otherwise blow the track.
+              "flex h-8 min-w-0 items-center gap-1 truncate px-3 text-left text-2xs font-medium uppercase tracking-wide text-fg-60",
               canSort && "hover:text-fg-100",
             )}
           >
@@ -240,7 +257,7 @@ function DataRow<T>({
         <div
           key={cell.id}
           role="gridcell"
-          className="flex items-center gap-2 truncate px-3 text-fg-100"
+          className="flex min-w-0 items-center gap-2 truncate px-3 text-fg-100"
         >
           {flexRender(cell.column.columnDef.cell, cell.getContext())}
         </div>

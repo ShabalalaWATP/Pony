@@ -86,7 +86,13 @@ describe("SensorsView", () => {
     const { node } = withQueryAndRouter(<SensorsView />);
     render(node);
     // Default msw handler returns 403.
-    expect(await screen.findByText(/admin \+ 2fa required/i)).toBeInTheDocument();
+    expect(await screen.findByText(/admin \+ recent 2fa required/i)).toBeInTheDocument();
+    // Action surfaces a re-verify link so the operator doesn't read
+    // "gated" as "no data".
+    expect(screen.getByRole("link", { name: /re-verify 2fa/i })).toHaveAttribute(
+      "href",
+      "/settings/account",
+    );
   });
 
   it("filters the list when typing in the search box", async () => {

@@ -1,4 +1,4 @@
-import { ShieldAlert } from "lucide-react";
+import { Lock, ShieldAlert } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { StatTile } from "@/components/domain/StatTile";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -13,10 +13,35 @@ interface TileProps {
   label: string;
   value: React.ReactNode;
   endpoint: string;
+  /** Error message to surface in a tooltip when the underlying query failed. */
   error?: React.ReactNode;
+  /**
+   * Auth/permission gate is closed (403). Renders an amber "Gated" pill
+   * instead of an em-dash so the operator doesn't misread it as
+   * "this number is missing".
+   */
+  gated?: boolean;
 }
 
-function Tile({ label, value, endpoint, error }: TileProps): JSX.Element {
+function Tile({ label, value, endpoint, error, gated }: TileProps): JSX.Element {
+  if (gated) {
+    return (
+      <Tooltip content={error ?? "Gated — admin + recent 2FA required."}>
+        <div>
+          <StatTile
+            label={label}
+            value={
+              <span className="inline-flex items-center gap-1.5 text-md font-medium text-accent-amber">
+                <Lock className="size-3.5" aria-hidden="true" />
+                Gated
+              </span>
+            }
+            endpoint={endpoint}
+          />
+        </div>
+      </Tooltip>
+    );
+  }
   if (error) {
     return (
       <Tooltip content={error}>
@@ -38,11 +63,12 @@ export function OverviewKPIs(): JSX.Element {
   const aps = useAccessPointsList({ limit: 1 });
   const sensors = useSensorsList({ limit: 1 });
 
+  const sensorsGated = sensors.error?.status === 403;
   const sensorsError =
     sensors.error?.status === 403 ? (
       <span className="flex items-center gap-1.5">
         <ShieldAlert className="size-3" aria-hidden="true" />
-        Admin + 2FA required to read sensor inventory.
+        Admin + recent 2FA required. Re-verify TOTP from /settings/account.
       </span>
     ) : sensors.error ? (
       <span>Failed to load: {sensors.error.message}</span>
@@ -83,6 +109,7 @@ export function OverviewKPIs(): JSX.Element {
           value={formatTotal(sensors.data?.total)}
           endpoint="/api/v1/sensors"
           error={sensorsError}
+          gated={sensorsGated}
         />
       )}
     </div>
