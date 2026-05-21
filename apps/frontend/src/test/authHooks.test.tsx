@@ -1,16 +1,33 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { HttpResponse, http } from "msw";
 import {
   AUTH_QUERY_KEY,
+  isTotpRequired,
   useCurrentUser,
   useLogin,
   useLogout,
   useSetup2FA,
   useVerify2FA,
 } from "@/services/auth/hooks";
+import { ApiError, apiClient } from "@/services/api/client";
+
+/**
+ * Tiny gated query mounted by the invalidation tests. Hits the same
+ * `/sensors` endpoint `useSensorsList` does so msw overrides line up,
+ * but uses a hand-rolled `useQuery` with retry disabled — that way
+ * the test asserts purely on the invalidation behaviour instead of
+ * fighting the production hook's built-in retry policy.
+ */
+function useGatedSensors() {
+  return useQuery<unknown, ApiError>({
+    queryKey: ["sensors", { limit: 100, offset: 0 }],
+    queryFn: () => apiClient.get("/sensors?limit=100&offset=0"),
+    retry: false,
+  });
+}
 import { fixtures } from "./msw/handlers";
 import { server } from "./msw/server";
 
@@ -161,5 +178,99 @@ describe("useSetup2FA / useVerify2FA", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     const cached = qc.getQueryData<{ user: { totp_enabled: boolean } }>(AUTH_QUERY_KEY);
     expect(cached?.user.totp_enabled).toBe(true);
+  });
+
+  it("verify success refetches sensors when it was sitting on a 403", async () => {
+    const { wrapper } = wrapperFactory();
+    let sensorsHits = 0;
+    server.use(
+      http.get("/api/v1/sensors", () => {
+        sensorsHits += 1;
+        // Stay-on-403 for the first call (gate closed). After verify
+        // we want the refetch to land on a 200 so we can see the
+        // recovery — the test asserts the refetch *happened*.
+        if (sensorsHits === 1) {
+          return HttpResponse.json({ detail: "Admin + 2FA required" }, { status: 403 });
+        }
+        return HttpResponse.json({ items: [], total: 0, limit: 100, offset: 0 });
+      }),
+    );
+
+    // Mount `useSensorsList` so the query has an active observer —
+    // this is the production state (operator is sitting on /sensors).
+    // Without an observer, `invalidateQueries` marks the query stale
+    // but does not refetch.
+    const { result: sensors } = renderHook(() => useGatedSensors(), { wrapper });
+    await waitFor(() => expect(sensors.current.isError).toBe(true));
+    expect(sensors.current.error?.status).toBe(403);
+    expect(sensorsHits).toBe(1);
+
+    // Run verify. The onSuccess callback fires invalidateQueries with
+    // the 403-predicate, which (because the sensors observer is live)
+    // immediately triggers a refetch.
+    const { result: verify } = renderHook(() => useVerify2FA(), { wrapper });
+    verify.current.mutate("123456");
+    await waitFor(() => expect(verify.current.isSuccess).toBe(true));
+
+    // The post-invalidate refetch lands on the 200 path → sensors
+    // hook now reports success without the operator navigating.
+    await waitFor(() => expect(sensors.current.isSuccess).toBe(true));
+    expect(sensorsHits).toBe(2);
+  });
+
+  it("verify success does NOT refetch non-403 errored queries", async () => {
+    const { wrapper } = wrapperFactory();
+    let sensorsHits = 0;
+    server.use(
+      http.get("/api/v1/sensors", () => {
+        sensorsHits += 1;
+        return HttpResponse.json({ detail: "Boom" }, { status: 500 });
+      }),
+    );
+    const { result: sensors } = renderHook(() => useGatedSensors(), { wrapper });
+    await waitFor(() => expect(sensors.current.isError).toBe(true));
+    expect(sensors.current.error?.status).toBe(500);
+    const hitsBeforeVerify = sensorsHits;
+
+    const { result: verify } = renderHook(() => useVerify2FA(), { wrapper });
+    verify.current.mutate("123456");
+    await waitFor(() => expect(verify.current.isSuccess).toBe(true));
+
+    // Give any unwanted refetch a chance to fire, then assert it
+    // didn't — a 500 isn't a gate refusal, and a flapping backend
+    // shouldn't be hammered by every verify.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(sensorsHits).toBe(hitsBeforeVerify);
+  });
+});
+
+describe("isTotpRequired", () => {
+  it("returns true for a 403 ApiError with detail=totp_required", () => {
+    const err = new ApiError(403, "totp_required", { detail: "totp_required" });
+    expect(isTotpRequired(err)).toBe(true);
+  });
+
+  it("returns false for 403 with a different detail string", () => {
+    const err = new ApiError(403, "Admin + 2FA required", {
+      detail: "Admin + 2FA required",
+    });
+    expect(isTotpRequired(err)).toBe(false);
+  });
+
+  it("returns false for a non-403 status, even if body says totp_required", () => {
+    const err = new ApiError(401, "totp_required", { detail: "totp_required" });
+    expect(isTotpRequired(err)).toBe(false);
+  });
+
+  it("returns false for non-ApiError inputs", () => {
+    expect(isTotpRequired(new Error("nope"))).toBe(false);
+    expect(isTotpRequired(null)).toBe(false);
+    expect(isTotpRequired({ status: 403, body: { detail: "totp_required" } })).toBe(false);
+  });
+
+  it("returns false when the body has no parsable detail", () => {
+    expect(isTotpRequired(new ApiError(403, "x", null))).toBe(false);
+    expect(isTotpRequired(new ApiError(403, "x", "raw"))).toBe(false);
+    expect(isTotpRequired(new ApiError(403, "x", { other: "field" }))).toBe(false);
   });
 });
