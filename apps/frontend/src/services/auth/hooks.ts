@@ -10,6 +10,31 @@ export type TotpSetupResponse = components["schemas"]["TotpSetupResponse"];
 export const AUTH_QUERY_KEY = ["auth", "currentUser"] as const;
 
 /**
+ * True when the backend has refused a state-changing call because the
+ * caller's recent-TOTP claim has expired.
+ *
+ * Backend contract (see `apps/backend/.../api/v1/auth.py::setup_totp`
+ * and any admin-gated endpoint): returns `403` with
+ * `{"detail": "totp_required"}` when the operator has TOTP enabled
+ * but `totp_verified_at` is older than `settings.totp_recent_minutes`.
+ *
+ * Callers that detect this state should render the `TotpStepUp`
+ * prompt instead of leaking the raw error string. After the user
+ * verifies a fresh code, the original action can be retried — the
+ * step-up updates `totp_verified_at` server-side, so the next attempt
+ * sees a fresh recent window.
+ */
+export function isTotpRequired(err: unknown): boolean {
+  if (!(err instanceof ApiError)) return false;
+  if (err.status !== 403) return false;
+  const body = err.body;
+  if (body && typeof body === "object" && "detail" in body) {
+    return body.detail === "totp_required";
+  }
+  return false;
+}
+
+/**
  * Authoritative source of the current session.
  *
  * We don't have a `/users/me` endpoint, so on cold load we attempt a
