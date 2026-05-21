@@ -109,7 +109,7 @@ async def operator_gateway(websocket: WebSocket) -> None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     user = await store.get_user(str(claims["sub"]))
-    if user is None:
+    if user is None or user.disabled:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     broker: OperatorBroker = websocket.app.state.operator_broker

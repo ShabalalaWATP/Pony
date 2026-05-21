@@ -10,6 +10,8 @@ from conftest import BackendClient
 from helpers import create_verified_admin
 
 from cheeky_pony_backend.domain.reports import ReportStatus
+from cheeky_pony_backend.domain.users import UserRecord
+from cheeky_pony_backend.security import PasswordService
 from cheeky_pony_backend.workers.tasks import generate_report
 from cheeky_pony_shared import Engagement, Event, EventKind
 
@@ -88,6 +90,42 @@ async def test_report_request_validates_engagement_and_range(
     assert invalid_range.status_code == 422
     assert backend_client.store.audit_logs[-1].action == "reports.create"
     assert backend_client.store.audit_logs[-1].outcome == "denied:engagement_not_found"
+
+
+async def test_report_creation_requires_admin_recent_totp(
+    backend_client: BackendClient,
+) -> None:
+    """Operators cannot use reports to bypass admin-only audit access."""
+
+    await create_verified_admin(backend_client)
+    await backend_client.store.create_engagement(Engagement(id="eng-1", name="Lab"))
+    await backend_client.store.create_user(
+        UserRecord(
+            id="operator-1",
+            email="operator@example.com",
+            password_hash=PasswordService().hash_password("long-password-123"),
+            roles=["operator"],
+        )
+    )
+    login = await backend_client.client.post(
+        "/api/v1/auth/login",
+        json={"email": "operator@example.com", "password": "long-password-123"},
+    )
+
+    denied = await backend_client.client.post(
+        "/api/v1/engagements/eng-1/reports",
+        headers={"x-csrf-token": str(login.json()["csrf_token"])},
+        json={
+            "format": "jsonl",
+            "since": "2026-01-01T00:00:00Z",
+            "until": "2026-01-03T00:00:00Z",
+        },
+    )
+
+    assert denied.status_code == 403
+    assert denied.json()["detail"] == "admin_required"
+    assert backend_client.store.audit_logs[-1].action == "reports.create"
+    assert backend_client.store.audit_logs[-1].outcome == "denied:admin_required"
 
 
 async def _finish_report_if_needed(bundle: BackendClient, report_id: str) -> None:

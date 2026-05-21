@@ -185,6 +185,16 @@ async def login(
     if user is None or not passwords.verify(user.password_hash, payload.password):
         await audit_auth(audit, "auth.login", "denied:invalid_credentials", email)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials")
+    if user.disabled:
+        await audit_auth(
+            audit,
+            "auth.login",
+            "denied:invalid_user",
+            email,
+            user,
+            target_user_id=user.id,
+        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_user")
     csrf_token = csrf.create_token()
     set_cookie(response, "access_token", tokens.create_access_token(user.id, csrf_token), settings)
     set_cookie(
@@ -246,7 +256,7 @@ async def refresh(
             detail="invalid_refresh",
         ) from exc
     user = await store.get_user(str(claims["sub"]))
-    if user is None or not refresh_claim_matches_user(claims, user):
+    if user is None or user.disabled or not refresh_claim_matches_user(claims, user):
         await audit_auth(
             audit,
             "auth.refresh",

@@ -122,7 +122,7 @@ async def test_alert_rule_predicates_are_validated(backend_client: BackendClient
 
 
 async def test_alert_rule_rejects_redos_prone_regex(backend_client: BackendClient) -> None:
-    """Alert rule predicates reject nested quantifier regex patterns."""
+    """Alert rule predicates reject regexes with catastrophic backtracking risk."""
 
     csrf = await create_verified_admin(backend_client)
     response = await backend_client.client.post(
@@ -136,5 +136,19 @@ async def test_alert_rule_rejects_redos_prone_regex(backend_client: BackendClien
     )
 
     assert response.status_code == 422
+    assert backend_client.store.audit_logs[-1].action == "alerts.rules.create"
+    assert backend_client.store.audit_logs[-1].outcome == "denied:invalid_predicate"
+
+    alternation = await backend_client.client.post(
+        "/api/v1/alerts/rules",
+        headers={"x-csrf-token": csrf},
+        json={
+            "name": "Ambiguous alternation",
+            "severity": "high",
+            "predicate": {"event_kind": "access_point_seen", "match": {"ssid": "(a|aa)+$"}},
+        },
+    )
+
+    assert alternation.status_code == 422
     assert backend_client.store.audit_logs[-1].action == "alerts.rules.create"
     assert backend_client.store.audit_logs[-1].outcome == "denied:invalid_predicate"
