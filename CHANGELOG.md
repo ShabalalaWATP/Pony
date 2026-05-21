@@ -5,6 +5,16 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### CI — accept disputed pyjwt advisory PYSEC-2025-183
+
+- `pip-audit` + `osv-scanner` now ignore PYSEC-2025-183 with an
+  inline comment and a new top-level `osv-scanner.toml`. The advisory
+  is disputed upstream and concerns key-length choice in the calling
+  application; Cheeky Pony enforces ≥32-byte JWT secrets and rejects
+  dev defaults in prod. Reasoning recorded in
+  `docs/threat-model.md` under "Accepted advisory exceptions". Drop
+  the ignore the moment upstream issues a fix.
+
 ### Security audit follow-up
 
 - Hardened auth, sensor admin, engagement, report, alert, and validation refusal
