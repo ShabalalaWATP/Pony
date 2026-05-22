@@ -107,10 +107,16 @@
         "type": "array"
       },
       "ssid": {
-        "default": "",
-        "maxLength": 128,
-        "title": "Ssid",
-        "type": "string"
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Ssid"
       },
       "synthetic": {
         "default": false,
@@ -1531,6 +1537,47 @@
           }
         ],
         "title": "Last Seen"
+      },
+      "latitude": {
+        "anyOf": [
+          {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Latitude"
+      },
+      "location_source": {
+        "anyOf": [
+          {
+            "enum": [
+              "sensor_gps",
+              "manual_pin"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Location Source"
+      },
+      "longitude": {
+        "anyOf": [
+          {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Longitude"
       },
       "name": {
         "maxLength": 128,

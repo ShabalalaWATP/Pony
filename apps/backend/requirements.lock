@@ -20,6 +20,6 @@ pyjwt==2.12.1
 pyotp==2.9.0
 python-multipart==0.0.28
 redis==5.2.1
-starlette==1.0.0
+starlette==1.0.1
 structlog==24.4.0
 uvicorn[standard]==0.34.0

@@ -76,6 +76,30 @@ async def test_seed_demo_counts_idempotency_and_clean(mongo_store: MongoStore) -
 
 
 @pytest.mark.slow
+async def test_sensor_geo_round_trips_through_mongo(mongo_store: MongoStore) -> None:
+    """Sensor location fields persist and load through the repository."""
+
+    await mongo_store.ensure_indexes()
+    sensor = Sensor(
+        id="pi-geo",
+        name="Geo Pi",
+        tailnet_ip="100.64.0.44",
+        last_seen=datetime(2026, 5, 18, 12, tzinfo=UTC),
+        version="0.1.0",
+        latitude=51.5074,
+        longitude=-0.1278,
+        location_source="sensor_gps",
+    )
+
+    await mongo_store.create_sensor(sensor)
+    loaded = await mongo_store.get_sensor(sensor.id)
+    listed = await mongo_store.list_sensors()
+
+    assert loaded == sensor
+    assert listed == [sensor]
+
+
+@pytest.mark.slow
 async def test_seed_demo_refuses_when_real_sensor_recent(mongo_store: MongoStore) -> None:
     """The safety guard refuses seeding while a real sensor is active."""
 
@@ -121,8 +145,11 @@ def test_demo_dataset_shape_and_safety_markers() -> None:
     now = datetime(2026, 5, 18, 12, tzinfo=UTC)
     dataset = build_demo_dataset(now, with_active=True)
     repeat_dataset = build_demo_dataset(now, with_active=True)
+    sensor_locations = _sensor_locations(dataset.sensors)
     geolocated_aps = [ap for ap in dataset.access_points if ap.latitude is not None]
     ungeolocated_aps = [ap for ap in dataset.access_points if ap.latitude is None]
+    visible_ssids = [ap.ssid for ap in dataset.access_points if ap.ssid is not None]
+    hidden_aps = [ap for ap in dataset.access_points if ap.ssid is None]
 
     assert len(dataset.sensors) == 3
     assert len(dataset.access_points) == 50
@@ -134,8 +161,17 @@ def test_demo_dataset_shape_and_safety_markers() -> None:
     assert len(dataset.allow_list) == 6
     assert len(dataset.audit_logs) == 2
     assert all(sensor.id.startswith("synth-pi-") for sensor in dataset.sensors)
+    assert len(set(sensor_locations.values())) == 3
+    assert all(sensor.latitude is not None for sensor in dataset.sensors)
+    assert all(sensor.longitude is not None for sensor in dataset.sensors)
+    assert all(sensor.location_source == "sensor_gps" for sensor in dataset.sensors)
+    assert all(-90 <= lat <= 90 and -180 <= lng <= 180 for lat, lng in sensor_locations.values())
     assert all(ap.bssid.startswith("02:00:") and ap.synthetic for ap in dataset.access_points)
     assert all(len(ap.signal_history) == SIGNAL_HISTORY_CAP for ap in dataset.access_points)
+    assert len(visible_ssids) == len(set(visible_ssids))
+    assert len(hidden_aps) >= 3
+    assert "FREE-WIFI" in visible_ssids
+    assert "BTWiFi-x" in visible_ssids
     assert len(geolocated_aps) >= 45
     assert len(ungeolocated_aps) >= 1
     assert all(ap.longitude is not None for ap in geolocated_aps)
@@ -144,7 +180,12 @@ def test_demo_dataset_shape_and_safety_markers() -> None:
     assert all(-90 <= ap.latitude <= 90 for ap in geolocated_aps if ap.latitude is not None)
     assert all(-180 <= ap.longitude <= 180 for ap in geolocated_aps if ap.longitude is not None)
     assert _ap_locations(dataset.access_points) == _ap_locations(repeat_dataset.access_points)
+    assert _ap_ssids(dataset.access_points) == _ap_ssids(repeat_dataset.access_points)
+    assert sensor_locations == _sensor_locations(repeat_dataset.sensors)
     assert all(client.mac.startswith("02:00:") and client.synthetic for client in dataset.clients)
+    assert all(client.vendor_oui not in {None, "Synthetic"} for client in dataset.clients)
+    assert any(len(client.probes) >= 4 for client in dataset.clients)
+    assert any(len(client.probes) <= 1 for client in dataset.clients)
     assert all(event.synthetic and event.occurred_at <= now for event in dataset.events)
     assert {event.kind for event in dataset.events} == {
         EventKind.ACCESS_POINT_SEEN,
@@ -257,3 +298,16 @@ def _ap_locations(access_points: list[AccessPoint]) -> dict[str, tuple[float | N
         access_point.bssid: (access_point.latitude, access_point.longitude)
         for access_point in access_points
     }
+
+
+def _ap_ssids(access_points: list[AccessPoint]) -> dict[str, str | None]:
+    return {access_point.bssid: access_point.ssid for access_point in access_points}
+
+
+def _sensor_locations(sensors: list[Sensor]) -> dict[str, tuple[float, float]]:
+    locations: dict[str, tuple[float, float]] = {}
+    for sensor in sensors:
+        assert sensor.latitude is not None
+        assert sensor.longitude is not None
+        locations[sensor.id] = (sensor.latitude, sensor.longitude)
+    return locations

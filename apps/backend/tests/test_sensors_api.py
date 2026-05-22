@@ -7,6 +7,8 @@ import pytest
 from conftest import BackendClient
 from helpers import create_verified_admin
 
+from cheeky_pony_shared import Sensor
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -52,3 +54,31 @@ async def test_sensor_register_and_revoke_are_audited(backend_client: BackendCli
         ("sensor.revoke", "denied:not_found"),
     ]
     assert "BEGIN CERTIFICATE" not in backend_client.store.audit_logs[-4].model_dump_json()
+
+
+async def test_sensor_reads_return_geo_fields(backend_client: BackendClient) -> None:
+    """Sensor read routes expose stored coordinates without changing gates."""
+
+    await create_verified_admin(backend_client)
+    await backend_client.store.create_sensor(
+        Sensor(
+            id="pi-geo",
+            name="Geo Pi",
+            tailnet_ip="100.64.0.44",
+            version="0.1.0",
+            latitude=51.5074,
+            longitude=-0.1278,
+            location_source="sensor_gps",
+        )
+    )
+
+    listed = await backend_client.client.get("/api/v1/sensors")
+    detail = await backend_client.client.get("/api/v1/sensors/pi-geo")
+
+    assert listed.status_code == 200
+    assert detail.status_code == 200
+    sensor = listed.json()["items"][0]
+    assert sensor["latitude"] == 51.5074
+    assert sensor["longitude"] == -0.1278
+    assert sensor["location_source"] == "sensor_gps"
+    assert detail.json()["latitude"] == 51.5074

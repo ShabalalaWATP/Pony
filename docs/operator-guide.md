@@ -33,6 +33,11 @@ The seeder writes only visibly fake records: sensor ids use `synth-` prefixes
 and AP/client MACs use the locally administered `02:00:` range. Seeded telemetry
 records carry `synthetic: true`; normal sensor data does not set that marker.
 
+The seeded dataset includes London-centered AP and sensor coordinates, realistic
+urban SSIDs, a small hidden-SSID sample, plausible client vendors, and probe
+histories. This lets the map and reconnaissance views render meaningful fixture
+data immediately after a fresh seed.
+
 The command refuses to run unless all safety guards pass:
 
 - `CHEEKY_PONY_ENV=dev`

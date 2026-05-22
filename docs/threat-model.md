@@ -9,7 +9,7 @@ Method: STRIDE per major component.
 - Tampering: Pydantic v2 validates inputs; repository boundaries own persistence writes, including AP geolocation fields.
 - Repudiation: active gates and state-changing admin/auth flows append audit
   entries on success and refusal; logout records the actor id.
-- Information disclosure: strict CORS and CSP headers reduce browser exfiltration paths; server-side AP coordinates are authenticated API data and must not be exposed on public routes.
+- Information disclosure: strict CORS and CSP headers reduce browser exfiltration paths; server-side AP and sensor coordinates are authenticated API data and must not be exposed on public routes.
 - Denial of service: auth endpoints are rate-limited in-process for development and designed for Redis-backed limits.
 - Elevation of privilege: first-admin bootstrap requires the one-time
   `CHEEKY_PONY_BOOTSTRAP_TOKEN`, and admin actions require admin role plus a
@@ -59,7 +59,7 @@ Method: STRIDE per major component.
 - Spoofing: CLI seed and clean actions are attributed to the invoking actor id or `system:seed`.
 - Tampering: the seeder refuses outside `CHEEKY_PONY_ENV=dev`, refuses while lab mode is live, and refuses when a non-synthetic sensor has checked in recently unless `--force` is supplied.
 - Repudiation: seed and clean operations append `demo.seed.run` and `demo.seed.clean` audit entries.
-- Information disclosure: synthetic MACs use the `02:00:` locally administered range and no real sensor identifiers are copied into the seeded dataset.
+- Information disclosure: synthetic MACs use the `02:00:` locally administered range, seeded sensor coordinates are London-centered demo points, and no real sensor identifiers are copied into the seeded dataset.
 - Denial of service: seeded signal histories are capped at the same 200-sample repository boundary as real telemetry.
 - Elevation of privilege: seeded records are metadata only; production read and lab-gating behavior does not trust the `synthetic` marker.
 
