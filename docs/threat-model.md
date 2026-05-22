@@ -9,8 +9,8 @@ Method: STRIDE per major component.
 - Tampering: Pydantic v2 validates inputs; repository boundaries own persistence writes, including AP geolocation fields.
 - Repudiation: active gates and state-changing admin/auth flows append audit
   entries on success and refusal; logout records the actor id.
-- Information disclosure: strict CORS and CSP headers reduce browser exfiltration paths; server-side AP and sensor coordinates are authenticated API data and must not be exposed on public routes.
-- Denial of service: auth endpoints are rate-limited in-process for development and designed for Redis-backed limits.
+- Information disclosure: strict CORS and CSP headers reduce browser exfiltration paths; server-side AP and sensor coordinates are authenticated API data and must not be exposed on public routes. The unauthenticated OUI lookup route exposes only bundled public manufacturer-prefix data.
+- Denial of service: auth endpoints and the public OUI lookup route are rate-limited in-process for development and designed for Redis-backed limits.
 - Elevation of privilege: first-admin bootstrap requires the one-time
   `CHEEKY_PONY_BOOTSTRAP_TOKEN`, and admin actions require admin role plus a
   verified TOTP session.

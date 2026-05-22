@@ -37,6 +37,7 @@ export interface components {
     "LabTarget": unknown;
     "LoginRequest": unknown;
     "LoginResponse": unknown;
+    "OuiLookupResponse": unknown;
     "RegisterRequest": unknown;
     "ReportCreateRequest": unknown;
     "ReportCreateResponse": unknown;
@@ -92,6 +93,7 @@ export interface paths {
   "/api/v1/lab/status": Record<string, unknown>;
   "/api/v1/lab/{module}/start": Record<string, unknown>;
   "/api/v1/lab/{module}/stop/{command_id}": Record<string, unknown>;
+  "/api/v1/oui/{prefix}": Record<string, unknown>;
   "/api/v1/sensors": Record<string, unknown>;
   "/api/v1/sensors/{sensor_id}": Record<string, unknown>;
   "/api/v1/sensors/{sensor_id}/commands/restart": Record<string, unknown>;

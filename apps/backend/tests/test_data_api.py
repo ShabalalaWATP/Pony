@@ -20,15 +20,17 @@ async def test_device_and_event_lists_are_authenticated(backend_client: BackendC
 
     await create_verified_admin(backend_client)
     await backend_client.store.upsert_access_point(
-        AccessPoint(bssid="AA:BB:CC:DD:EE:FF", ssid="Lab", channel=6)
+        AccessPoint(bssid="38:C9:86:DD:EE:FF", ssid="Lab", channel=6, vendor_oui="Stored AP")
     )
-    await backend_client.store.upsert_client(Client(mac="11:22:33:44:55:66"))
+    await backend_client.store.upsert_client(
+        Client(mac="B8:27:EB:44:55:66", vendor_oui="Stored client")
+    )
     await backend_client.store.insert_event(
         Event(
             id="evt-1",
             sensor_id="pi-1",
             kind=EventKind.ACCESS_POINT_SEEN,
-            payload={"bssid": "AA:BB:CC:DD:EE:FF"},
+            payload={"bssid": "38:C9:86:DD:EE:FF"},
         )
     )
 
@@ -42,16 +44,63 @@ async def test_device_and_event_lists_are_authenticated(backend_client: BackendC
     assert aps.json()["total"] == 1
     assert clients.json()["total"] == 1
     assert events.json()["total"] == 1
+    assert aps.json()["items"][0]["vendor_resolved"] == "Samsung Electronics Co., Ltd"
+    assert aps.json()["items"][0]["vendor_oui"] == "Samsung Electronics Co., Ltd"
+    assert clients.json()["items"][0]["vendor_resolved"] == "Raspberry Pi Foundation"
+    assert clients.json()["items"][0]["vendor_oui"] == "Raspberry Pi Foundation"
 
-    ap_detail = await backend_client.client.get("/api/v1/access_points/AA:BB:CC:DD:EE:FF")
-    client_detail = await backend_client.client.get("/api/v1/devices/11:22:33:44:55:66")
+    ap_detail = await backend_client.client.get("/api/v1/access_points/38:C9:86:DD:EE:FF")
+    client_detail = await backend_client.client.get("/api/v1/devices/B8:27:EB:44:55:66")
     event_detail = await backend_client.client.get("/api/v1/events/evt-1")
     missing_ap = await backend_client.client.get("/api/v1/access_points/00:00:00:00:00:00")
 
     assert ap_detail.status_code == 200
     assert client_detail.status_code == 200
+    assert ap_detail.json()["vendor_resolved"] == "Samsung Electronics Co., Ltd"
+    assert client_detail.json()["vendor_resolved"] == "Raspberry Pi Foundation"
     assert event_detail.status_code == 200
     assert missing_ap.status_code == 404
+
+
+async def test_unknown_oui_keeps_stored_vendor_without_error(
+    backend_client: BackendClient,
+) -> None:
+    """Unknown MAC prefixes do not break response serialization."""
+
+    await create_verified_admin(backend_client)
+    await backend_client.store.upsert_access_point(
+        AccessPoint(bssid="AA:BB:CC:DD:EE:FF", ssid="Unknown", vendor_oui="Kismet")
+    )
+    await backend_client.store.upsert_client(Client(mac="AA:BB:CC:44:55:66", vendor_oui="Kismet"))
+
+    aps = await backend_client.client.get("/api/v1/access_points")
+    clients = await backend_client.client.get("/api/v1/devices")
+
+    assert aps.status_code == 200
+    assert clients.status_code == 200
+    assert aps.json()["items"][0]["vendor_resolved"] is None
+    assert aps.json()["items"][0]["vendor_oui"] == "Kismet"
+    assert clients.json()["items"][0]["vendor_resolved"] is None
+    assert clients.json()["items"][0]["vendor_oui"] == "Kismet"
+
+
+async def test_oui_lookup_route_returns_public_vendor_data(
+    backend_client: BackendClient,
+) -> None:
+    """The public OUI route resolves known prefixes and rejects bad input."""
+
+    known = await backend_client.client.get("/api/v1/oui/38c986")
+    unknown = await backend_client.client.get("/api/v1/oui/aabbcc")
+    malformed = await backend_client.client.get("/api/v1/oui/not-a-prefix")
+
+    assert known.status_code == 200
+    assert known.json() == {
+        "prefix": "38:c9:86",
+        "short_vendor": "Samsung",
+        "long_vendor": "Samsung Electronics Co., Ltd",
+    }
+    assert unknown.status_code == 404
+    assert malformed.status_code == 422
 
 
 async def test_access_point_clients_are_paginated_and_sorted(
