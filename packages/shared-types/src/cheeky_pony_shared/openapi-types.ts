@@ -44,6 +44,8 @@ export interface components {
     "LoginRequest": unknown;
     "LoginResponse": unknown;
     "OuiLookupResponse": unknown;
+    "ReadinessCheck": unknown;
+    "ReadinessCheckId": unknown;
     "RegisterRequest": unknown;
     "ReportCreateRequest": unknown;
     "ReportCreateResponse": unknown;

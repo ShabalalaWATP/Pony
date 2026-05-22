@@ -919,15 +919,15 @@ export interface paths {
         };
         /**
          * Get Lab Status
-         * @description Return the current active-lab gate status.
+         * @description Return the current active-lab readiness checklist.
          *
          *     Args:
-         *         user: Current user.
+         *         user: Current authenticated operator.
          *         store: Application store.
          *         settings: Runtime settings.
          *
          *     Returns:
-         *         Lab mode, acknowledgement, and admin 2FA status.
+         *         Backwards-compatible lab status plus readiness checks.
          */
         get: operations["get_lab_status_api_v1_lab_status_get"];
         put?: never;
@@ -1951,10 +1951,17 @@ export interface components {
         LabStatusResponse: {
             /** Acknowledgement On File */
             acknowledgement_on_file: boolean;
+            /** Checks */
+            checks?: components["schemas"]["ReadinessCheck"][];
             /** Is Admin 2Fa */
             is_admin_2fa: boolean;
             /** Lab Mode */
             lab_mode: boolean;
+            /**
+             * Ready
+             * @default false
+             */
+            ready: boolean;
         };
         /**
          * LabTarget
@@ -1999,6 +2006,30 @@ export interface components {
             /** Short Vendor */
             short_vendor: string;
         };
+        /**
+         * ReadinessCheck
+         * @description Operator-facing lab-readiness checklist item.
+         */
+        ReadinessCheck: {
+            /** Fix Hint */
+            fix_hint: string;
+            /** Fix Route */
+            fix_route?: string | null;
+            id: components["schemas"]["ReadinessCheckId"];
+            /** Label */
+            label: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "missing" | "not_applicable";
+        };
+        /**
+         * ReadinessCheckId
+         * @description Lab-readiness checklist item identifiers.
+         * @enum {string}
+         */
+        ReadinessCheckId: "lab_mode_env" | "admin_role" | "totp_recent" | "engagement_active" | "authorized_operator" | "allow_list_nonempty";
         /**
          * RegisterRequest
          * @description User registration request.

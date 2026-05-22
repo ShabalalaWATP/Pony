@@ -5,6 +5,12 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 1E — lab readiness endpoint (#60)
+
+- Extended `GET /api/v1/lab/status` with response-only `ready` and `checks`
+  fields so operators can see which lab gate is missing.
+- Added audited unauthenticated refusals for lab-status reads.
+
 ### Backend Phase 1D — anomaly score and evil-twin candidates (#59)
 
 - Added response-only AP `anomaly_score` and `anomaly_reasons` derived from

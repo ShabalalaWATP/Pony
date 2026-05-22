@@ -106,7 +106,7 @@ Method: STRIDE per major component.
 - Repudiation: every success, refusal, stop request, and sensor command result writes an audit entry with actor, target, timestamps, outcome, and a command-scoped raw-output reference.
 - Information disclosure: sensitive parameter keys such as credentials, tokens, secrets, keys, and handshakes are redacted before audit storage; plaintext captured credentials must not be accepted by this command plane.
 - Denial of service: active commands are tracked in the broker and removed on stop, failed start acknowledgement, or engagement end; ending an engagement cancels scoped active commands.
-- Elevation of privilege: the gate stack fails closed unless `LAB_MODE=true`, an `authorized_operator` acknowledgement exists, the requested engagement is active, and the target is present in that engagement allow-list. The read-only lab status probe exposes gate state but never bypasses start/stop authorization.
+- Elevation of privilege: the gate stack fails closed unless `LAB_MODE=true`, an `authorized_operator` acknowledgement exists, the requested engagement is active, and the target is present in that engagement allow-list. The read-only lab status probe exposes gate state and readiness fix hints to authenticated operators but never bypasses start/stop authorization; unauthenticated status reads are refused and audited.
 
 ## Reporting and Export
 
