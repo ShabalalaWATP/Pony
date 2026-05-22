@@ -5,6 +5,13 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 1D — anomaly score and evil-twin candidates (#59)
+
+- Added response-only AP `anomaly_score` and `anomaly_reasons` derived from
+  local metadata, recent events, and same-SSID peers.
+- Added authenticated `GET /api/v1/access_points/evil-twin-candidates` for
+  same-SSID vendor mismatch review.
+
 ### Backend Phase 1C — local derived labels (#58)
 
 - Added local AP/client classifiers and response-only `label` plus

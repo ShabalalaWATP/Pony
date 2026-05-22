@@ -33,6 +33,37 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/access_points/evil-twin-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Evil Twin Candidates
+         * @description List same-SSID vendor mismatch candidates for operator review.
+         *
+         *     Args:
+         *         user: Current user.
+         *         store: Application store.
+         *         oui: OUI lookup service.
+         *         audit: Audit logger.
+         *         limit: Page size.
+         *         offset: Page offset.
+         *
+         *     Returns:
+         *         Paginated evil-twin candidate list.
+         */
+        get: operations["list_evil_twin_candidates_api_v1_access_points_evil_twin_candidates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/access_points/{bssid}": {
         parameters: {
             query?: never;
@@ -1351,6 +1382,13 @@ export interface components {
          * @description Access point response with derived presentation metadata.
          */
         AccessPoint: {
+            /** Anomaly Reasons */
+            anomaly_reasons?: components["schemas"]["AnomalyContribution"][];
+            /**
+             * Anomaly Score
+             * @default 0
+             */
+            anomaly_score: number;
             /** Band */
             band?: string | null;
             /** Bssid */
@@ -1524,6 +1562,23 @@ export interface components {
             value: string;
         };
         /**
+         * AnomalyContribution
+         * @description One reason contributing to an access point anomaly score.
+         */
+        AnomalyContribution: {
+            /** Detail */
+            detail: string;
+            reason: components["schemas"]["AnomalyReason"];
+            /** Weight */
+            weight: number;
+        };
+        /**
+         * AnomalyReason
+         * @description Access point anomaly contribution reasons.
+         * @enum {string}
+         */
+        AnomalyReason: "weak_encryption" | "hidden_ssid" | "recent_deauth_burst" | "ie_vendor_mismatch" | "duplicate_ssid_different_vendor" | "unexpected_corporate_match" | "open_with_corporate_name";
+        /**
          * ApType
          * @description Access point presentation labels.
          * @enum {string}
@@ -1610,6 +1665,17 @@ export interface components {
         ApiPage_Event_: {
             /** Items */
             items: components["schemas"]["Event"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** ApiPage[EvilTwinCandidate] */
+        ApiPage_EvilTwinCandidate_: {
+            /** Items */
+            items: components["schemas"]["EvilTwinCandidate"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -1808,6 +1874,18 @@ export interface components {
          * @enum {string}
          */
         EventKind: "access_point_seen" | "client_seen" | "probe_request" | "association" | "sensor_status" | "command_result";
+        /**
+         * EvilTwinCandidate
+         * @description Same-SSID AP group with vendor mismatch indicators.
+         */
+        EvilTwinCandidate: {
+            /** Candidates */
+            candidates: string[];
+            /** Ssid */
+            ssid: string;
+            /** Suspicion */
+            suspicion: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2200,6 +2278,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiPage_AccessPoint_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_evil_twin_candidates_api_v1_access_points_evil_twin_candidates_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiPage_EvilTwinCandidate_"];
                 };
             };
             /** @description Validation Error */

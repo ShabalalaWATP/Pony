@@ -78,6 +78,22 @@ The default confidence threshold is `0.6`. Set
 `CHEEKY_PONY_LABEL_CONFIDENCE_THRESHOLD` between `0.0` and `1.0` to tune how
 aggressively weak labels are suppressed to `unknown`.
 
+## AP anomaly cues
+
+Access point read APIs include local-only `anomaly_score` and `anomaly_reasons`
+fields. The backend derives them from existing metadata such as encryption,
+hidden SSID state, same-SSID vendor mismatches, current associations, and recent
+deauthentication events. Scores are response-only and are not persisted.
+
+Authenticated operators can list same-SSID vendor mismatch groups with:
+
+```shell
+curl http://localhost:8000/api/v1/access_points/evil-twin-candidates
+```
+
+The route is read-only, authenticated, and audited so unusual review activity is
+visible without requiring admin privileges.
+
 ## First admin
 
 Set `CHEEKY_PONY_BOOTSTRAP_TOKEN` to a random value for first deploy. The first
