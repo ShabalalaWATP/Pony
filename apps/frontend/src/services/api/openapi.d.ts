@@ -1366,6 +1366,13 @@ export interface components {
             first_seen?: string;
             /** Flags */
             flags?: string[];
+            /** @default unknown */
+            label: components["schemas"]["ApType"];
+            /**
+             * Label Confidence
+             * @default 0
+             */
+            label_confidence: number;
             /**
              * Last Seen
              * Format: date-time
@@ -1516,6 +1523,12 @@ export interface components {
             /** Value */
             value: string;
         };
+        /**
+         * ApType
+         * @description Access point presentation labels.
+         * @enum {string}
+         */
+        ApType: "corporate" | "public" | "mobile_hotspot" | "iot" | "personal" | "unknown";
         /** ApiPage[AccessPoint] */
         ApiPage_AccessPoint_: {
             /** Items */
@@ -1682,6 +1695,13 @@ export interface components {
              * Format: date-time
              */
             first_seen?: string;
+            /** @default unknown */
+            label: components["schemas"]["DeviceClass"];
+            /**
+             * Label Confidence
+             * @default 0
+             */
+            label_confidence: number;
             /**
              * Last Seen
              * Format: date-time
@@ -1713,6 +1733,12 @@ export interface components {
             /** Synthetic Records */
             synthetic_records: number;
         };
+        /**
+         * DeviceClass
+         * @description Client presentation labels.
+         * @enum {string}
+         */
+        DeviceClass: "mobile" | "laptop" | "iot" | "wearable" | "unknown";
         /**
          * Engagement
          * @description Engagement scope and lifecycle metadata.

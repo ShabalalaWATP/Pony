@@ -67,6 +67,17 @@ curl http://localhost:8000/api/v1/oui/38c986
 The route is unauthenticated because it returns only public manufacturer-prefix
 data, and it is still rate-limited to keep enumeration traffic bounded.
 
+## Derived labels
+
+Access point and client read APIs include local-only `label` and
+`label_confidence` fields. Labels are computed from existing SSID, encryption,
+vendor, probe-history, and association metadata; they are never persisted and do
+not use external lookups or LLM calls.
+
+The default confidence threshold is `0.6`. Set
+`CHEEKY_PONY_LABEL_CONFIDENCE_THRESHOLD` between `0.0` and `1.0` to tune how
+aggressively weak labels are suppressed to `unknown`.
+
 ## First admin
 
 Set `CHEEKY_PONY_BOOTSTRAP_TOKEN` to a random value for first deploy. The first

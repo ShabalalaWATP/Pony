@@ -10,6 +10,7 @@ export interface components {
     "AlertSeverity": unknown;
     "AllowTargetRequest": unknown;
     "AllowedTarget": unknown;
+    "ApType": unknown;
     "ApiPage_AccessPoint_": unknown;
     "ApiPage_AlertRule_": unknown;
     "ApiPage_Alert_": unknown;
@@ -24,6 +25,7 @@ export interface components {
     "AuditLog": unknown;
     "Client": unknown;
     "DemoStatusResponse": unknown;
+    "DeviceClass": unknown;
     "Engagement": unknown;
     "EngagementCreateRequest": unknown;
     "Event": unknown;

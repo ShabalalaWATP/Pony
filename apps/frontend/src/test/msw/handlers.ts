@@ -33,6 +33,8 @@ export const fixtures = {
     encryption: ["wpa2"],
     signal_history: [{ rssi_dbm: -55, seen_at: "2026-05-17T10:00:00Z" }],
     vendor_oui: "Apple",
+    label: "unknown",
+    label_confidence: 0,
     flags: [],
     synthetic: false,
   } satisfies AccessPoint,
@@ -42,6 +44,8 @@ export const fixtures = {
     associated_bssid: "a4:c3:f0:1d:88:0a",
     probes: [],
     signal_history: [],
+    label: "unknown",
+    label_confidence: 0,
     synthetic: false,
   } satisfies Client,
   event: {

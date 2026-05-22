@@ -6,8 +6,18 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import Field
 
+from cheeky_pony_backend.config import Settings, get_settings
 from cheeky_pony_backend.dependencies import current_user, get_oui_service, get_store
+from cheeky_pony_backend.domain.labelling import (
+    ApType,
+    DeviceClass,
+    classify_ap,
+    classify_client,
+    threshold_ap_label,
+    threshold_client_label,
+)
 from cheeky_pony_backend.domain.oui_lookup import OuiService
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.users import UserRecord
@@ -28,12 +38,16 @@ router = APIRouter(tags=["devices"])
 class AccessPoint(AccessPointRecord):
     """Access point response with derived presentation metadata."""
 
+    label: ApType = ApType.UNKNOWN
+    label_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     vendor_resolved: str | None = None
 
 
 class Client(ClientRecord):
     """Client response with derived presentation metadata."""
 
+    label: DeviceClass = DeviceClass.UNKNOWN
+    label_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     vendor_resolved: str | None = None
 
 
@@ -42,6 +56,7 @@ async def list_access_points(
     _: Annotated[UserRecord, Depends(current_user)],
     store: Annotated[Store, Depends(get_store)],
     oui: Annotated[OuiService, Depends(get_oui_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
 ) -> ApiPage[AccessPoint]:
@@ -59,7 +74,10 @@ async def list_access_points(
 
     items, total = await store.list_access_points(limit, offset)
     return ApiPage[AccessPoint](
-        items=[_serialize_access_point(item, oui) for item in items],
+        items=[
+            _serialize_access_point(item, oui, settings.label_confidence_threshold)
+            for item in items
+        ],
         total=total,
         limit=limit,
         offset=offset,
@@ -72,6 +90,7 @@ async def get_access_point(
     _: Annotated[UserRecord, Depends(current_user)],
     store: Annotated[Store, Depends(get_store)],
     oui: Annotated[OuiService, Depends(get_oui_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> AccessPoint:
     """Return one access point.
 
@@ -87,7 +106,7 @@ async def get_access_point(
     item = await store.get_access_point(bssid)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="access_point_not_found")
-    return _serialize_access_point(item, oui)
+    return _serialize_access_point(item, oui, settings.label_confidence_threshold)
 
 
 @router.get("/access_points/{bssid}/clients", response_model=ApiPage[Client])
@@ -96,6 +115,7 @@ async def list_access_point_clients(
     _: Annotated[UserRecord, Depends(current_user)],
     store: Annotated[Store, Depends(get_store)],
     oui: Annotated[OuiService, Depends(get_oui_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
 ) -> ApiPage[Client]:
@@ -114,7 +134,7 @@ async def list_access_point_clients(
 
     items, total = await store.list_clients_for_access_point(bssid, limit, offset)
     return ApiPage[Client](
-        items=[_serialize_client(item, oui) for item in items],
+        items=[_serialize_client(item, oui, settings.label_confidence_threshold) for item in items],
         total=total,
         limit=limit,
         offset=offset,
@@ -126,6 +146,7 @@ async def list_clients(
     _: Annotated[UserRecord, Depends(current_user)],
     store: Annotated[Store, Depends(get_store)],
     oui: Annotated[OuiService, Depends(get_oui_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
 ) -> ApiPage[Client]:
@@ -143,7 +164,7 @@ async def list_clients(
 
     items, total = await store.list_clients(limit, offset)
     return ApiPage[Client](
-        items=[_serialize_client(item, oui) for item in items],
+        items=[_serialize_client(item, oui, settings.label_confidence_threshold) for item in items],
         total=total,
         limit=limit,
         offset=offset,
@@ -156,6 +177,7 @@ async def get_client(
     _: Annotated[UserRecord, Depends(current_user)],
     store: Annotated[Store, Depends(get_store)],
     oui: Annotated[OuiService, Depends(get_oui_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> Client:
     """Return one client device.
 
@@ -171,7 +193,7 @@ async def get_client(
     item = await store.get_client(mac)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="client_not_found")
-    return _serialize_client(item, oui)
+    return _serialize_client(item, oui, settings.label_confidence_threshold)
 
 
 @router.get("/events", response_model=ApiPage[Event])
@@ -220,19 +242,42 @@ async def get_event(
     return item
 
 
-def _serialize_access_point(ap: AccessPointRecord, oui: OuiService) -> AccessPoint:
+def _serialize_access_point(
+    ap: AccessPointRecord,
+    oui: OuiService,
+    label_confidence_threshold: float,
+) -> AccessPoint:
     vendor = oui.lookup(ap.bssid)
     data = ap.model_dump()
     data["vendor_resolved"] = None if vendor is None else vendor.long_vendor
     if vendor is not None:
         data["vendor_oui"] = vendor.long_vendor
+    ap_for_label = AccessPointRecord.model_validate(
+        {key: value for key, value in data.items() if key != "vendor_resolved"}
+    )
+    classification = threshold_ap_label(classify_ap(ap_for_label), label_confidence_threshold)
+    data["label"] = classification.label
+    data["label_confidence"] = classification.confidence
     return AccessPoint.model_validate(data)
 
 
-def _serialize_client(client: ClientRecord, oui: OuiService) -> Client:
+def _serialize_client(
+    client: ClientRecord,
+    oui: OuiService,
+    label_confidence_threshold: float,
+) -> Client:
     vendor = oui.lookup(client.mac)
     data = client.model_dump()
     data["vendor_resolved"] = None if vendor is None else vendor.long_vendor
     if vendor is not None:
         data["vendor_oui"] = vendor.long_vendor
+    client_for_label = ClientRecord.model_validate(
+        {key: value for key, value in data.items() if key != "vendor_resolved"}
+    )
+    classification = threshold_client_label(
+        classify_client(client_for_label, client_for_label.probes),
+        label_confidence_threshold,
+    )
+    data["label"] = classification.label
+    data["label_confidence"] = classification.confidence
     return Client.model_validate(data)

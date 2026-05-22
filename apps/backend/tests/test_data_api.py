@@ -48,6 +48,10 @@ async def test_device_and_event_lists_are_authenticated(backend_client: BackendC
     assert aps.json()["items"][0]["vendor_oui"] == "Samsung Electronics Co., Ltd"
     assert clients.json()["items"][0]["vendor_resolved"] == "Raspberry Pi Foundation"
     assert clients.json()["items"][0]["vendor_oui"] == "Raspberry Pi Foundation"
+    assert aps.json()["items"][0]["label"] == "unknown"
+    assert 0.0 <= aps.json()["items"][0]["label_confidence"] <= 1.0
+    assert clients.json()["items"][0]["label"] == "iot"
+    assert 0.0 <= clients.json()["items"][0]["label_confidence"] <= 1.0
 
     ap_detail = await backend_client.client.get("/api/v1/access_points/38:C9:86:DD:EE:FF")
     client_detail = await backend_client.client.get("/api/v1/devices/B8:27:EB:44:55:66")
@@ -58,6 +62,8 @@ async def test_device_and_event_lists_are_authenticated(backend_client: BackendC
     assert client_detail.status_code == 200
     assert ap_detail.json()["vendor_resolved"] == "Samsung Electronics Co., Ltd"
     assert client_detail.json()["vendor_resolved"] == "Raspberry Pi Foundation"
+    assert "label" in ap_detail.json()
+    assert "label_confidence" in client_detail.json()
     assert event_detail.status_code == 200
     assert missing_ap.status_code == 404
 

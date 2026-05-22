@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     use_in_memory_store: bool = False
     report_download_token_minutes: int = Field(default=15, ge=1, le=1440)
     totp_recent_minutes: int = Field(default=15, ge=1, le=120)
+    label_confidence_threshold: float = Field(default=0.6, ge=0.0, le=1.0)
     sensor_gateway_header_secret: str | None = Field(default=None, min_length=32)
     sensor_gateway_header_skew_seconds: int = Field(default=300, ge=30, le=3600)
 

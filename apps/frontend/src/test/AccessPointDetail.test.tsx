@@ -14,6 +14,8 @@ const sampleAp: AccessPoint = {
   encryption: ["WPA2"],
   signal_history: [{ rssi_dbm: -55, seen_at: "2026-05-17T10:00:00Z" }],
   vendor_oui: "Apple",
+  label: "unknown",
+  label_confidence: 0,
   first_seen: "2026-05-17T09:00:00Z",
   last_seen: "2026-05-17T10:00:00Z",
   synthetic: false,
