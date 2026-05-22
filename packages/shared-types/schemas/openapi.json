@@ -5,6 +5,20 @@
         "additionalProperties": false,
         "description": "Access point response with derived presentation metadata.",
         "properties": {
+          "anomaly_reasons": {
+            "items": {
+              "$ref": "#/components/schemas/AnomalyContribution"
+            },
+            "title": "Anomaly Reasons",
+            "type": "array"
+          },
+          "anomaly_score": {
+            "default": 0,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Anomaly Score",
+            "type": "integer"
+          },
           "band": {
             "anyOf": [
               {
@@ -478,6 +492,48 @@
         "title": "AllowedTarget",
         "type": "object"
       },
+      "AnomalyContribution": {
+        "additionalProperties": false,
+        "description": "One reason contributing to an access point anomaly score.",
+        "properties": {
+          "detail": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Detail",
+            "type": "string"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/AnomalyReason"
+          },
+          "weight": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Weight",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "reason",
+          "weight",
+          "detail"
+        ],
+        "title": "AnomalyContribution",
+        "type": "object"
+      },
+      "AnomalyReason": {
+        "description": "Access point anomaly contribution reasons.",
+        "enum": [
+          "weak_encryption",
+          "hidden_ssid",
+          "recent_deauth_burst",
+          "ie_vendor_mismatch",
+          "duplicate_ssid_different_vendor",
+          "unexpected_corporate_match",
+          "open_with_corporate_name"
+        ],
+        "title": "AnomalyReason",
+        "type": "string"
+      },
       "ApType": {
         "description": "Access point presentation labels.",
         "enum": [
@@ -777,6 +833,42 @@
           "offset"
         ],
         "title": "ApiPage[Event]",
+        "type": "object"
+      },
+      "ApiPage_EvilTwinCandidate_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EvilTwinCandidate"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[EvilTwinCandidate]",
         "type": "object"
       },
       "ApiPage_LabActiveCommand_": {
@@ -1242,6 +1334,39 @@
         ],
         "title": "EventKind",
         "type": "string"
+      },
+      "EvilTwinCandidate": {
+        "additionalProperties": false,
+        "description": "Same-SSID AP group with vendor mismatch indicators.",
+        "properties": {
+          "candidates": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2,
+            "title": "Candidates",
+            "type": "array"
+          },
+          "ssid": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Ssid",
+            "type": "string"
+          },
+          "suspicion": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Suspicion",
+            "type": "number"
+          }
+        },
+        "required": [
+          "ssid",
+          "candidates",
+          "suspicion"
+        ],
+        "title": "EvilTwinCandidate",
+        "type": "object"
       },
       "HTTPValidationError": {
         "properties": {
@@ -2114,6 +2239,63 @@
           }
         },
         "summary": "List Access Points",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/access_points/evil-twin-candidates": {
+      "get": {
+        "description": "List same-SSID vendor mismatch candidates for operator review.\n\nArgs:\n    user: Current user.\n    store: Application store.\n    oui: OUI lookup service.\n    audit: Audit logger.\n    limit: Page size.\n    offset: Page offset.\n\nReturns:\n    Paginated evil-twin candidate list.",
+        "operationId": "list_evil_twin_candidates_api_v1_access_points_evil_twin_candidates_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_EvilTwinCandidate_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Evil Twin Candidates",
         "tags": [
           "devices"
         ]

@@ -33,6 +33,8 @@ export const fixtures = {
     encryption: ["wpa2"],
     signal_history: [{ rssi_dbm: -55, seen_at: "2026-05-17T10:00:00Z" }],
     vendor_oui: "Apple",
+    anomaly_reasons: [],
+    anomaly_score: 0,
     label: "unknown",
     label_confidence: 0,
     flags: [],

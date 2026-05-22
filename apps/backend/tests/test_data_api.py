@@ -50,6 +50,8 @@ async def test_device_and_event_lists_are_authenticated(backend_client: BackendC
     assert clients.json()["items"][0]["vendor_oui"] == "Raspberry Pi Foundation"
     assert aps.json()["items"][0]["label"] == "unknown"
     assert 0.0 <= aps.json()["items"][0]["label_confidence"] <= 1.0
+    assert aps.json()["items"][0]["anomaly_score"] == 0
+    assert aps.json()["items"][0]["anomaly_reasons"] == []
     assert clients.json()["items"][0]["label"] == "iot"
     assert 0.0 <= clients.json()["items"][0]["label_confidence"] <= 1.0
 
@@ -164,6 +166,57 @@ async def test_access_points_api_returns_seeded_demo_geo(
     assert len(ungeolocated) >= 1
     assert all(item["longitude"] is not None for item in geolocated)
     assert all(item["location_source"] == "sensor_gps" for item in geolocated)
+
+
+async def test_access_points_api_includes_anomaly_fields_and_candidates(
+    backend_client: BackendClient,
+) -> None:
+    """AP responses and candidate route include local anomaly intelligence."""
+
+    await create_verified_admin(backend_client)
+    bssid = "AA:BB:CC:00:00:01"
+    await backend_client.store.upsert_access_point(
+        AccessPoint(
+            bssid=bssid,
+            ssid="AcmeCorp-Guest",
+            encryption=["open"],
+            vendor_oui="Vendor A",
+        )
+    )
+    await backend_client.store.upsert_access_point(
+        AccessPoint(
+            bssid="AA:BB:CC:00:00:02",
+            ssid="AcmeCorp-Guest",
+            encryption=["WPA2-Enterprise"],
+            vendor_oui="Vendor B",
+        )
+    )
+    for index in range(11):
+        await backend_client.store.insert_event(
+            Event(
+                id=f"deauth-{index}",
+                sensor_id="pi-1",
+                kind=EventKind.COMMAND_RESULT,
+                payload={"type": "deauth", "bssid": bssid},
+                occurred_at=datetime.now(tz=UTC),
+            )
+        )
+
+    aps = await backend_client.client.get("/api/v1/access_points?limit=500")
+    candidates = await backend_client.client.get("/api/v1/access_points/evil-twin-candidates")
+
+    item = next(ap for ap in aps.json()["items"] if ap["bssid"] == bssid)
+    reasons = {reason["reason"] for reason in item["anomaly_reasons"]}
+    assert aps.status_code == 200
+    assert item["anomaly_score"] == 100
+    assert "weak_encryption" in reasons
+    assert "recent_deauth_burst" in reasons
+    assert "duplicate_ssid_different_vendor" in reasons
+    assert "open_with_corporate_name" in reasons
+    assert candidates.status_code == 200
+    assert candidates.json()["total"] == 1
+    assert candidates.json()["items"][0]["ssid"] == "AcmeCorp-Guest"
+    assert backend_client.store.audit_logs[-1].action == "access_points.evil_twin_candidates.read"
 
 
 async def test_authorized_acknowledgement_requires_exact_statement(

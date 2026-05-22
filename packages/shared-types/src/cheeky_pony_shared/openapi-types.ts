@@ -10,6 +10,8 @@ export interface components {
     "AlertSeverity": unknown;
     "AllowTargetRequest": unknown;
     "AllowedTarget": unknown;
+    "AnomalyContribution": unknown;
+    "AnomalyReason": unknown;
     "ApType": unknown;
     "ApiPage_AccessPoint_": unknown;
     "ApiPage_AlertRule_": unknown;
@@ -19,6 +21,7 @@ export interface components {
     "ApiPage_Client_": unknown;
     "ApiPage_Engagement_": unknown;
     "ApiPage_Event_": unknown;
+    "ApiPage_EvilTwinCandidate_": unknown;
     "ApiPage_LabActiveCommand_": unknown;
     "ApiPage_Sensor_": unknown;
     "ApiPage_UserPublic_": unknown;
@@ -30,6 +33,7 @@ export interface components {
     "EngagementCreateRequest": unknown;
     "Event": unknown;
     "EventKind": unknown;
+    "EvilTwinCandidate": unknown;
     "HTTPValidationError": unknown;
     "LabActiveCommand": unknown;
     "LabModule": unknown;
@@ -65,6 +69,7 @@ export interface components {
 
 export interface paths {
   "/api/v1/access_points": Record<string, unknown>;
+  "/api/v1/access_points/evil-twin-candidates": Record<string, unknown>;
   "/api/v1/access_points/{bssid}": Record<string, unknown>;
   "/api/v1/access_points/{bssid}/clients": Record<string, unknown>;
   "/api/v1/alerts": Record<string, unknown>;
