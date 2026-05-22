@@ -54,6 +54,17 @@
             "title": "Flags",
             "type": "array"
           },
+          "label": {
+            "$ref": "#/components/schemas/ApType",
+            "default": "unknown"
+          },
+          "label_confidence": {
+            "default": 0.0,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Label Confidence",
+            "type": "number"
+          },
           "last_seen": {
             "format": "date-time",
             "title": "Last Seen",
@@ -466,6 +477,19 @@
         ],
         "title": "AllowedTarget",
         "type": "object"
+      },
+      "ApType": {
+        "description": "Access point presentation labels.",
+        "enum": [
+          "corporate",
+          "public",
+          "mobile_hotspot",
+          "iot",
+          "personal",
+          "unknown"
+        ],
+        "title": "ApType",
+        "type": "string"
       },
       "ApiPage_AccessPoint_": {
         "additionalProperties": false,
@@ -972,6 +996,17 @@
             "title": "First Seen",
             "type": "string"
           },
+          "label": {
+            "$ref": "#/components/schemas/DeviceClass",
+            "default": "unknown"
+          },
+          "label_confidence": {
+            "default": 0.0,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Label Confidence",
+            "type": "number"
+          },
           "last_seen": {
             "format": "date-time",
             "title": "Last Seen",
@@ -1057,6 +1092,18 @@
         ],
         "title": "DemoStatusResponse",
         "type": "object"
+      },
+      "DeviceClass": {
+        "description": "Client presentation labels.",
+        "enum": [
+          "mobile",
+          "laptop",
+          "iot",
+          "wearable",
+          "unknown"
+        ],
+        "title": "DeviceClass",
+        "type": "string"
       },
       "Engagement": {
         "additionalProperties": false,

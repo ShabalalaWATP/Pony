@@ -5,6 +5,12 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 1C — local derived labels (#58)
+
+- Added local AP/client classifiers and response-only `label` plus
+  `label_confidence` fields for access point and device reads.
+- Added `CHEEKY_PONY_LABEL_CONFIDENCE_THRESHOLD` to suppress weak labels.
+
 ### Backend Phase 1B — OUI vendor lookup (#57)
 
 - Added a bundled Wireshark-derived OUI table, public `/api/v1/oui/{prefix}`

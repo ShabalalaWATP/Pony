@@ -12,6 +12,8 @@ const sampleDevice: Client = {
   associated_bssid: "a4:c3:f0:1d:88:0a",
   probes: ["HomeWifi", "CafeLink"],
   signal_history: [{ rssi_dbm: -62, seen_at: "2026-05-17T10:00:00Z" }],
+  label: "unknown",
+  label_confidence: 0,
   first_seen: "2026-05-17T09:00:00Z",
   last_seen: "2026-05-17T10:00:00Z",
   synthetic: false,
