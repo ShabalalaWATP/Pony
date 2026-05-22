@@ -1352,11 +1352,8 @@ export interface components {
             longitude?: number | null;
             /** Signal History */
             signal_history?: components["schemas"]["SignalSample"][];
-            /**
-             * Ssid
-             * @default
-             */
-            ssid: string;
+            /** Ssid */
+            ssid?: string | null;
             /**
              * Synthetic
              * @default false
@@ -1930,6 +1927,12 @@ export interface components {
             id: string;
             /** Last Seen */
             last_seen?: string | null;
+            /** Latitude */
+            latitude?: number | null;
+            /** Location Source */
+            location_source?: ("sensor_gps" | "manual_pin") | null;
+            /** Longitude */
+            longitude?: number | null;
             /** Name */
             name: string;
             /**

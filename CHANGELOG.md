@@ -5,6 +5,12 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 1A — sensor geo and realistic demo data (#56)
+
+- Added nullable sensor coordinates, positioned synthetic sensors, realistic
+  seeded SSIDs, hidden APs, client vendor names, and plausible probe histories.
+- Pinned backend Starlette to 1.0.1 to clear PYSEC-2026-161 in SCA.
+
 ### Backend demo data geo
 
 - Synthetic demo access points now include deterministic London-centered GPS

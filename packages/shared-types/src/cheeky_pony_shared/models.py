@@ -102,6 +102,9 @@ class Sensor(StrictBase):
         default=None,
         pattern=r"^[0-9a-f]{64}$",
     )
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    location_source: Literal["sensor_gps", "manual_pin"] | None = None
     synthetic: bool = False
 
 
@@ -109,7 +112,7 @@ class AccessPoint(StrictBase):
     """Normalized wireless access point snapshot."""
 
     bssid: str = Field(pattern=r"^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$")
-    ssid: str = Field(default="", max_length=128)
+    ssid: str | None = Field(default=None, max_length=128)
     channel: int | None = Field(default=None, ge=1, le=196)
     band: str | None = Field(default=None, max_length=16)
     encryption: list[str] = Field(default_factory=list)

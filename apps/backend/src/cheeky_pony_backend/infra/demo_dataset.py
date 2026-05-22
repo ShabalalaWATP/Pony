@@ -3,12 +3,20 @@
 
 from __future__ import annotations
 
-import hashlib
 import random
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
+from cheeky_pony_backend.infra.demo_profiles import (
+    demo_access_point_geo,
+    demo_client_mac,
+    demo_client_probes,
+    demo_client_vendor,
+    demo_probe_ssid,
+    demo_sensor_geo,
+    demo_ssids,
+)
 from cheeky_pony_backend.infra.signals_repo import SIGNAL_HISTORY_CAP
 from cheeky_pony_shared import (
     AccessPoint,
@@ -27,10 +35,6 @@ from cheeky_pony_shared import (
 )
 
 EVENT_COUNT = 5000
-DEMO_CENTER_LATITUDE = 51.5074
-DEMO_CENTER_LONGITUDE = -0.1278
-DEMO_GEO_SPREAD_DEGREES = 0.3
-GEOLESS_AP_INTERVAL = 10
 
 AP_CHANNELS = [1, 6, 11, 36, 44, 149]
 AP_ENCRYPTION_PROFILES = [["WPA2"], ["WPA2", "WPA3"], ["open"]]
@@ -78,35 +82,48 @@ def _sensors(now: datetime) -> list[Sensor]:
         [SensorCapability.PASSIVE_CAPTURE, SensorCapability.CHANNEL_CONTROL],
         list(SensorCapability),
     ]
-    return [
-        Sensor(
-            id=f"synth-pi-{index}",
-            name=f"Synthetic Pi {index}",
-            tailnet_ip=f"100.64.90.{10 + index}",
-            last_seen=now - timedelta(minutes=5 + index),
-            capabilities=capabilities,
-            version="demo-1.0.0",
-            client_cert_fingerprint_sha256=f"{index + 1:x}" * 64,
-            synthetic=True,
+    sensors: list[Sensor] = []
+    for index, capabilities in enumerate(tiers):
+        sensor_id = f"synth-pi-{index}"
+        latitude, longitude = demo_sensor_geo(sensor_id)
+        sensors.append(
+            Sensor(
+                id=sensor_id,
+                name=f"Synthetic Pi {index}",
+                tailnet_ip=f"100.64.90.{10 + index}",
+                last_seen=now - timedelta(minutes=5 + index),
+                capabilities=capabilities,
+                version="demo-1.0.0",
+                client_cert_fingerprint_sha256=f"{index + 1:x}" * 64,
+                latitude=latitude,
+                longitude=longitude,
+                location_source="sensor_gps",
+                synthetic=True,
+            )
         )
-        for index, capabilities in enumerate(tiers)
-    ]
+    return sensors
 
 
 def _access_points(rng: random.Random, now: datetime) -> list[AccessPoint]:
-    return [_access_point(rng, now, index) for index in range(50)]
+    ssids = demo_ssids(50)
+    return [_access_point(rng, now, index, ssids[index]) for index in range(50)]
 
 
-def _access_point(rng: random.Random, now: datetime, index: int) -> AccessPoint:
+def _access_point(
+    rng: random.Random,
+    now: datetime,
+    index: int,
+    ssid: str | None,
+) -> AccessPoint:
     bssid = _mac(0xA0, index)
     channel = AP_CHANNELS[index % len(AP_CHANNELS)]
-    geo = _access_point_geo(bssid, index)
+    geo = demo_access_point_geo(bssid, index)
     latitude = None if geo is None else geo[0]
     longitude = None if geo is None else geo[1]
     location_source: Literal["sensor_gps"] | None = None if geo is None else "sensor_gps"
     return AccessPoint(
         bssid=bssid,
-        ssid=f"synth-ap-{index:02d}",
+        ssid=ssid,
         channel=channel,
         band="2.4" if channel <= 14 else "5",
         encryption=AP_ENCRYPTION_PROFILES[index % len(AP_ENCRYPTION_PROFILES)],
@@ -122,36 +139,29 @@ def _access_point(rng: random.Random, now: datetime, index: int) -> AccessPoint:
     )
 
 
-def _access_point_geo(bssid: str, index: int) -> tuple[float, float] | None:
-    if index % GEOLESS_AP_INTERVAL == GEOLESS_AP_INTERVAL - 1:
-        return None
-    digest = hashlib.sha256(bssid.encode("ascii")).digest()
-    latitude = DEMO_CENTER_LATITUDE + _geo_offset(digest[:4])
-    longitude = DEMO_CENTER_LONGITUDE + _geo_offset(digest[4:8])
-    return round(latitude, 6), round(longitude, 6)
-
-
-def _geo_offset(raw_bytes: bytes) -> float:
-    raw_value = int.from_bytes(raw_bytes, byteorder="big")
-    scale = raw_value / 0xFFFFFFFF
-    return ((scale * 2) - 1) * DEMO_GEO_SPREAD_DEGREES
-
-
 def _clients(rng: random.Random, now: datetime, access_points: list[AccessPoint]) -> list[Client]:
-    probes = [["Guest"], ["Coffee"], ["Corp"], ["IoT"], []]
-    return [
-        Client(
-            mac=_mac(0xC0, index),
-            vendor_oui="Synthetic",
-            associated_bssid=rng.choice(access_points).bssid,
-            probes=[f"synth-{probe}" for probe in probes[index % len(probes)]],
-            first_seen=now - timedelta(days=10 + index % 15, minutes=index),
-            last_seen=now - timedelta(minutes=5, seconds=index * 7),
-            signal_history=_signal_history(rng, now, -55 - (index % 18)),
-            synthetic=True,
-        )
-        for index in range(200)
-    ]
+    return [_client(rng, now, access_points, index) for index in range(200)]
+
+
+def _client(
+    rng: random.Random,
+    now: datetime,
+    access_points: list[AccessPoint],
+    index: int,
+) -> Client:
+    mac = demo_client_mac(index)
+    vendor = demo_client_vendor(mac)
+    access_point = rng.choice(access_points)
+    return Client(
+        mac=mac,
+        vendor_oui=vendor.name,
+        associated_bssid=access_point.bssid,
+        probes=demo_client_probes(index, access_point.ssid, vendor.mobile),
+        first_seen=now - timedelta(days=10 + index % 15, minutes=index),
+        last_seen=now - timedelta(minutes=5, seconds=index * 7),
+        signal_history=_signal_history(rng, now, -55 - (index % 18)),
+        synthetic=True,
+    )
 
 
 def _events(
@@ -197,7 +207,8 @@ def _event_payload(
     if kind == EventKind.CLIENT_SEEN:
         return client.model_dump(mode="json")
     if kind == EventKind.PROBE_REQUEST:
-        return {"mac": client.mac, "ssid": f"synth-probe-{rng.randrange(12)}", "synthetic": True}
+        probes = client.probes or [demo_probe_ssid(rng.randrange(50))]
+        return {"mac": client.mac, "ssid": rng.choice(probes), "synthetic": True}
     return {"mac": client.mac, "bssid": access_point.bssid, "synthetic": True}
 
 
@@ -240,9 +251,12 @@ def _alert_rules(now: datetime) -> list[AlertRule]:
         AlertRule(
             id="synth-rule-0",
             name="Synthetic open AP watch",
-            description="Demo-only open synthetic access point activity.",
+            description="Demo-only suspicious synthetic access point activity.",
             severity=AlertSeverity.HIGH,
-            predicate={"event_kind": "access_point_seen", "match": {"ssid": "^synth-ap"}},
+            predicate={
+                "event_kind": "access_point_seen",
+                "match": {"ssid": "^(FREE-WIFI|BTWiFi-x)$"},
+            },
             created_by="system:seed",
             created_at=now - timedelta(days=2),
             synthetic=True,
