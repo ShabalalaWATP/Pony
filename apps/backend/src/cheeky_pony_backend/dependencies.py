@@ -10,6 +10,7 @@ from fastapi import Depends, HTTPException, Request, status
 
 from cheeky_pony_backend.config import Settings, get_settings
 from cheeky_pony_backend.domain.audit import AuditLogger
+from cheeky_pony_backend.domain.oui_lookup import OuiService, create_oui_service
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.infra.operator_broker import OperatorBroker
@@ -25,6 +26,7 @@ from cheeky_pony_backend.security import (
 PASSWORD_SERVICE = PasswordService()
 TOTP_SERVICE = TotpService()
 CSRF_SERVICE = CsrfService()
+OUI_SERVICE = create_oui_service()
 AUTH_RATE_LIMITER = RateLimiter(limit=10)
 ACCOUNT_AUTH_RATE_LIMITER = RateLimiter(limit=10)
 
@@ -96,6 +98,16 @@ def get_csrf_service() -> CsrfService:
     """
 
     return CSRF_SERVICE
+
+
+def get_oui_service() -> OuiService:
+    """Return the OUI vendor lookup service.
+
+    Returns:
+        OUI lookup service singleton.
+    """
+
+    return OUI_SERVICE
 
 
 def get_token_service(settings: Annotated[Settings, Depends(get_settings)]) -> TokenService:

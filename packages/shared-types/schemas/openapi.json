@@ -3,7 +3,7 @@
     "schemas": {
       "AccessPoint": {
         "additionalProperties": false,
-        "description": "Normalized wireless access point snapshot.",
+        "description": "Access point response with derived presentation metadata.",
         "properties": {
           "band": {
             "anyOf": [
@@ -136,6 +136,17 @@
               }
             ],
             "title": "Vendor Oui"
+          },
+          "vendor_resolved": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor Resolved"
           }
         },
         "required": [
@@ -942,7 +953,7 @@
       },
       "Client": {
         "additionalProperties": false,
-        "description": "Normalized wireless client snapshot.",
+        "description": "Client response with derived presentation metadata.",
         "properties": {
           "associated_bssid": {
             "anyOf": [
@@ -1001,6 +1012,17 @@
               }
             ],
             "title": "Vendor Oui"
+          },
+          "vendor_resolved": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor Resolved"
           }
         },
         "required": [
@@ -1374,6 +1396,31 @@
           "csrf_token"
         ],
         "title": "LoginResponse",
+        "type": "object"
+      },
+      "OuiLookupResponse": {
+        "additionalProperties": false,
+        "description": "Vendor metadata for a public OUI prefix.",
+        "properties": {
+          "long_vendor": {
+            "title": "Long Vendor",
+            "type": "string"
+          },
+          "prefix": {
+            "title": "Prefix",
+            "type": "string"
+          },
+          "short_vendor": {
+            "title": "Short Vendor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prefix",
+          "short_vendor",
+          "long_vendor"
+        ],
+        "title": "OuiLookupResponse",
         "type": "object"
       },
       "RegisterRequest": {
@@ -3618,6 +3665,50 @@
         "summary": "Stop Lab Module",
         "tags": [
           "lab"
+        ]
+      }
+    },
+    "/api/v1/oui/{prefix}": {
+      "get": {
+        "description": "Resolve a public OUI prefix without exposing operator data.\n\nArgs:\n    prefix: Six-hex-character OUI prefix, with or without colons.\n    oui: OUI lookup service.\n\nReturns:\n    Resolved public vendor metadata.",
+        "operationId": "lookup_oui_api_v1_oui__prefix__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "prefix",
+            "required": true,
+            "schema": {
+              "pattern": "^(?:[0-9A-Fa-f]{6}|[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2}:[0-9A-Fa-f]{2})$",
+              "title": "Prefix",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OuiLookupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lookup Oui",
+        "tags": [
+          "oui"
         ]
       }
     },

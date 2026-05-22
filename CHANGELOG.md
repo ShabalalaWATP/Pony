@@ -5,6 +5,11 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 1B — OUI vendor lookup (#57)
+
+- Added a bundled Wireshark-derived OUI table, public `/api/v1/oui/{prefix}`
+  lookup, and response-only AP/client `vendor_resolved` enrichment.
+
 ### Backend Phase 1A — sensor geo and realistic demo data (#56)
 
 - Added nullable sensor coordinates, positioned synthetic sensors, realistic

@@ -969,6 +969,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/oui/{prefix}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lookup Oui
+         * @description Resolve a public OUI prefix without exposing operator data.
+         *
+         *     Args:
+         *         prefix: Six-hex-character OUI prefix, with or without colons.
+         *         oui: OUI lookup service.
+         *
+         *     Returns:
+         *         Resolved public vendor metadata.
+         */
+        get: operations["lookup_oui_api_v1_oui__prefix__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sensors": {
         parameters: {
             query?: never;
@@ -1321,7 +1348,7 @@ export interface components {
     schemas: {
         /**
          * AccessPoint
-         * @description Normalized wireless access point snapshot.
+         * @description Access point response with derived presentation metadata.
          */
         AccessPoint: {
             /** Band */
@@ -1361,6 +1388,8 @@ export interface components {
             synthetic: boolean;
             /** Vendor Oui */
             vendor_oui?: string | null;
+            /** Vendor Resolved */
+            vendor_resolved?: string | null;
         };
         /**
          * AcknowledgementRequest
@@ -1643,7 +1672,7 @@ export interface components {
         };
         /**
          * Client
-         * @description Normalized wireless client snapshot.
+         * @description Client response with derived presentation metadata.
          */
         Client: {
             /** Associated Bssid */
@@ -1671,6 +1700,8 @@ export interface components {
             synthetic: boolean;
             /** Vendor Oui */
             vendor_oui?: string | null;
+            /** Vendor Resolved */
+            vendor_resolved?: string | null;
         };
         /**
          * DemoStatusResponse
@@ -1851,6 +1882,18 @@ export interface components {
             /** Csrf Token */
             csrf_token: string;
             user: components["schemas"]["UserPublic"];
+        };
+        /**
+         * OuiLookupResponse
+         * @description Vendor metadata for a public OUI prefix.
+         */
+        OuiLookupResponse: {
+            /** Long Vendor */
+            long_vendor: string;
+            /** Prefix */
+            prefix: string;
+            /** Short Vendor */
+            short_vendor: string;
         };
         /**
          * RegisterRequest
@@ -3198,6 +3241,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lookup_oui_api_v1_oui__prefix__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                prefix: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OuiLookupResponse"];
+                };
             };
             /** @description Validation Error */
             422: {

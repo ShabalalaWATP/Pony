@@ -51,6 +51,22 @@ audit entries intact because audit logs are append-only.
 The frontend can check `GET /api/v1/system/demo-status` after login to show
 whether synthetic records are present.
 
+## OUI vendor lookup
+
+Access point and client read APIs enrich MAC addresses with a derived
+`vendor_resolved` field when the first three octets match the bundled public OUI
+table. The stored `vendor_oui` value remains unchanged in the database; response
+serializers present the resolved vendor name when the local table knows it.
+
+Operators and local tooling can also query public OUI data directly:
+
+```shell
+curl http://localhost:8000/api/v1/oui/38c986
+```
+
+The route is unauthenticated because it returns only public manufacturer-prefix
+data, and it is still rate-limited to keep enumeration traffic bounded.
+
 ## First admin
 
 Set `CHEEKY_PONY_BOOTSTRAP_TOKEN` to a random value for first deploy. The first
