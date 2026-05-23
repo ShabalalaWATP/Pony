@@ -8,8 +8,14 @@ from typing import Protocol
 
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorGridFSBucket
+from pymongo import ReturnDocument
 
-from cheeky_pony_backend.domain.pcap_models import Pcap
+from cheeky_pony_backend.domain.pcap_models import (
+    Pcap,
+    PcapAnalysisClaim,
+    PcapAnalysisClaimStatus,
+    PcapStatus,
+)
 
 _READ_CHUNK_BYTES = 1024 * 1024
 
@@ -41,6 +47,17 @@ class PcapStore(Protocol):
 
     async def get_pcap(self, engagement_id: str, pcap_id: str) -> Pcap | None:
         """Return capture metadata scoped to one engagement."""
+
+    async def begin_analysis(self, engagement_id: str, pcap_id: str) -> PcapAnalysisClaim:
+        """Atomically mark a PCAP as analyzing when it is not already busy."""
+
+    async def update_pcap_status(
+        self,
+        engagement_id: str,
+        pcap_id: str,
+        status: PcapStatus,
+    ) -> Pcap | None:
+        """Persist a PCAP lifecycle status."""
 
     async def delete_pcap(self, engagement_id: str, pcap_id: str) -> Pcap | None:
         """Delete capture metadata and bytes, returning deleted metadata."""
@@ -107,6 +124,33 @@ class InMemoryPcapStore:
         if pcap is None or pcap.engagement_id != engagement_id:
             return None
         return pcap
+
+    async def begin_analysis(self, engagement_id: str, pcap_id: str) -> PcapAnalysisClaim:
+        """Mark an in-memory PCAP as analyzing when available."""
+
+        pcap = await self.get_pcap(engagement_id, pcap_id)
+        if pcap is None:
+            return PcapAnalysisClaim(status=PcapAnalysisClaimStatus.NOT_FOUND)
+        if pcap.status == PcapStatus.ANALYZING:
+            return PcapAnalysisClaim(status=PcapAnalysisClaimStatus.BUSY, pcap=pcap)
+        updated = pcap.model_copy(update={"status": PcapStatus.ANALYZING})
+        self.pcaps[pcap_id] = updated
+        return PcapAnalysisClaim(status=PcapAnalysisClaimStatus.CLAIMED, pcap=updated)
+
+    async def update_pcap_status(
+        self,
+        engagement_id: str,
+        pcap_id: str,
+        status: PcapStatus,
+    ) -> Pcap | None:
+        """Update an in-memory PCAP status."""
+
+        pcap = await self.get_pcap(engagement_id, pcap_id)
+        if pcap is None:
+            return None
+        updated = pcap.model_copy(update={"status": status})
+        self.pcaps[pcap_id] = updated
+        return updated
 
     async def delete_pcap(self, engagement_id: str, pcap_id: str) -> Pcap | None:
         """Delete metadata and bytes from memory."""
@@ -188,6 +232,45 @@ class GridFsPcapStore:
         data = await self._db.pcaps.find_one(
             {"engagement_id": engagement_id, "id": pcap_id},
             {"_id": False},
+        )
+        return Pcap.model_validate(data) if data else None
+
+    async def begin_analysis(self, engagement_id: str, pcap_id: str) -> PcapAnalysisClaim:
+        """Atomically mark a Mongo PCAP as analyzing."""
+
+        data = await self._db.pcaps.find_one_and_update(
+            {
+                "engagement_id": engagement_id,
+                "id": pcap_id,
+                "status": {"$ne": PcapStatus.ANALYZING.value},
+            },
+            {"$set": {"status": PcapStatus.ANALYZING.value}},
+            projection={"_id": False},
+            return_document=ReturnDocument.AFTER,
+        )
+        if data is not None:
+            return PcapAnalysisClaim(
+                status=PcapAnalysisClaimStatus.CLAIMED,
+                pcap=Pcap.model_validate(data),
+            )
+        existing = await self.get_pcap(engagement_id, pcap_id)
+        if existing is None:
+            return PcapAnalysisClaim(status=PcapAnalysisClaimStatus.NOT_FOUND)
+        return PcapAnalysisClaim(status=PcapAnalysisClaimStatus.BUSY, pcap=existing)
+
+    async def update_pcap_status(
+        self,
+        engagement_id: str,
+        pcap_id: str,
+        status: PcapStatus,
+    ) -> Pcap | None:
+        """Persist a Mongo PCAP status."""
+
+        data = await self._db.pcaps.find_one_and_update(
+            {"engagement_id": engagement_id, "id": pcap_id},
+            {"$set": {"status": status.value}},
+            projection={"_id": False},
+            return_document=ReturnDocument.AFTER,
         )
         return Pcap.model_validate(data) if data else None
 

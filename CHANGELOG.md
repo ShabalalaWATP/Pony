@@ -5,6 +5,13 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 2B — PCAP tshark foundation (#62)
+
+- Added queued PCAP analysis with sandboxed `tshark`, structured protocol
+  hierarchy, conversation, and deauthentication-burst findings.
+- Added analysis status and findings endpoints, worker integration, startup
+  tshark version checks, and CI/backend image tshark installation.
+
 ### Backend Phase 2A — PCAP ingest and storage (#61)
 
 - Added engagement-scoped PCAP upload, metadata list/read, and typed-confirm

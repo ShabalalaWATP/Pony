@@ -763,6 +763,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}/analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Analysis
+         * @description Return current analysis status and finding counts.
+         */
+        get: operations["get_analysis_api_v1_engagements__engagement_id__pcaps__pcap_id__analysis_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze Pcap
+         * @description Queue analysis for one uploaded capture.
+         */
+        post: operations["analyze_pcap_api_v1_engagements__engagement_id__pcaps__pcap_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Findings
+         * @description List structured findings for one capture.
+         */
+        get: operations["list_findings_api_v1_engagements__engagement_id__pcaps__pcap_id__findings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}/findings/{finding_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Finding
+         * @description Return one structured finding.
+         */
+        get: operations["get_finding_api_v1_engagements__engagement_id__pcaps__pcap_id__findings__finding_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/engagements/{engagement_id}/reports": {
         parameters: {
             query?: never;
@@ -1622,6 +1702,59 @@ export interface components {
             value: string;
         };
         /**
+         * AnalysisRun
+         * @description One execution of the curated PCAP filter library.
+         */
+        AnalysisRun: {
+            /** Actor Id */
+            actor_id: string;
+            /** Engagement Id */
+            engagement_id: string;
+            /** Error */
+            error?: string | null;
+            /** Finding Counts */
+            finding_counts?: {
+                [key: string]: number;
+            };
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: string;
+            /** Pcap Id */
+            pcap_id: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            status: components["schemas"]["AnalysisRunStatus"];
+        };
+        /**
+         * AnalysisRunStatus
+         * @description Lifecycle states for a PCAP analysis run.
+         * @enum {string}
+         */
+        AnalysisRunStatus: "running" | "completed" | "partial" | "failed";
+        /**
+         * AnalysisStartResponse
+         * @description Accepted analysis response.
+         */
+        AnalysisStartResponse: {
+            /** Analysis Id */
+            analysis_id: string;
+        };
+        /**
+         * AnalysisSummaryResponse
+         * @description Analysis status response for one PCAP.
+         */
+        AnalysisSummaryResponse: {
+            analysis: components["schemas"]["AnalysisRun"] | null;
+            /** Finding Counts */
+            finding_counts?: {
+                [key: string]: number;
+            };
+        };
+        /**
          * AnomalyContribution
          * @description One reason contributing to an access point anomaly score.
          */
@@ -1736,6 +1869,17 @@ export interface components {
         ApiPage_EvilTwinCandidate_: {
             /** Items */
             items: components["schemas"]["EvilTwinCandidate"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
+        /** ApiPage[Finding] */
+        ApiPage_Finding_: {
+            /** Items */
+            items: components["schemas"]["Finding"][];
             /** Limit */
             limit: number;
             /** Offset */
@@ -1866,6 +2010,60 @@ export interface components {
             vendor_resolved?: string | null;
         };
         /**
+         * Conversation
+         * @description One top talker conversation.
+         */
+        Conversation: {
+            /** Bytes */
+            bytes: number;
+            /** Frames */
+            frames: number;
+            /** Left */
+            left: string;
+            /** Right */
+            right: string;
+        };
+        /**
+         * ConversationsEvidence
+         * @description Conversation evidence for WLAN and IP conversations.
+         */
+        ConversationsEvidence: {
+            /** Conversations */
+            conversations?: components["schemas"]["Conversation"][];
+        };
+        /**
+         * DeauthBurst
+         * @description One detected deauthentication burst.
+         */
+        DeauthBurst: {
+            /** Bssid */
+            bssid: string;
+            /** Count */
+            count: number;
+            /** First Seen Epoch */
+            first_seen_epoch: number;
+            /** Last Seen Epoch */
+            last_seen_epoch: number;
+        };
+        /**
+         * DeauthBurstsEvidence
+         * @description Deauthentication burst evidence.
+         */
+        DeauthBurstsEvidence: {
+            /** Bursts */
+            bursts?: components["schemas"]["DeauthBurst"][];
+            /**
+             * Threshold
+             * @default 10
+             */
+            threshold: number;
+            /**
+             * Window Seconds
+             * @default 300
+             */
+            window_seconds: number;
+        };
+        /**
          * DemoStatusResponse
          * @description Demo data presence summary.
          */
@@ -1962,6 +2160,53 @@ export interface components {
             /** Suspicion */
             suspicion: number;
         };
+        /**
+         * FailedFindingEvidence
+         * @description Sanitized failed-filter evidence.
+         */
+        FailedFindingEvidence: {
+            /** Filter Name */
+            filter_name: string;
+            /** Reason */
+            reason: string;
+        };
+        /**
+         * Finding
+         * @description Persisted structured PCAP finding.
+         */
+        Finding: {
+            /** Analysis Id */
+            analysis_id: string;
+            /** Engagement Id */
+            engagement_id: string;
+            /** Evidence */
+            evidence: components["schemas"]["ProtocolHierarchyEvidence"] | components["schemas"]["ConversationsEvidence"] | components["schemas"]["DeauthBurstsEvidence"] | components["schemas"]["FailedFindingEvidence"];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Id */
+            id: string;
+            kind: components["schemas"]["FindingKind"];
+            /** Pcap Id */
+            pcap_id: string;
+            severity: components["schemas"]["FindingSeverity"];
+            /** Summary */
+            summary: string;
+        };
+        /**
+         * FindingKind
+         * @description Finding kinds generated by the Phase 2B filter library.
+         * @enum {string}
+         */
+        FindingKind: "protocol_hierarchy" | "conversations" | "deauth_bursts" | "filter_failed";
+        /**
+         * FindingSeverity
+         * @description Operator-facing finding severity.
+         * @enum {string}
+         */
+        FindingSeverity: "info" | "low" | "medium" | "high";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2127,6 +2372,28 @@ export interface components {
          * @enum {string}
          */
         PcapStatus: "uploaded" | "analyzing" | "analyzed" | "failed";
+        /**
+         * ProtocolHierarchyEvidence
+         * @description Protocol hierarchy evidence.
+         */
+        ProtocolHierarchyEvidence: {
+            /** Protocols */
+            protocols?: components["schemas"]["ProtocolNode"][];
+        };
+        /**
+         * ProtocolNode
+         * @description One protocol hierarchy row.
+         */
+        ProtocolNode: {
+            /** Bytes */
+            bytes: number;
+            /** Depth */
+            depth: number;
+            /** Frames */
+            frames: number;
+            /** Protocol */
+            protocol: string;
+        };
         /**
          * ReadinessCheck
          * @description Operator-facing lab-readiness checklist item.
@@ -3352,6 +3619,138 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_analysis_api_v1_engagements__engagement_id__pcaps__pcap_id__analysis_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: string;
+                pcap_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisSummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_pcap_api_v1_engagements__engagement_id__pcaps__pcap_id__analyze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: string;
+                pcap_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisStartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_findings_api_v1_engagements__engagement_id__pcaps__pcap_id__findings_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                engagement_id: string;
+                pcap_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiPage_Finding_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_finding_api_v1_engagements__engagement_id__pcaps__pcap_id__findings__finding_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: string;
+                pcap_id: string;
+                finding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Finding"];
+                };
             };
             /** @description Validation Error */
             422: {

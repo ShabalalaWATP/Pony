@@ -139,6 +139,28 @@ Method: STRIDE per major component.
   require a typed filename confirmation in addition to admin, recent TOTP, and
   CSRF.
 
+## PCAP Analysis
+
+- Spoofing: starting analysis requires an authenticated admin with recent TOTP
+  verification and CSRF; analysis status and finding reads require an
+  authenticated operator session scoped to the engagement path.
+- Tampering: the API never accepts operator-supplied tshark filters or argv
+  fragments. Every invocation is built from the reviewed filter library under
+  `pcap/filters/` plus fixed sandbox flags.
+- Repudiation: analysis start, status reads, finding reads, concurrent-run
+  refusals, and queue failures write audit entries with sanitized metadata only.
+- Information disclosure: raw tshark stdout and stderr are parse inputs only.
+  Persisted findings use bounded Pydantic evidence models, cross-engagement
+  access returns `404`, and there is still no raw capture download route.
+- Denial of service: only one analysis can run per capture, upload and analyze
+  routes are rate-limited, tshark runs with `-n`, `--disable-protocol lua`,
+  `--no-extcap`, 512 MB memory, 60 second CPU, bounded stdout/stderr, and a
+  90 second wall-clock timeout.
+- Elevation of privilege: tshark is invoked with `asyncio.create_subprocess_exec`
+  and argv arrays. Capture bytes are passed through read-only file descriptors
+  where the platform supports it, so reviewed code controls both the binary and
+  all arguments.
+
 ## Accepted advisory exceptions
 
 Specific SCA advisories that the project has explicitly assessed and

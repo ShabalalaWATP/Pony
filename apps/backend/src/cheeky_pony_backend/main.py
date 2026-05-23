@@ -22,6 +22,7 @@ from cheeky_pony_backend.api.v1 import (
     lab,
     lab_status,
     oui,
+    pcap_analysis,
     pcaps,
     reports,
     sensors,
@@ -36,9 +37,15 @@ from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
 from cheeky_pony_backend.infra.mongo_store import MongoStore
 from cheeky_pony_backend.infra.operator_broker import OperatorBroker
+from cheeky_pony_backend.infra.pcap_analysis_store import (
+    InMemoryPcapAnalysisStore,
+    MongoPcapAnalysisStore,
+    PcapAnalysisStore,
+)
 from cheeky_pony_backend.infra.pcap_store import GridFsPcapStore, InMemoryPcapStore, PcapStore
 from cheeky_pony_backend.infra.sensor_command_broker import SensorCommandBroker
 from cheeky_pony_backend.logging import configure_logging
+from cheeky_pony_backend.pcap.tshark import TsharkRunner, TsharkRuntime, verify_tshark_startup
 from cheeky_pony_backend.security import CsrfService, TokenService
 
 
@@ -46,6 +53,8 @@ def create_app(
     settings: Settings | None = None,
     store: Store | None = None,
     pcap_store: PcapStore | None = None,
+    pcap_analysis_store: PcapAnalysisStore | None = None,
+    tshark_runtime: TsharkRunner | None = None,
 ) -> FastAPI:
     """Create and configure the FastAPI app.
 
@@ -61,14 +70,25 @@ def create_app(
     active_settings = settings or get_settings()
     active_store = store or _create_store(active_settings)
     active_pcap_store = pcap_store or _create_pcap_store(active_settings, active_store)
+    active_analysis_store = pcap_analysis_store or _create_pcap_analysis_store(
+        active_settings, active_store
+    )
+    active_tshark_runtime = tshark_runtime or TsharkRuntime(active_settings)
     app = FastAPI(
         title="Cheeky Pony API",
         version="0.1.0",
-        lifespan=_lifespan(active_store, active_pcap_store),
+        lifespan=_lifespan(
+            active_settings,
+            active_store,
+            active_pcap_store,
+            active_analysis_store,
+        ),
     )
     app.state.settings = active_settings
     app.state.store = active_store
     app.state.pcap_store = active_pcap_store
+    app.state.pcap_analysis_store = active_analysis_store
+    app.state.tshark_runtime = active_tshark_runtime
     app.state.operator_broker = OperatorBroker()
     app.state.sensor_command_broker = SensorCommandBroker()
     app.dependency_overrides[get_settings] = lambda: active_settings
@@ -112,14 +132,26 @@ def _create_pcap_store(settings: Settings, store: Store) -> PcapStore:
     return InMemoryPcapStore()
 
 
+def _create_pcap_analysis_store(settings: Settings, store: Store) -> PcapAnalysisStore:
+    if settings.use_in_memory_store or settings.env == "test":
+        return InMemoryPcapAnalysisStore()
+    if isinstance(store, MongoStore):
+        return MongoPcapAnalysisStore(store.db)
+    return InMemoryPcapAnalysisStore()
+
+
 def _lifespan(
+    settings: Settings,
     store: Store,
     pcap_store: PcapStore,
+    pcap_analysis_store: PcapAnalysisStore,
 ) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        await verify_tshark_startup(settings)
         await store.ensure_indexes()
         await pcap_store.ensure_indexes()
+        await pcap_analysis_store.ensure_indexes()
         yield
 
     return lifespan
@@ -154,6 +186,7 @@ def _install_routes(app: FastAPI) -> None:
     app.include_router(lab_status.router, prefix="/api/v1")
     app.include_router(oui.router, prefix="/api/v1")
     app.include_router(pcaps.router, prefix="/api/v1")
+    app.include_router(pcap_analysis.router, prefix="/api/v1")
     app.include_router(reports.router, prefix="/api/v1")
     app.include_router(audit.router, prefix="/api/v1")
     app.include_router(system.router, prefix="/api/v1")
@@ -221,6 +254,12 @@ async def _audit_csrf_refusal(request: Request, actor_id: str, reason: str) -> N
 
 def _csrf_action(request: Request) -> str | None:
     path = request.url.path
+    if (
+        request.method == "POST"
+        and path.startswith("/api/v1/engagements/")
+        and path.endswith("/analyze")
+    ):
+        return "pcap.analyze.start"
     if request.method == "POST" and path.startswith("/api/v1/engagements/"):
         return "pcap.upload" if path.endswith("/pcaps") else None
     if request.method == "DELETE" and path.startswith("/api/v1/engagements/"):
