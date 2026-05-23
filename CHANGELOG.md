@@ -5,6 +5,13 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 2D — PCAP network findings (#64)
+
+- Added DNS, TLS SNI, and DHCP structured PCAP findings with pre-persistence
+  internal-hostname redaction.
+- Added local DHCP vendor enrichment from Client records and the bundled OUI
+  table, with no external lookups.
+
 ### Backend Phase 2C — PCAP WiFi findings (#63)
 
 - Added EAPOL handshake, beacon summary, and probe-response anomaly findings to

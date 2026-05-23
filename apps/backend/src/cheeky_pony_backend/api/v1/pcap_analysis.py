@@ -22,12 +22,14 @@ from cheeky_pony_backend.config import Settings, get_settings
 from cheeky_pony_backend.dependencies import (
     check_auth_rate_limit,
     get_audit_logger,
+    get_oui_service,
     get_pcap_analysis_store,
     get_pcap_store,
     get_store,
     get_tshark_runtime,
 )
 from cheeky_pony_backend.domain.audit import AuditLogger
+from cheeky_pony_backend.domain.oui_lookup import OuiService
 from cheeky_pony_backend.domain.pcap_models import PcapAnalysisClaimStatus, PcapStatus
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.users import UserRecord
@@ -61,6 +63,7 @@ async def analyze_pcap(
     pcaps: Annotated[PcapStore, Depends(get_pcap_store)],
     analysis_store: Annotated[PcapAnalysisStore, Depends(get_pcap_analysis_store)],
     runtime: Annotated[TsharkRunner, Depends(get_tshark_runtime)],
+    oui: Annotated[OuiService, Depends(get_oui_service)],
     audit: Annotated[AuditLogger, Depends(get_audit_logger)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> AnalysisStartResponse:
@@ -89,6 +92,7 @@ async def analyze_pcap(
             analysis_store,
             runtime,
             store,
+            oui,
             engagement_id,
             pcap_id,
             user.id,
@@ -221,6 +225,7 @@ async def _dispatch_analysis(
     analysis_store: PcapAnalysisStore,
     runtime: TsharkRunner,
     store: Store,
+    oui: OuiService,
     engagement_id: str,
     pcap_id: str,
     actor_id: str,
@@ -235,6 +240,7 @@ async def _dispatch_analysis(
                 "settings": settings,
                 "store": store,
                 "tshark_runtime": runtime,
+                "oui_service": oui,
             },
             engagement_id,
             pcap_id,

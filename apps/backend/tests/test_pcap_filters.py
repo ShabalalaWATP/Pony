@@ -6,15 +6,20 @@ from __future__ import annotations
 from hypothesis import given
 from hypothesis import strategies as st
 
+from cheeky_pony_backend.domain.oui_lookup import OuiService, OuiVendor
 from cheeky_pony_backend.pcap.filters import (
     beacons,
     conversations,
     deauth,
+    dhcp,
+    dns,
     eapol,
     probe_responses,
     protocol_hierarchy,
+    tls_sni,
 )
-from cheeky_pony_shared import AccessPoint
+from cheeky_pony_backend.pcap.hostname_redaction import INTERNAL_HOSTNAME_REDACTED
+from cheeky_pony_shared import AccessPoint, Client
 
 
 def test_protocol_hierarchy_parser_extracts_rows() -> None:
@@ -106,6 +111,70 @@ def test_probe_response_parser_detects_unbeaconed_ssid_response() -> None:
     assert evidence.anomalies[0].anomalous_ssids == ["FREE-WIFI"]
 
 
+def test_dns_parser_redacts_internal_hostnames_and_counts_types() -> None:
+    """DNS findings bucket internal hostnames and summarize query types."""
+
+    rows = "\n".join(
+        [
+            "service.corp\t1",
+            "www.example.com\t28",
+            "odd.tldx\t16",
+        ]
+    )
+
+    evidence = dns.parse(rows, [".corp"])
+
+    assert evidence.total_queries == 3
+    assert evidence.top_queries[0].name == INTERNAL_HOSTNAME_REDACTED
+    assert {item.record_type for item in evidence.query_types} == {"A", "AAAA", "TXT"}
+    assert evidence.unusual_tlds[0].name == "tldx"
+
+
+def test_tls_sni_parser_redacts_configured_internal_suffix() -> None:
+    """TLS SNI findings use the configured internal suffix list."""
+
+    evidence = tls_sni.parse("portal.private\napi.example.com\n", [".private"])
+
+    assert evidence.total_snis == 2
+    assert [item.name for item in evidence.top_snis] == [
+        INTERNAL_HOSTNAME_REDACTED,
+        "api.example.com",
+    ]
+
+
+def test_dhcp_parser_enriches_known_client_and_oui_vendor() -> None:
+    """DHCP observations prefer Client records, then fall back to OUI lookup."""
+
+    rows = "\n".join(
+        [
+            "38:c9:86:00:00:01\tGalaxy-S22\tandroid-dhcp-13\t1,3,6",
+            "b8:27:eb:00:00:02\traspberrypi\tudhcp\t1,3",
+            "02:00:00:00:00:03\tunknown\t\t",
+        ]
+    )
+    oui = OuiService(
+        {
+            "b8:27:eb": OuiVendor(
+                prefix="b8:27:eb",
+                short_vendor="Raspberry",
+                long_vendor="Raspberry Pi Foundation",
+            )
+        }
+    )
+
+    evidence = dhcp.parse(
+        rows,
+        [Client(mac="38:C9:86:00:00:01", vendor_oui="Samsung Electronics")],
+        oui,
+    )
+
+    by_mac = {client.client_mac: client for client in evidence.clients}
+    assert by_mac["38:c9:86:00:00:01"].vendor_source == "client_record"
+    assert by_mac["38:c9:86:00:00:01"].vendor == "Samsung Electronics"
+    assert by_mac["b8:27:eb:00:00:02"].vendor_source == "oui_table"
+    assert by_mac["02:00:00:00:00:03"].vendor_source == "unknown"
+
+
 @given(st.text(max_size=2000))
 def test_parsers_never_raise_on_arbitrary_text(payload: str) -> None:
     """Parser fuzz smoke: malformed tshark text is not fatal."""
@@ -116,3 +185,6 @@ def test_parsers_never_raise_on_arbitrary_text(payload: str) -> None:
     eapol.parse(payload)
     beacons.parse(payload)
     probe_responses.parse(payload)
+    dns.parse(payload, [".corp"])
+    tls_sni.parse(payload, [".corp"])
+    dhcp.parse(payload, [], OuiService({}))

@@ -9,6 +9,12 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from cheeky_pony_backend.pcap.network_findings import (
+    DhcpHostnamesEvidence,
+    DnsSummaryEvidence,
+    TlsSniSummaryEvidence,
+)
+
 
 class AnalysisRunStatus(StrEnum):
     """Lifecycle states for a PCAP analysis run."""
@@ -37,6 +43,9 @@ class FindingKind(StrEnum):
     EAPOL_HANDSHAKES = "eapol_handshakes"
     BEACONS = "beacons"
     PROBE_RESPONSE_ANOMALIES = "probe_response_anomalies"
+    DNS_SUMMARY = "dns_summary"
+    TLS_SNI_SUMMARY = "tls_sni_summary"
+    DHCP_HOSTNAMES = "dhcp_hostnames"
     FILTER_FAILED = "filter_failed"
 
 
@@ -222,6 +231,9 @@ FindingEvidence = (
     | EapolHandshakesEvidence
     | BeaconsEvidence
     | ProbeResponseAnomaliesEvidence
+    | DnsSummaryEvidence
+    | TlsSniSummaryEvidence
+    | DhcpHostnamesEvidence
     | FailedFindingEvidence
 )
 
@@ -282,6 +294,27 @@ class ProbeResponseAnomaliesFinding(Finding):
 
     kind: Literal[FindingKind.PROBE_RESPONSE_ANOMALIES] = FindingKind.PROBE_RESPONSE_ANOMALIES
     evidence: ProbeResponseAnomaliesEvidence
+
+
+class DnsSummaryFinding(Finding):
+    """DNS query summary finding."""
+
+    kind: Literal[FindingKind.DNS_SUMMARY] = FindingKind.DNS_SUMMARY
+    evidence: DnsSummaryEvidence
+
+
+class TlsSniSummaryFinding(Finding):
+    """TLS SNI summary finding."""
+
+    kind: Literal[FindingKind.TLS_SNI_SUMMARY] = FindingKind.TLS_SNI_SUMMARY
+    evidence: TlsSniSummaryEvidence
+
+
+class DhcpHostnamesFinding(Finding):
+    """DHCP hostname finding."""
+
+    kind: Literal[FindingKind.DHCP_HOSTNAMES] = FindingKind.DHCP_HOSTNAMES
+    evidence: DhcpHostnamesEvidence
 
 
 class FailedFinding(Finding):

@@ -60,6 +60,12 @@ class TestTsharkRuntime:
             return TsharkResult(stdout=_probe_response_rows(), stderr="")
         if "0x0008" in args:
             return TsharkResult(stdout=_beacon_rows(), stderr="")
+        if "dns.qry.name" in args:
+            return TsharkResult(stdout=_dns_rows(), stderr="")
+        if "tls.handshake.extensions_server_name" in args:
+            return TsharkResult(stdout=_tls_sni_rows(), stderr="")
+        if "bootp.hw.mac_addr" in args:
+            return TsharkResult(stdout=_dhcp_rows(), stderr="")
         return TsharkResult(stdout=_deauth_rows(), stderr="")
 
 
@@ -124,3 +130,22 @@ def _probe_response_rows() -> str:
             "0x0005\taa:bb:cc:dd:ee:ff\taa:bb:cc:dd:ee:ff\tFREE-WIFI",
         ]
     )
+
+
+def _dns_rows() -> str:
+    return "\n".join(
+        [
+            "www.example.com\t1",
+            "intranet.corp\t1",
+            "printer.local\t28",
+            "odd.tldx\t16",
+        ]
+    )
+
+
+def _tls_sni_rows() -> str:
+    return "\n".join(["api.example.com", "portal.internal"])
+
+
+def _dhcp_rows() -> str:
+    return "38:c9:86:00:00:01\tGalaxy-S22\tandroid-dhcp-13\t1,3,6,15"

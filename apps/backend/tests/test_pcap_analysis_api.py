@@ -62,7 +62,10 @@ async def test_pcap_analysis_lifecycle_returns_status_and_findings(
     assert accepted.json()["analysis_id"]
     assert status_response.json()["analysis"]["status"] == "completed"
     assert status_response.json()["finding_counts"]["protocol_hierarchy"] == 1
-    assert findings.json()["total"] == 6
+    assert status_response.json()["finding_counts"]["dns_summary"] == 1
+    assert status_response.json()["finding_counts"]["tls_sni_summary"] == 1
+    assert status_response.json()["finding_counts"]["dhcp_hostnames"] == 1
+    assert findings.json()["total"] == 9
     assert detail.json()["id"] == first_finding_id
     assert backend_client.store.audit_logs[-1].action == "pcap.finding.read"
 

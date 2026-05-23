@@ -89,6 +89,19 @@ async def test_cors_wildcard_is_rejected() -> None:
         Settings(env="test", cookie_secure=False, jwt_secret="j" * 32, cors_origins=["*"])
 
 
+async def test_pcap_internal_hostname_suffixes_are_normalized() -> None:
+    """PCAP internal hostname suffix configuration is normalized."""
+
+    settings = Settings(
+        env="test",
+        cookie_secure=False,
+        jwt_secret="j" * 32,
+        pcap_internal_hostname_suffixes=["local", ".Corp", "internal"],
+    )
+
+    assert settings.pcap_internal_hostname_suffixes == [".corp", ".internal", ".local"]
+
+
 async def test_second_registration_requires_admin_2fa(backend_client: BackendClient) -> None:
     """Subsequent registration cannot be anonymous."""
 

@@ -153,7 +153,10 @@ Method: STRIDE per major component.
   Persisted findings use bounded Pydantic evidence models, cross-engagement
   access returns `404`, and there is still no raw capture download route. EAPOL
   PMKID and raw key material are requested from tshark only in `LAB_MODE` and are
-  redacted again at the API response boundary when lab mode is off.
+  redacted again at the API response boundary when lab mode is off. DNS and TLS
+  SNI findings bucket configured internal hostname suffixes as
+  `INTERNAL_HOSTNAME_REDACTED` before persistence; DHCP vendor enrichment uses
+  local Client records and the bundled OUI table only.
 - Denial of service: only one analysis can run per capture, upload and analyze
   routes are rate-limited, tshark runs with `-n`, `--disable-protocol lua`,
   `--no-extcap`, 512 MB memory, 60 second CPU, bounded stdout/stderr, and a
