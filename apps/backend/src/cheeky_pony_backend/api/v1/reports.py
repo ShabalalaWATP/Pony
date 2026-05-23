@@ -62,8 +62,6 @@ async def create_report(
         background_tasks: FastAPI background task collector.
         user: Current user.
         store: Application store.
-        pcap_store: PCAP metadata and byte store.
-        analysis_store: PCAP analysis persistence store.
         audit: Audit logger.
 
     Returns:
