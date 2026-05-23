@@ -22,6 +22,7 @@ from cheeky_pony_backend.api.v1 import (
     lab,
     lab_status,
     oui,
+    pcaps,
     reports,
     sensors,
     system,
@@ -35,12 +36,17 @@ from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
 from cheeky_pony_backend.infra.mongo_store import MongoStore
 from cheeky_pony_backend.infra.operator_broker import OperatorBroker
+from cheeky_pony_backend.infra.pcap_store import GridFsPcapStore, InMemoryPcapStore, PcapStore
 from cheeky_pony_backend.infra.sensor_command_broker import SensorCommandBroker
 from cheeky_pony_backend.logging import configure_logging
 from cheeky_pony_backend.security import CsrfService, TokenService
 
 
-def create_app(settings: Settings | None = None, store: Store | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    store: Store | None = None,
+    pcap_store: PcapStore | None = None,
+) -> FastAPI:
     """Create and configure the FastAPI app.
 
     Args:
@@ -54,13 +60,15 @@ def create_app(settings: Settings | None = None, store: Store | None = None) -> 
     configure_logging()
     active_settings = settings or get_settings()
     active_store = store or _create_store(active_settings)
+    active_pcap_store = pcap_store or _create_pcap_store(active_settings, active_store)
     app = FastAPI(
         title="Cheeky Pony API",
         version="0.1.0",
-        lifespan=_lifespan(active_store),
+        lifespan=_lifespan(active_store, active_pcap_store),
     )
     app.state.settings = active_settings
     app.state.store = active_store
+    app.state.pcap_store = active_pcap_store
     app.state.operator_broker = OperatorBroker()
     app.state.sensor_command_broker = SensorCommandBroker()
     app.dependency_overrides[get_settings] = lambda: active_settings
@@ -96,10 +104,22 @@ def _create_store(settings: Settings) -> Store:
     return MongoStore(settings.mongo_dsn, settings.mongo_db)
 
 
-def _lifespan(store: Store) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
+def _create_pcap_store(settings: Settings, store: Store) -> PcapStore:
+    if settings.use_in_memory_store or settings.env == "test":
+        return InMemoryPcapStore()
+    if isinstance(store, MongoStore):
+        return GridFsPcapStore(store.db)
+    return InMemoryPcapStore()
+
+
+def _lifespan(
+    store: Store,
+    pcap_store: PcapStore,
+) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await store.ensure_indexes()
+        await pcap_store.ensure_indexes()
         yield
 
     return lifespan
@@ -133,6 +153,7 @@ def _install_routes(app: FastAPI) -> None:
     app.include_router(lab.router, prefix="/api/v1")
     app.include_router(lab_status.router, prefix="/api/v1")
     app.include_router(oui.router, prefix="/api/v1")
+    app.include_router(pcaps.router, prefix="/api/v1")
     app.include_router(reports.router, prefix="/api/v1")
     app.include_router(audit.router, prefix="/api/v1")
     app.include_router(system.router, prefix="/api/v1")
@@ -147,7 +168,7 @@ def _install_security_middleware(app: FastAPI, settings: Settings) -> None:
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        csrf_response = _csrf_failure_response(request, settings)
+        csrf_response = await _csrf_failure_response(request, settings)
         if csrf_response is not None:
             return csrf_response
         response = await call_next(request)
@@ -160,7 +181,7 @@ def _install_security_middleware(app: FastAPI, settings: Settings) -> None:
         return response
 
 
-def _csrf_failure_response(request: Request, settings: Settings) -> Response | None:
+async def _csrf_failure_response(request: Request, settings: Settings) -> Response | None:
     unsafe = request.method in {"POST", "PUT", "PATCH", "DELETE"}
     exempt = request.url.path in {
         "/api/v1/auth/login",
@@ -175,10 +196,35 @@ def _csrf_failure_response(request: Request, settings: Settings) -> Response | N
     try:
         claims = TokenService(settings).verify(token, "access")
     except Exception:
+        await _audit_csrf_refusal(request, "system:csrf", "invalid_token")
         return Response(status_code=status.HTTP_401_UNAUTHORIZED)
     csrf_header = request.headers.get("x-csrf-token")
     if not CsrfService().verify(str(claims.get("csrf")), csrf_header):
+        await _audit_csrf_refusal(request, str(claims.get("sub", "system:csrf")), "invalid_csrf")
         return Response(status_code=status.HTTP_403_FORBIDDEN)
+    return None
+
+
+async def _audit_csrf_refusal(request: Request, actor_id: str, reason: str) -> None:
+    action = _csrf_action(request)
+    if action is None:
+        return
+    store: Store = request.app.state.store
+    await AuditLogger(store).record(
+        actor_id,
+        f"{action}.refused",
+        {"path": request.url.path},
+        {},
+        f"denied:{reason}",
+    )
+
+
+def _csrf_action(request: Request) -> str | None:
+    path = request.url.path
+    if request.method == "POST" and path.startswith("/api/v1/engagements/"):
+        return "pcap.upload" if path.endswith("/pcaps") else None
+    if request.method == "DELETE" and path.startswith("/api/v1/engagements/"):
+        return "pcap.delete" if "/pcaps/" in path else None
     return None
 
 

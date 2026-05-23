@@ -905,6 +905,42 @@
     "title": "ApiPage[LabActiveCommand]",
     "type": "object"
   },
+  "ApiPage_Pcap_": {
+    "additionalProperties": false,
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/Pcap"
+        },
+        "title": "Items",
+        "type": "array"
+      },
+      "limit": {
+        "maximum": 500.0,
+        "minimum": 1.0,
+        "title": "Limit",
+        "type": "integer"
+      },
+      "offset": {
+        "minimum": 0.0,
+        "title": "Offset",
+        "type": "integer"
+      },
+      "total": {
+        "minimum": 0.0,
+        "title": "Total",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "items",
+      "total",
+      "limit",
+      "offset"
+    ],
+    "title": "ApiPage[Pcap]",
+    "type": "object"
+  },
   "ApiPage_Sensor_": {
     "additionalProperties": false,
     "properties": {
@@ -1063,6 +1099,20 @@
       "outcome"
     ],
     "title": "AuditLog",
+    "type": "object"
+  },
+  "Body_upload_pcap_api_v1_engagements__engagement_id__pcaps_post": {
+    "properties": {
+      "file": {
+        "contentMediaType": "application/octet-stream",
+        "title": "File",
+        "type": "string"
+      }
+    },
+    "required": [
+      "file"
+    ],
+    "title": "Body_upload_pcap_api_v1_engagements__engagement_id__pcaps_post",
     "type": "object"
   },
   "Client": {
@@ -1604,6 +1654,111 @@
     ],
     "title": "OuiLookupResponse",
     "type": "object"
+  },
+  "Pcap": {
+    "additionalProperties": false,
+    "description": "Persisted PCAP metadata.",
+    "properties": {
+      "engagement_id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Engagement Id",
+        "type": "string"
+      },
+      "filename_sanitized": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Filename Sanitized",
+        "type": "string"
+      },
+      "gridfs_id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Gridfs Id",
+        "type": "string"
+      },
+      "id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Id",
+        "type": "string"
+      },
+      "magic": {
+        "enum": [
+          "pcap_le",
+          "pcap_be",
+          "pcapng"
+        ],
+        "title": "Magic",
+        "type": "string"
+      },
+      "sha256": {
+        "pattern": "^[0-9a-f]{64}$",
+        "title": "Sha256",
+        "type": "string"
+      },
+      "size_bytes": {
+        "minimum": 0.0,
+        "title": "Size Bytes",
+        "type": "integer"
+      },
+      "status": {
+        "$ref": "#/components/schemas/PcapStatus"
+      },
+      "uploaded_at": {
+        "format": "date-time",
+        "title": "Uploaded At",
+        "type": "string"
+      },
+      "uploaded_by": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Uploaded By",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "engagement_id",
+      "filename_sanitized",
+      "size_bytes",
+      "sha256",
+      "magic",
+      "uploaded_by",
+      "uploaded_at",
+      "status",
+      "gridfs_id"
+    ],
+    "title": "Pcap",
+    "type": "object"
+  },
+  "PcapDeleteRequest": {
+    "additionalProperties": false,
+    "description": "Typed-confirm body for PCAP deletion.",
+    "properties": {
+      "confirm": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Confirm",
+        "type": "string"
+      }
+    },
+    "required": [
+      "confirm"
+    ],
+    "title": "PcapDeleteRequest",
+    "type": "object"
+  },
+  "PcapStatus": {
+    "description": "Lifecycle states for an uploaded capture.",
+    "enum": [
+      "uploaded",
+      "analyzing",
+      "analyzed",
+      "failed"
+    ],
+    "title": "PcapStatus",
+    "type": "string"
   },
   "ReadinessCheck": {
     "additionalProperties": false,

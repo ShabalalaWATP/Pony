@@ -117,6 +117,28 @@ Method: STRIDE per major component.
 - Denial of service: v1 report generation caps event, alert, and audit source reads to bounded pages while async worker wiring is introduced.
 - Elevation of privilege: reports are scoped to an existing engagement and cannot be fetched by id without matching the engagement path.
 
+## PCAP Ingest
+
+- Spoofing: capture upload and delete require an authenticated admin with recent
+  TOTP verification and CSRF; list and metadata reads require an authenticated
+  operator session.
+- Tampering: uploads are streamed through the PCAP validator before persistence,
+  accept only pcap or pcapng magic bytes, reject truncated files, sanitize
+  filenames, and store bytes behind a repository interface rather than letting
+  route handlers touch GridFS directly.
+- Repudiation: upload, list, read, delete, and business-rule refusals write audit
+  entries. Audit parameters include sanitized metadata only and never raw capture
+  bytes.
+- Information disclosure: every PCAP is scoped to one engagement, cross-engagement
+  reads and deletes return `404`, and this phase intentionally has no raw capture
+  download route.
+- Denial of service: upload reads enforce `CHEEKY_PONY_PCAP_MAX_UPLOAD_MB`
+  before GridFS persistence; upload is also covered by the standard in-process
+  auth rate limiter.
+- Elevation of privilege: uploads require an active engagement, and deletes
+  require a typed filename confirmation in addition to admin, recent TOTP, and
+  CSRF.
+
 ## Accepted advisory exceptions
 
 Specific SCA advisories that the project has explicitly assessed and

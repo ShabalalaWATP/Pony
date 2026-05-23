@@ -44,7 +44,10 @@ jobs:
           format: spdx-json
           output-file: ${{ matrix.image.name }}.spdx.json
       - uses: sigstore/cosign-installer@v3
-      - run: cosign sign --yes ghcr.io/${{ github.repository }}/${{ matrix.image.name }}:${{ github.ref_name }}
+      - name: Sign image
+        env:
+          IMAGE_REF: ghcr.io/${{ github.repository }}/${{ matrix.image.name }}:${{ github.ref_name }}
+        run: cosign sign --yes "$IMAGE_REF"
       - uses: softprops/action-gh-release@v2
         with:
           files: "*.spdx.json"

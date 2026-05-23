@@ -703,6 +703,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/engagements/{engagement_id}/pcaps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Pcaps
+         * @description List capture uploads for one engagement.
+         */
+        get: operations["list_pcaps_api_v1_engagements__engagement_id__pcaps_get"];
+        put?: never;
+        /**
+         * Upload Pcap
+         * @description Upload a capture into an active engagement.
+         *
+         *     Args:
+         *         engagement_id: Engagement identifier.
+         *         file: Multipart PCAP or PCAPNG file.
+         *         user: Current authenticated user.
+         *         store: Application store.
+         *         pcaps: PCAP persistence adapter.
+         *         audit: Audit logger.
+         *         settings: Runtime settings.
+         *
+         *     Returns:
+         *         Persisted PCAP metadata.
+         */
+        post: operations["upload_pcap_api_v1_engagements__engagement_id__pcaps_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Pcap
+         * @description Return one engagement-scoped capture metadata record.
+         */
+        get: operations["get_pcap_api_v1_engagements__engagement_id__pcaps__pcap_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Pcap
+         * @description Delete one uploaded capture after admin, TOTP, and typed confirmation.
+         */
+        delete: operations["delete_pcap_api_v1_engagements__engagement_id__pcaps__pcap_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/engagements/{engagement_id}/reports": {
         parameters: {
             query?: never;
@@ -1694,6 +1754,17 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** ApiPage[Pcap] */
+        ApiPage_Pcap_: {
+            /** Items */
+            items: components["schemas"]["Pcap"][];
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+        };
         /** ApiPage[Sensor] */
         ApiPage_Sensor_: {
             /** Items */
@@ -1748,6 +1819,11 @@ export interface components {
             target?: {
                 [key: string]: unknown;
             };
+        };
+        /** Body_upload_pcap_api_v1_engagements__engagement_id__pcaps_post */
+        Body_upload_pcap_api_v1_engagements__engagement_id__pcaps_post: {
+            /** File */
+            file: string;
         };
         /**
          * Client
@@ -2006,6 +2082,51 @@ export interface components {
             /** Short Vendor */
             short_vendor: string;
         };
+        /**
+         * Pcap
+         * @description Persisted PCAP metadata.
+         */
+        Pcap: {
+            /** Engagement Id */
+            engagement_id: string;
+            /** Filename Sanitized */
+            filename_sanitized: string;
+            /** Gridfs Id */
+            gridfs_id: string;
+            /** Id */
+            id: string;
+            /**
+             * Magic
+             * @enum {string}
+             */
+            magic: "pcap_le" | "pcap_be" | "pcapng";
+            /** Sha256 */
+            sha256: string;
+            /** Size Bytes */
+            size_bytes: number;
+            status: components["schemas"]["PcapStatus"];
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
+            /** Uploaded By */
+            uploaded_by: string;
+        };
+        /**
+         * PcapDeleteRequest
+         * @description Typed-confirm body for PCAP deletion.
+         */
+        PcapDeleteRequest: {
+            /** Confirm */
+            confirm: string;
+        };
+        /**
+         * PcapStatus
+         * @description Lifecycle states for an uploaded capture.
+         * @enum {string}
+         */
+        PcapStatus: "uploaded" | "analyzing" | "analyzed" | "failed";
         /**
          * ReadinessCheck
          * @description Operator-facing lab-readiness checklist item.
@@ -3089,6 +3210,141 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_pcaps_api_v1_engagements__engagement_id__pcaps_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                engagement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiPage_Pcap_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_pcap_api_v1_engagements__engagement_id__pcaps_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_pcap_api_v1_engagements__engagement_id__pcaps_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pcap"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_pcap_api_v1_engagements__engagement_id__pcaps__pcap_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: string;
+                pcap_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pcap"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_pcap_api_v1_engagements__engagement_id__pcaps__pcap_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: string;
+                pcap_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PcapDeleteRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             204: {

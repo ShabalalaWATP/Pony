@@ -236,3 +236,19 @@ The first implementation generates bounded summary artifacts from stored events,
 The frontend accepts only same-origin `/api/...` report download URLs. If a backend
 or proxy ever returns an unsafe URL, the operator UI blocks the anchor instead of
 navigating.
+
+## Uploading captures for analysis
+
+Admins with recent TOTP verification can upload `.pcap` and `.pcapng` captures to
+an active engagement at `/api/v1/engagements/{id}/pcaps`. Uploads are capped by
+`CHEEKY_PONY_PCAP_MAX_UPLOAD_MB` (default `100`), validated by magic bytes, stored
+in GridFS, and audited with the sanitized filename, size, capture hash, and
+engagement id.
+
+Authenticated operators can list and read capture metadata for engagements they
+can access. There is no raw capture download route in this phase. Deleting a
+capture requires admin plus recent TOTP, CSRF, and typing the sanitized filename
+back in the request body. Analysis via tshark lands in the next Phase 2 slice.
+
+Screenshot placeholder: Phase 5 frontend will add the upload and capture metadata
+screens against these backend endpoints.
