@@ -54,6 +54,12 @@ class TestTsharkRuntime:
             )
         if "conv" in args:
             return TsharkResult(stdout="aa:aa <-> bb:bb 1 120\n", stderr="")
+        if "eapol" in args:
+            return TsharkResult(stdout=_eapol_rows(include_lab_evidence="pmkid" in args), stderr="")
+        if "0x0008 || wlan.fc.type_subtype == 0x0005" in args:
+            return TsharkResult(stdout=_probe_response_rows(), stderr="")
+        if "0x0008" in args:
+            return TsharkResult(stdout=_beacon_rows(), stderr="")
         return TsharkResult(stdout=_deauth_rows(), stderr="")
 
 
@@ -92,4 +98,29 @@ def _deauth_rows() -> str:
     return "\n".join(
         f"{1000 + index}\taa:bb:cc:dd:ee:ff\tff:ff:ff:ff:ff:ff\taa:bb:cc:dd:ee:ff"
         for index in range(10)
+    )
+
+
+def _eapol_rows(*, include_lab_evidence: bool) -> str:
+    base = [
+        "1000\taa:bb:cc:dd:ee:ff\taa:bb:cc:dd:ee:ff\t11:22:33:44:55:66\t1",
+        "1001\taa:bb:cc:dd:ee:ff\t11:22:33:44:55:66\taa:bb:cc:dd:ee:ff\t2",
+        "1002\taa:bb:cc:dd:ee:ff\taa:bb:cc:dd:ee:ff\t11:22:33:44:55:66\t3",
+        "1003\taa:bb:cc:dd:ee:ff\t11:22:33:44:55:66\taa:bb:cc:dd:ee:ff\t4",
+    ]
+    if not include_lab_evidence:
+        return "\n".join(base)
+    return "\n".join(f"{row}\t00112233445566778899aabbccddeeff\t01020304" for row in base)
+
+
+def _beacon_rows() -> str:
+    return "aa:bb:cc:dd:ee:ff\tCorpNet\t6\tprivacy;short-preamble\t00:11:22\t100"
+
+
+def _probe_response_rows() -> str:
+    return "\n".join(
+        [
+            "0x0008\taa:bb:cc:dd:ee:ff\taa:bb:cc:dd:ee:ff\tCorpNet",
+            "0x0005\taa:bb:cc:dd:ee:ff\taa:bb:cc:dd:ee:ff\tFREE-WIFI",
+        ]
     )

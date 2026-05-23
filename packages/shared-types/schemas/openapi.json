@@ -1278,6 +1278,139 @@
         "title": "AuditLog",
         "type": "object"
       },
+      "BeaconMismatch": {
+        "additionalProperties": false,
+        "description": "Mismatch between a beacon and stored AP metadata.",
+        "properties": {
+          "detail": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Detail",
+            "type": "string"
+          },
+          "field": {
+            "enum": [
+              "channel",
+              "ssid"
+            ],
+            "title": "Field",
+            "type": "string"
+          },
+          "observed": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Observed",
+            "type": "string"
+          },
+          "stored": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Stored",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail",
+          "field",
+          "observed",
+          "stored"
+        ],
+        "title": "BeaconMismatch",
+        "type": "object"
+      },
+      "BeaconNetwork": {
+        "additionalProperties": false,
+        "description": "One beaconing BSSID summary.",
+        "properties": {
+          "beacon_interval_tu": {
+            "anyOf": [
+              {
+                "maximum": 65535.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beacon Interval Tu"
+          },
+          "bssid": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Bssid",
+            "type": "string"
+          },
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 24,
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "channel": {
+            "anyOf": [
+              {
+                "maximum": 196.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel"
+          },
+          "mismatches": {
+            "items": {
+              "$ref": "#/components/schemas/BeaconMismatch"
+            },
+            "title": "Mismatches",
+            "type": "array"
+          },
+          "ssid": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ssid"
+          },
+          "vendor_ies": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 24,
+            "title": "Vendor Ies",
+            "type": "array"
+          }
+        },
+        "required": [
+          "bssid"
+        ],
+        "title": "BeaconNetwork",
+        "type": "object"
+      },
+      "BeaconsEvidence": {
+        "additionalProperties": false,
+        "description": "Beacon summary evidence.",
+        "properties": {
+          "networks": {
+            "items": {
+              "$ref": "#/components/schemas/BeaconNetwork"
+            },
+            "title": "Networks",
+            "type": "array"
+          }
+        },
+        "title": "BeaconsEvidence",
+        "type": "object"
+      },
       "Body_upload_pcap_api_v1_engagements__engagement_id__pcaps_post": {
         "properties": {
           "file": {
@@ -1535,6 +1668,92 @@
         "title": "DeviceClass",
         "type": "string"
       },
+      "EapolHandshake": {
+        "additionalProperties": false,
+        "description": "One grouped EAPOL four-way handshake observation.",
+        "properties": {
+          "bssid": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Bssid",
+            "type": "string"
+          },
+          "client_mac": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Client Mac",
+            "type": "string"
+          },
+          "complete": {
+            "title": "Complete",
+            "type": "boolean"
+          },
+          "message_count": {
+            "maximum": 4.0,
+            "minimum": 0.0,
+            "title": "Message Count",
+            "type": "integer"
+          },
+          "message_numbers": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 4,
+            "title": "Message Numbers",
+            "type": "array"
+          },
+          "pmkid": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pmkid"
+          },
+          "raw_bytes_b64": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 8,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Bytes B64"
+          }
+        },
+        "required": [
+          "bssid",
+          "client_mac",
+          "complete",
+          "message_count"
+        ],
+        "title": "EapolHandshake",
+        "type": "object"
+      },
+      "EapolHandshakesEvidence": {
+        "additionalProperties": false,
+        "description": "EAPOL handshake metadata evidence.",
+        "properties": {
+          "handshakes": {
+            "items": {
+              "$ref": "#/components/schemas/EapolHandshake"
+            },
+            "title": "Handshakes",
+            "type": "array"
+          }
+        },
+        "title": "EapolHandshakesEvidence",
+        "type": "object"
+      },
       "Engagement": {
         "additionalProperties": false,
         "description": "Engagement scope and lifecycle metadata.",
@@ -1758,6 +1977,15 @@
                 "$ref": "#/components/schemas/DeauthBurstsEvidence"
               },
               {
+                "$ref": "#/components/schemas/EapolHandshakesEvidence"
+              },
+              {
+                "$ref": "#/components/schemas/BeaconsEvidence"
+              },
+              {
+                "$ref": "#/components/schemas/ProbeResponseAnomaliesEvidence"
+              },
+              {
                 "$ref": "#/components/schemas/FailedFindingEvidence"
               }
             ],
@@ -1808,11 +2036,14 @@
         "type": "object"
       },
       "FindingKind": {
-        "description": "Finding kinds generated by the Phase 2B filter library.",
+        "description": "Finding kinds generated by the curated filter library.",
         "enum": [
           "protocol_hierarchy",
           "conversations",
           "deauth_bursts",
+          "eapol_handshakes",
+          "beacons",
+          "probe_response_anomalies",
           "filter_failed"
         ],
         "title": "FindingKind",
@@ -2172,6 +2403,60 @@
         ],
         "title": "PcapStatus",
         "type": "string"
+      },
+      "ProbeResponseAnomaliesEvidence": {
+        "additionalProperties": false,
+        "description": "Probe-response anomaly evidence.",
+        "properties": {
+          "anomalies": {
+            "items": {
+              "$ref": "#/components/schemas/ProbeResponseAnomaly"
+            },
+            "title": "Anomalies",
+            "type": "array"
+          }
+        },
+        "title": "ProbeResponseAnomaliesEvidence",
+        "type": "object"
+      },
+      "ProbeResponseAnomaly": {
+        "additionalProperties": false,
+        "description": "AP responding to SSIDs it does not beacon.",
+        "properties": {
+          "anomalous_ssids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Anomalous Ssids",
+            "type": "array"
+          },
+          "beaconed_ssids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 16,
+            "title": "Beaconed Ssids",
+            "type": "array"
+          },
+          "bssid": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Bssid",
+            "type": "string"
+          },
+          "response_count": {
+            "minimum": 1.0,
+            "title": "Response Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bssid",
+          "response_count"
+        ],
+        "title": "ProbeResponseAnomaly",
+        "type": "object"
       },
       "ProtocolHierarchyEvidence": {
         "additionalProperties": false,

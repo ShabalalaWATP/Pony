@@ -5,6 +5,13 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 2C — PCAP WiFi findings (#63)
+
+- Added EAPOL handshake, beacon summary, and probe-response anomaly findings to
+  the sandboxed PCAP analyzer.
+- Added LAB_MODE-gated PMKID/raw EAPOL response redaction so normal environments
+  expose handshake metadata without cracking material.
+
 ### Backend Phase 2B — PCAP tshark foundation (#62)
 
 - Added queued PCAP analysis with sandboxed `tshark`, structured protocol
