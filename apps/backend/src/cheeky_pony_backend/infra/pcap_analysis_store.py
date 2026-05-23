@@ -48,6 +48,9 @@ class PcapAnalysisStore(Protocol):
     async def finding_counts(self, engagement_id: str, pcap_id: str) -> dict[FindingKind, int]:
         """Return finding counts by kind for one PCAP."""
 
+    async def delete_for_pcap(self, engagement_id: str, pcap_id: str) -> None:
+        """Delete analysis runs and findings for one PCAP."""
+
 
 class InMemoryPcapAnalysisStore:
     """In-memory analysis store for tests."""
@@ -133,6 +136,20 @@ class InMemoryPcapAnalysisStore:
                 continue
             counts[finding.kind] = counts.get(finding.kind, 0) + 1
         return counts
+
+    async def delete_for_pcap(self, engagement_id: str, pcap_id: str) -> None:
+        """Delete in-memory analysis data for one PCAP."""
+
+        self.runs = {
+            run_id: run
+            for run_id, run in self.runs.items()
+            if run.engagement_id != engagement_id or run.pcap_id != pcap_id
+        }
+        self.findings = {
+            finding_id: finding
+            for finding_id, finding in self.findings.items()
+            if finding.engagement_id != engagement_id or finding.pcap_id != pcap_id
+        }
 
 
 class MongoPcapAnalysisStore:
@@ -226,3 +243,10 @@ class MongoPcapAnalysisStore:
         async for row in self._db.pcap_findings.aggregate(pipeline):
             counts[FindingKind(str(row["_id"]))] = int(row["count"])
         return counts
+
+    async def delete_for_pcap(self, engagement_id: str, pcap_id: str) -> None:
+        """Delete Mongo analysis data for one PCAP."""
+
+        query = {"engagement_id": engagement_id, "pcap_id": pcap_id}
+        await self._db.pcap_analysis_runs.delete_many(query)
+        await self._db.pcap_findings.delete_many(query)

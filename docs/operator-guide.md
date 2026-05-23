@@ -38,6 +38,11 @@ urban SSIDs, a small hidden-SSID sample, plausible client vendors, and probe
 histories. This lets the map and reconnaissance views render meaningful fixture
 data immediately after a fresh seed.
 
+The demo engagement also receives three small sample captures. The seeder stores
+them through the same PCAP validation, GridFS metadata, and analyzer services used
+by operator uploads, then pre-generates structured findings so reports and future
+capture-analysis screens have fixture data.
+
 The command refuses to run unless all safety guards pass:
 
 - `CHEEKY_PONY_ENV=dev`
@@ -45,8 +50,9 @@ The command refuses to run unless all safety guards pass:
 - no non-synthetic sensor has reported within the last five minutes
 
 Use `python -m cheeky_pony_backend.infra.seed_demo --force` only for deliberate
-local recovery. `--clean` removes records where `synthetic == true` and leaves
-audit entries intact because audit logs are append-only.
+local recovery. `--clean` removes records where `synthetic == true` plus the
+deterministic demo PCAPs and findings, and leaves audit entries intact because
+audit logs are append-only.
 
 The frontend can check `GET /api/v1/system/demo-status` after login to show
 whether synthetic records are present.
@@ -231,7 +237,12 @@ event payloads.
 
 Authenticated operators can request engagement exports from `/api/v1/engagements/{id}/reports` in `jsonl`, `html`, `pdf`, or `pcap` format. The status endpoint returns `pending`, `ready`, or `failed`; ready reports include a short-lived signed download URL.
 
-The first implementation generates bounded summary artifacts from stored events, alerts, and audit entries. PCAP exports currently produce an empty capture container until packet capture storage lands.
+Reports generate bounded summary artifacts from stored events, alerts, audit
+entries, and completed capture findings. The capture section includes curated
+finding summaries such as deauthentication bursts, probe-response anomalies, and
+DHCP hostnames. It never includes raw `tshark` output or raw packet bytes. PCAP
+exports still produce an empty capture container until a dedicated packet export
+workflow is designed.
 
 The frontend accepts only same-origin `/api/...` report download URLs. If a backend
 or proxy ever returns an unsafe URL, the operator UI blocks the anchor instead of
@@ -276,6 +287,10 @@ DHCP client metadata. Hostnames ending in
 are stored as `INTERNAL_HOSTNAME_REDACTED` so internal names do not leak into
 screenshots or reports. DHCP findings enrich MACs from existing Client records
 first, then the bundled OUI table; the backend performs no external lookups.
+
+Completed analyses are also available to engagement reports. The report worker
+summarizes only structured, bounded finding fields and shows "Analysis pending or
+unavailable" when a capture exists but no successful findings have been produced.
 
 Backend startup requires `tshark >= CHEEKY_PONY_TSHARK_MIN_VERSION` (default
 `4.2.0`) unless the app runs in the test environment. The Docker image and CI

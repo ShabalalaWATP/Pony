@@ -7,11 +7,15 @@ from collections.abc import Iterator
 from datetime import UTC, datetime
 
 import pytest
+from conftest import TestTsharkRuntime
 
 import cheeky_pony_backend.infra.seed_demo as seed_demo
 from cheeky_pony_backend.config import Settings
 from cheeky_pony_backend.infra.demo_dataset import EVENT_COUNT, build_demo_dataset
+from cheeky_pony_backend.infra.demo_pcaps import DEMO_PCAP_ENGAGEMENT_ID
 from cheeky_pony_backend.infra.mongo_store import MongoStore
+from cheeky_pony_backend.infra.pcap_analysis_store import MongoPcapAnalysisStore
+from cheeky_pony_backend.infra.pcap_store import GridFsPcapStore
 from cheeky_pony_backend.infra.seed_demo import SeedOptions, _clean, _refusal_reason, _seed
 from cheeky_pony_backend.infra.signals_repo import SIGNAL_HISTORY_CAP
 from cheeky_pony_shared import AccessPoint, EventKind, Sensor
@@ -44,9 +48,14 @@ async def test_seed_demo_counts_idempotency_and_clean(mongo_store: MongoStore) -
         AccessPoint(bssid="AA:BB:CC:DD:EE:FF", ssid="Real").model_dump(mode="json")
     )
     options = SeedOptions(clean=False, with_active=False, force=False, actor_id="tester")
+    settings = _dev_settings()
+    runtime = TestTsharkRuntime()
 
-    counts = await _seed(mongo_store, options)
-    await _seed(mongo_store, options)
+    counts = await _seed(mongo_store, options, settings, runtime)
+    await _seed(mongo_store, options, settings, runtime)
+    pcaps = GridFsPcapStore(mongo_store.db)
+    analysis_store = MongoPcapAnalysisStore(mongo_store.db)
+    pcap_items, total_pcaps = await pcaps.list_pcaps(DEMO_PCAP_ENGAGEMENT_ID, 10, 0)
     synthetic_aps, total_access_points = await mongo_store.list_access_points(500, 0)
     synthetic_aps = [ap for ap in synthetic_aps if ap.synthetic]
     geolocated_aps = [ap for ap in synthetic_aps if ap.latitude is not None]
@@ -60,17 +69,27 @@ async def test_seed_demo_counts_idempotency_and_clean(mongo_store: MongoStore) -
         "alert_rules": 2,
         "engagements": 1,
         "allow_list": 3,
+        "pcaps": 3,
+        "analysis_runs": 3,
     }
     assert total_access_points == 51
+    assert total_pcaps == 3
     assert len(synthetic_aps) == 50
     assert len(geolocated_aps) >= 45
     assert all(ap.longitude is not None for ap in geolocated_aps)
     assert all(ap.location_source == "sensor_gps" for ap in geolocated_aps)
-    assert await mongo_store.count_synthetic_records() == sum(counts.values())
+    assert await mongo_store.count_synthetic_records() == _synthetic_record_count(counts)
+    assert {pcap.status.value for pcap in pcap_items} == {"analyzed"}
+    for pcap in pcap_items:
+        finding_counts = await analysis_store.finding_counts(DEMO_PCAP_ENGAGEMENT_ID, pcap.id)
+        assert sum(finding_counts.values()) == 9
 
     deleted = await _clean(mongo_store, "tester")
+    _, remaining_pcaps = await pcaps.list_pcaps(DEMO_PCAP_ENGAGEMENT_ID, 10, 0)
 
     assert deleted["access_points"] == 50
+    assert deleted["pcaps"] == 3
+    assert remaining_pcaps == 0
     assert await mongo_store.count_synthetic_records() == 0
     assert await mongo_store.db.access_points.count_documents({"ssid": "Real"}) == 1
 
@@ -283,7 +302,7 @@ async def _deny_run(_settings, _store, _force):  # type: ignore[no-untyped-def]
     return "denied"
 
 
-async def _fake_seed(store, _options):  # type: ignore[no-untyped-def]
+async def _fake_seed(store, _options, _settings):  # type: ignore[no-untyped-def]
     store.seeded = True
     return {"seeded": 1}
 
@@ -311,3 +330,7 @@ def _sensor_locations(sensors: list[Sensor]) -> dict[str, tuple[float, float]]:
         assert sensor.longitude is not None
         locations[sensor.id] = (sensor.latitude, sensor.longitude)
     return locations
+
+
+def _synthetic_record_count(counts: dict[str, int]) -> int:
+    return sum(count for key, count in counts.items() if key not in {"pcaps", "analysis_runs"})

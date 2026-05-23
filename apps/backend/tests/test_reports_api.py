@@ -3,14 +3,22 @@
 
 from __future__ import annotations
 
+import base64
 from datetime import UTC, datetime
 
 import pytest
 from conftest import BackendClient
 from helpers import create_verified_admin
 
-from cheeky_pony_backend.domain.reports import ReportStatus
+from cheeky_pony_backend.domain.pcap_models import Pcap, PcapStatus
+from cheeky_pony_backend.domain.reports import ReportFormat, ReportRecord, ReportStatus
 from cheeky_pony_backend.domain.users import UserRecord
+from cheeky_pony_backend.pcap.findings import (
+    DeauthBurst,
+    DeauthBurstsEvidence,
+    DeauthBurstsFinding,
+    FindingSeverity,
+)
 from cheeky_pony_backend.security import PasswordService
 from cheeky_pony_backend.workers.tasks import generate_report
 from cheeky_pony_shared import Engagement, Event, EventKind
@@ -128,8 +136,123 @@ async def test_report_creation_requires_admin_recent_totp(
     assert backend_client.store.audit_logs[-1].outcome == "denied:admin_required"
 
 
+async def test_report_generation_includes_capture_findings(
+    backend_client: BackendClient,
+) -> None:
+    """Completed PCAP findings are summarized in generated reports."""
+
+    report = await _create_report_record(backend_client, "report-pcap")
+    await _create_report_pcap(backend_client, status=PcapStatus.ANALYZED)
+    assert backend_client.pcap_analysis_store is not None
+    await backend_client.pcap_analysis_store.create_findings([_deauth_finding()])
+
+    generated = await generate_report(
+        {
+            "store": backend_client.store,
+            "pcap_store": backend_client.pcap_store,
+            "pcap_analysis_store": backend_client.pcap_analysis_store,
+        },
+        report.id,
+    )
+    loaded = await backend_client.store.get_report_by_id(report.id)
+
+    assert generated is True
+    assert loaded is not None
+    assert loaded.content_b64 is not None
+    content = base64.b64decode(loaded.content_b64.encode()).decode()
+    assert "Capture findings" in content
+    assert "Deauthentication bursts detected: 1" in content
+    assert "PCAPs: 1" in content
+
+
+async def test_report_generation_handles_pending_capture_analysis(
+    backend_client: BackendClient,
+) -> None:
+    """Reports render cleanly when captures have no successful findings yet."""
+
+    report = await _create_report_record(backend_client, "report-pending")
+    await _create_report_pcap(backend_client, status=PcapStatus.UPLOADED)
+
+    await generate_report(
+        {
+            "store": backend_client.store,
+            "pcap_store": backend_client.pcap_store,
+            "pcap_analysis_store": backend_client.pcap_analysis_store,
+        },
+        report.id,
+    )
+    loaded = await backend_client.store.get_report_by_id(report.id)
+
+    assert loaded is not None
+    assert loaded.content_b64 is not None
+    content = base64.b64decode(loaded.content_b64.encode()).decode()
+    assert "Capture findings" in content
+    assert "Analysis pending or unavailable." in content
+
+
 async def _finish_report_if_needed(bundle: BackendClient, report_id: str) -> None:
     report = await bundle.store.get_report_by_id(report_id)
     if report is not None and report.status == ReportStatus.READY:
         return
-    await generate_report({"store": bundle.store}, report_id)
+    await generate_report(
+        {
+            "store": bundle.store,
+            "pcap_store": bundle.pcap_store,
+            "pcap_analysis_store": bundle.pcap_analysis_store,
+        },
+        report_id,
+    )
+
+
+async def _create_report_record(bundle: BackendClient, report_id: str) -> ReportRecord:
+    engagement = Engagement(id="eng-pcap", name="Capture Lab")
+    await bundle.store.create_engagement(engagement)
+    report = ReportRecord(
+        id=report_id,
+        engagement_id=engagement.id,
+        requested_by="admin",
+        format=ReportFormat.HTML,
+        since=datetime(2026, 1, 1, tzinfo=UTC),
+        until=datetime(2026, 1, 3, tzinfo=UTC),
+    )
+    return await bundle.store.create_report(report)
+
+
+async def _create_report_pcap(bundle: BackendClient, status: PcapStatus) -> None:
+    assert bundle.pcap_store is not None
+    await bundle.pcap_store.create_pcap(
+        Pcap(
+            id="pcap-report",
+            engagement_id="eng-pcap",
+            filename_sanitized="demo-deauth-incident.pcapng",
+            size_bytes=48,
+            sha256="1" * 64,
+            magic="pcapng",
+            uploaded_by="admin",
+            uploaded_at=datetime(2026, 1, 2, tzinfo=UTC),
+            status=status,
+            gridfs_id="gridfs-report",
+        )
+    )
+
+
+def _deauth_finding() -> DeauthBurstsFinding:
+    return DeauthBurstsFinding(
+        id="finding-deauth",
+        pcap_id="pcap-report",
+        engagement_id="eng-pcap",
+        analysis_id="analysis-report",
+        severity=FindingSeverity.MEDIUM,
+        summary="Deauthentication bursts detected: 1",
+        evidence=DeauthBurstsEvidence(
+            bursts=[
+                DeauthBurst(
+                    bssid="aa:bb:cc:dd:ee:ff",
+                    count=10,
+                    first_seen_epoch=1000.0,
+                    last_seen_epoch=1010.0,
+                )
+            ]
+        ),
+        generated_at=datetime(2026, 1, 2, tzinfo=UTC),
+    )

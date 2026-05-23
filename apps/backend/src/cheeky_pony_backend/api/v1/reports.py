@@ -14,6 +14,8 @@ from cheeky_pony_backend.config import Settings, get_settings
 from cheeky_pony_backend.dependencies import (
     current_user,
     get_audit_logger,
+    get_pcap_analysis_store,
+    get_pcap_store,
     get_store,
     require_admin_2fa,
 )
@@ -29,6 +31,8 @@ from cheeky_pony_backend.domain.reports import (
     verify_report_download_token,
 )
 from cheeky_pony_backend.domain.users import UserRecord
+from cheeky_pony_backend.infra.pcap_analysis_store import PcapAnalysisStore
+from cheeky_pony_backend.infra.pcap_store import PcapStore
 from cheeky_pony_backend.workers.tasks import generate_report
 
 router = APIRouter(prefix="/engagements/{engagement_id}/reports", tags=["reports"])
@@ -45,6 +49,8 @@ async def create_report(
     background_tasks: BackgroundTasks,
     user: Annotated[UserRecord, Depends(current_user)],
     store: Annotated[Store, Depends(get_store)],
+    pcap_store: Annotated[PcapStore, Depends(get_pcap_store)],
+    analysis_store: Annotated[PcapAnalysisStore, Depends(get_pcap_analysis_store)],
     audit: Annotated[AuditLogger, Depends(get_audit_logger)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> ReportCreateResponse:
@@ -56,6 +62,8 @@ async def create_report(
         background_tasks: FastAPI background task collector.
         user: Current user.
         store: Application store.
+        pcap_store: PCAP metadata and byte store.
+        analysis_store: PCAP analysis persistence store.
         audit: Audit logger.
 
     Returns:
@@ -97,7 +105,8 @@ async def create_report(
         parameters,
         "pending",
     )
-    background_tasks.add_task(generate_report, {"store": store}, report.id)
+    context = {"store": store, "pcap_store": pcap_store, "pcap_analysis_store": analysis_store}
+    background_tasks.add_task(generate_report, context, report.id)
     return ReportCreateResponse(report_id=report.id, status=ReportStatus.PENDING)
 
 
