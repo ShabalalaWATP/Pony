@@ -39,10 +39,15 @@ export interface components {
     "Client": unknown;
     "Conversation": unknown;
     "ConversationsEvidence": unknown;
+    "CountedName": unknown;
+    "CountedRecordType": unknown;
     "DeauthBurst": unknown;
     "DeauthBurstsEvidence": unknown;
     "DemoStatusResponse": unknown;
     "DeviceClass": unknown;
+    "DhcpClientObservation": unknown;
+    "DhcpHostnamesEvidence": unknown;
+    "DnsSummaryEvidence": unknown;
     "EapolHandshake": unknown;
     "EapolHandshakesEvidence": unknown;
     "Engagement": unknown;
@@ -88,6 +93,7 @@ export interface components {
     "SignalSample": unknown;
     "SystemAcknowledgement": unknown;
     "TargetKind": unknown;
+    "TlsSniSummaryEvidence": unknown;
     "TotpSetupResponse": unknown;
     "TotpVerifyRequest": unknown;
     "UserPublic": unknown;

@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     bootstrap_token: str | None = Field(default=None, min_length=16)
     use_in_memory_store: bool = False
     report_download_token_minutes: int = Field(default=15, ge=1, le=1440)
+    pcap_internal_hostname_suffixes: list[str] = Field(
+        default_factory=lambda: [".local", ".internal", ".corp"]
+    )
     pcap_max_upload_mb: int = Field(default=100, ge=1, le=500)
     tshark_min_version: str = "4.2.0"
     tshark_path: str = "tshark"
@@ -75,6 +78,28 @@ class Settings(BaseSettings):
             msg = "cors_origins must not contain '*' or an empty entry when cookies are enabled"
             raise ValueError(msg)
         return value
+
+    @field_validator("pcap_internal_hostname_suffixes", mode="before")
+    @classmethod
+    def split_pcap_internal_hostname_suffixes(cls, value: object) -> object:
+        """Parse comma-separated PCAP redaction suffixes from environment variables."""
+
+        if isinstance(value, str):
+            return [suffix.strip() for suffix in value.split(",") if suffix.strip()]
+        return value
+
+    @field_validator("pcap_internal_hostname_suffixes")
+    @classmethod
+    def normalize_pcap_internal_hostname_suffixes(cls, value: list[str]) -> list[str]:
+        """Normalize internal hostname suffixes used by PCAP finding redaction."""
+
+        suffixes = sorted(
+            {f".{suffix.strip().strip('.').lower()}" for suffix in value if suffix.strip()}
+        )
+        if not suffixes:
+            msg = "pcap_internal_hostname_suffixes must contain at least one suffix"
+            raise ValueError(msg)
+        return suffixes
 
     @model_validator(mode="after")
     def reject_production_defaults(self) -> Settings:

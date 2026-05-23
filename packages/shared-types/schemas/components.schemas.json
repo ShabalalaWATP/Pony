@@ -1565,6 +1565,52 @@
     "title": "ConversationsEvidence",
     "type": "object"
   },
+  "CountedName": {
+    "additionalProperties": false,
+    "description": "A bounded name/count pair.",
+    "properties": {
+      "count": {
+        "minimum": 1.0,
+        "title": "Count",
+        "type": "integer"
+      },
+      "name": {
+        "maxLength": 253,
+        "minLength": 1,
+        "title": "Name",
+        "type": "string"
+      }
+    },
+    "required": [
+      "count",
+      "name"
+    ],
+    "title": "CountedName",
+    "type": "object"
+  },
+  "CountedRecordType": {
+    "additionalProperties": false,
+    "description": "A DNS record type count.",
+    "properties": {
+      "count": {
+        "minimum": 1.0,
+        "title": "Count",
+        "type": "integer"
+      },
+      "record_type": {
+        "maxLength": 16,
+        "minLength": 1,
+        "title": "Record Type",
+        "type": "string"
+      }
+    },
+    "required": [
+      "count",
+      "record_type"
+    ],
+    "title": "CountedRecordType",
+    "type": "object"
+  },
   "DeauthBurst": {
     "additionalProperties": false,
     "description": "One detected deauthentication burst.",
@@ -1665,6 +1711,127 @@
     ],
     "title": "DeviceClass",
     "type": "string"
+  },
+  "DhcpClientObservation": {
+    "additionalProperties": false,
+    "description": "DHCP client metadata observed in a capture.",
+    "properties": {
+      "client_mac": {
+        "maxLength": 32,
+        "minLength": 1,
+        "title": "Client Mac",
+        "type": "string"
+      },
+      "hostname": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Hostname"
+      },
+      "requested_options": {
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 64,
+        "title": "Requested Options",
+        "type": "array"
+      },
+      "vendor": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Vendor"
+      },
+      "vendor_class_id": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Vendor Class Id"
+      },
+      "vendor_source": {
+        "default": "unknown",
+        "enum": [
+          "client_record",
+          "oui_table",
+          "unknown"
+        ],
+        "title": "Vendor Source",
+        "type": "string"
+      }
+    },
+    "required": [
+      "client_mac"
+    ],
+    "title": "DhcpClientObservation",
+    "type": "object"
+  },
+  "DhcpHostnamesEvidence": {
+    "additionalProperties": false,
+    "description": "DHCP hostname and vendor-class evidence.",
+    "properties": {
+      "clients": {
+        "items": {
+          "$ref": "#/components/schemas/DhcpClientObservation"
+        },
+        "title": "Clients",
+        "type": "array"
+      }
+    },
+    "title": "DhcpHostnamesEvidence",
+    "type": "object"
+  },
+  "DnsSummaryEvidence": {
+    "additionalProperties": false,
+    "description": "DNS query summary evidence.",
+    "properties": {
+      "query_types": {
+        "items": {
+          "$ref": "#/components/schemas/CountedRecordType"
+        },
+        "title": "Query Types",
+        "type": "array"
+      },
+      "top_queries": {
+        "items": {
+          "$ref": "#/components/schemas/CountedName"
+        },
+        "title": "Top Queries",
+        "type": "array"
+      },
+      "total_queries": {
+        "default": 0,
+        "minimum": 0.0,
+        "title": "Total Queries",
+        "type": "integer"
+      },
+      "unusual_tlds": {
+        "items": {
+          "$ref": "#/components/schemas/CountedName"
+        },
+        "title": "Unusual Tlds",
+        "type": "array"
+      }
+    },
+    "title": "DnsSummaryEvidence",
+    "type": "object"
   },
   "EapolHandshake": {
     "additionalProperties": false,
@@ -1984,6 +2151,15 @@
             "$ref": "#/components/schemas/ProbeResponseAnomaliesEvidence"
           },
           {
+            "$ref": "#/components/schemas/DnsSummaryEvidence"
+          },
+          {
+            "$ref": "#/components/schemas/TlsSniSummaryEvidence"
+          },
+          {
+            "$ref": "#/components/schemas/DhcpHostnamesEvidence"
+          },
+          {
             "$ref": "#/components/schemas/FailedFindingEvidence"
           }
         ],
@@ -2042,6 +2218,9 @@
       "eapol_handshakes",
       "beacons",
       "probe_response_anomalies",
+      "dns_summary",
+      "tls_sni_summary",
+      "dhcp_hostnames",
       "filter_failed"
     ],
     "title": "FindingKind",
@@ -3009,6 +3188,27 @@
     ],
     "title": "TargetKind",
     "type": "string"
+  },
+  "TlsSniSummaryEvidence": {
+    "additionalProperties": false,
+    "description": "TLS ClientHello SNI summary evidence.",
+    "properties": {
+      "top_snis": {
+        "items": {
+          "$ref": "#/components/schemas/CountedName"
+        },
+        "title": "Top Snis",
+        "type": "array"
+      },
+      "total_snis": {
+        "default": 0,
+        "minimum": 0.0,
+        "title": "Total Snis",
+        "type": "integer"
+      }
+    },
+    "title": "TlsSniSummaryEvidence",
+    "type": "object"
   },
   "TotpSetupResponse": {
     "description": "TOTP setup response.",

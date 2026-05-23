@@ -9,6 +9,7 @@ from typing import Any, cast
 
 from cheeky_pony_backend.config import Settings
 from cheeky_pony_backend.domain.alerts import AlertRuleEngine
+from cheeky_pony_backend.domain.oui_lookup import OuiService
 from cheeky_pony_backend.domain.pcap_models import PcapStatus
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.reports import ReportStatus, render_report_artifact
@@ -145,13 +146,14 @@ async def analyze_pcap_capture(
     settings = _settings_from_context(ctx)
     runtime = _tshark_runtime_from_context(ctx)
     store = _store_from_context(ctx)
+    oui = _oui_service_from_context(ctx)
     if pcaps is None or analysis_store is None or settings is None or runtime is None:
         return False
     pcap = await pcaps.get_pcap(engagement_id, pcap_id)
     if pcap is None:
         return False
     try:
-        await PcapAnalyzer(pcaps, analysis_store, runtime, settings, store).analyze(
+        await PcapAnalyzer(pcaps, analysis_store, runtime, settings, store, oui).analyze(
             pcap,
             actor_id=actor_id,
             analysis_id=analysis_id,
@@ -203,6 +205,13 @@ def _tshark_runtime_from_context(ctx: dict[str, Any]) -> TsharkRunner | None:
     if runtime is None:
         return None
     return cast(TsharkRunner, runtime)
+
+
+def _oui_service_from_context(ctx: dict[str, Any]) -> OuiService | None:
+    oui = ctx.get("oui_service")
+    if oui is None:
+        return None
+    return cast(OuiService, oui)
 
 
 def _events_in_range(events: list[Event], since: datetime, until: datetime) -> list[Event]:

@@ -270,6 +270,13 @@ message count, and completion state in all environments. PMKID values and raw
 EAPOL key data are only returned while `CHEEKY_PONY_LAB_MODE=true`; when lab mode
 is off, those fields are omitted from finding responses.
 
+Network-layer analysis summarizes DNS queries, TLS ClientHello SNI names, and
+DHCP client metadata. Hostnames ending in
+`CHEEKY_PONY_PCAP_INTERNAL_HOSTNAME_SUFFIXES` (default `.local,.internal,.corp`)
+are stored as `INTERNAL_HOSTNAME_REDACTED` so internal names do not leak into
+screenshots or reports. DHCP findings enrich MACs from existing Client records
+first, then the bundled OUI table; the backend performs no external lookups.
+
 Backend startup requires `tshark >= CHEEKY_PONY_TSHARK_MIN_VERSION` (default
 `4.2.0`) unless the app runs in the test environment. The Docker image and CI
 install tshark automatically. Local non-Docker development needs tshark on `PATH`
