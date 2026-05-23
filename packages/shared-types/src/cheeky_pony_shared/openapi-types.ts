@@ -32,6 +32,9 @@ export interface components {
     "ApiPage_Sensor_": unknown;
     "ApiPage_UserPublic_": unknown;
     "AuditLog": unknown;
+    "BeaconMismatch": unknown;
+    "BeaconNetwork": unknown;
+    "BeaconsEvidence": unknown;
     "Body_upload_pcap_api_v1_engagements__engagement_id__pcaps_post": unknown;
     "Client": unknown;
     "Conversation": unknown;
@@ -40,6 +43,8 @@ export interface components {
     "DeauthBurstsEvidence": unknown;
     "DemoStatusResponse": unknown;
     "DeviceClass": unknown;
+    "EapolHandshake": unknown;
+    "EapolHandshakesEvidence": unknown;
     "Engagement": unknown;
     "EngagementCreateRequest": unknown;
     "Event": unknown;
@@ -62,6 +67,8 @@ export interface components {
     "Pcap": unknown;
     "PcapDeleteRequest": unknown;
     "PcapStatus": unknown;
+    "ProbeResponseAnomaliesEvidence": unknown;
+    "ProbeResponseAnomaly": unknown;
     "ProtocolHierarchyEvidence": unknown;
     "ProtocolNode": unknown;
     "ReadinessCheck": unknown;

@@ -37,6 +37,7 @@ from cheeky_pony_backend.pcap.findings import (
     AnalysisStartResponse,
     AnalysisSummaryResponse,
     Finding,
+    redact_lab_gated_evidence,
 )
 from cheeky_pony_backend.pcap.tshark import TsharkRunner
 from cheeky_pony_backend.workers.tasks import analyze_pcap_capture
@@ -87,6 +88,7 @@ async def analyze_pcap(
             pcaps,
             analysis_store,
             runtime,
+            store,
             engagement_id,
             pcap_id,
             user.id,
@@ -135,7 +137,11 @@ async def get_analysis(
     return AnalysisSummaryResponse(analysis=analysis, finding_counts=counts)
 
 
-@router.get("/{pcap_id}/findings", response_model=ApiPage[Finding])
+@router.get(
+    "/{pcap_id}/findings",
+    response_model=ApiPage[Finding],
+    response_model_exclude_none=True,
+)
 async def list_findings(
     engagement_id: str,
     pcap_id: str,
@@ -144,6 +150,7 @@ async def list_findings(
     pcaps: Annotated[PcapStore, Depends(get_pcap_store)],
     analysis_store: Annotated[PcapAnalysisStore, Depends(get_pcap_analysis_store)],
     audit: Annotated[AuditLogger, Depends(get_audit_logger)],
+    settings: Annotated[Settings, Depends(get_settings)],
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
 ) -> ApiPage[Finding]:
@@ -159,10 +166,19 @@ async def list_findings(
         {"audit_level": "debug", "limit": limit, "offset": offset, "returned": len(findings)},
         "ok",
     )
-    return ApiPage[Finding](items=findings, total=total, limit=limit, offset=offset)
+    return ApiPage[Finding](
+        items=[redact_lab_gated_evidence(item, lab_mode=settings.lab_mode) for item in findings],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
-@router.get("/{pcap_id}/findings/{finding_id}", response_model=Finding)
+@router.get(
+    "/{pcap_id}/findings/{finding_id}",
+    response_model=Finding,
+    response_model_exclude_none=True,
+)
 async def get_finding(
     engagement_id: str,
     pcap_id: str,
@@ -172,6 +188,7 @@ async def get_finding(
     pcaps: Annotated[PcapStore, Depends(get_pcap_store)],
     analysis_store: Annotated[PcapAnalysisStore, Depends(get_pcap_analysis_store)],
     audit: Annotated[AuditLogger, Depends(get_audit_logger)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> Finding:
     """Return one structured finding."""
 
@@ -194,7 +211,7 @@ async def get_finding(
         {"audit_level": "debug"},
         "ok",
     )
-    return finding
+    return redact_lab_gated_evidence(finding, lab_mode=settings.lab_mode)
 
 
 async def _dispatch_analysis(
@@ -203,6 +220,7 @@ async def _dispatch_analysis(
     pcaps: PcapStore,
     analysis_store: PcapAnalysisStore,
     runtime: TsharkRunner,
+    store: Store,
     engagement_id: str,
     pcap_id: str,
     actor_id: str,
@@ -215,6 +233,7 @@ async def _dispatch_analysis(
                 "pcap_store": pcaps,
                 "pcap_analysis_store": analysis_store,
                 "settings": settings,
+                "store": store,
                 "tshark_runtime": runtime,
             },
             engagement_id,

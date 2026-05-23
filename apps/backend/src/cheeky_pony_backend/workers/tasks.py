@@ -144,13 +144,14 @@ async def analyze_pcap_capture(
     analysis_store = _pcap_analysis_store_from_context(ctx)
     settings = _settings_from_context(ctx)
     runtime = _tshark_runtime_from_context(ctx)
+    store = _store_from_context(ctx)
     if pcaps is None or analysis_store is None or settings is None or runtime is None:
         return False
     pcap = await pcaps.get_pcap(engagement_id, pcap_id)
     if pcap is None:
         return False
     try:
-        await PcapAnalyzer(pcaps, analysis_store, runtime, settings).analyze(
+        await PcapAnalyzer(pcaps, analysis_store, runtime, settings, store).analyze(
             pcap,
             actor_id=actor_id,
             analysis_id=analysis_id,

@@ -40,7 +40,7 @@ async def test_analyzer_persists_partial_run_when_one_filter_fails() -> None:
     updated = await pcaps.get_pcap("eng-1", "pcap-1")
 
     assert run.status == AnalysisRunStatus.PARTIAL
-    assert total == 3
+    assert total == 6
     assert any(finding.kind == FindingKind.FILTER_FAILED for finding in findings)
     assert updated is not None
     assert updated.status == PcapStatus.ANALYZED

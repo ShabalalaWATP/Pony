@@ -151,7 +151,9 @@ Method: STRIDE per major component.
   refusals, and queue failures write audit entries with sanitized metadata only.
 - Information disclosure: raw tshark stdout and stderr are parse inputs only.
   Persisted findings use bounded Pydantic evidence models, cross-engagement
-  access returns `404`, and there is still no raw capture download route.
+  access returns `404`, and there is still no raw capture download route. EAPOL
+  PMKID and raw key material are requested from tshark only in `LAB_MODE` and are
+  redacted again at the API response boundary when lab mode is off.
 - Denial of service: only one analysis can run per capture, upload and analyze
   routes are rate-limited, tshark runs with `-n`, `--disable-protocol lua`,
   `--no-extcap`, 512 MB memory, 60 second CPU, bounded stdout/stderr, and a

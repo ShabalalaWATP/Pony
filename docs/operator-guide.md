@@ -264,6 +264,12 @@ findings. Operators can poll `/analysis` for status and read structured findings
 from `/findings`; raw tshark stdout and stderr are never exposed or persisted as
 operator-facing data.
 
+WiFi-specific analysis also extracts EAPOL handshake metadata, beacon summaries,
+and probe-response anomalies. EAPOL findings show BSSID, client MAC, observed
+message count, and completion state in all environments. PMKID values and raw
+EAPOL key data are only returned while `CHEEKY_PONY_LAB_MODE=true`; when lab mode
+is off, those fields are omitted from finding responses.
+
 Backend startup requires `tshark >= CHEEKY_PONY_TSHARK_MIN_VERSION` (default
 `4.2.0`) unless the app runs in the test environment. The Docker image and CI
 install tshark automatically. Local non-Docker development needs tshark on `PATH`
