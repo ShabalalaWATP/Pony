@@ -492,6 +492,145 @@
         "title": "AllowedTarget",
         "type": "object"
       },
+      "AnalysisRun": {
+        "additionalProperties": false,
+        "description": "One execution of the curated PCAP filter library.",
+        "properties": {
+          "actor_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "engagement_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Engagement Id",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "finding_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/FindingKind"
+            },
+            "title": "Finding Counts",
+            "type": "object"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "pcap_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Pcap Id",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AnalysisRunStatus"
+          }
+        },
+        "required": [
+          "id",
+          "pcap_id",
+          "engagement_id",
+          "actor_id",
+          "status",
+          "started_at"
+        ],
+        "title": "AnalysisRun",
+        "type": "object"
+      },
+      "AnalysisRunStatus": {
+        "description": "Lifecycle states for a PCAP analysis run.",
+        "enum": [
+          "running",
+          "completed",
+          "partial",
+          "failed"
+        ],
+        "title": "AnalysisRunStatus",
+        "type": "string"
+      },
+      "AnalysisStartResponse": {
+        "additionalProperties": false,
+        "description": "Accepted analysis response.",
+        "properties": {
+          "analysis_id": {
+            "title": "Analysis Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "analysis_id"
+        ],
+        "title": "AnalysisStartResponse",
+        "type": "object"
+      },
+      "AnalysisSummaryResponse": {
+        "additionalProperties": false,
+        "description": "Analysis status response for one PCAP.",
+        "properties": {
+          "analysis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "finding_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/FindingKind"
+            },
+            "title": "Finding Counts",
+            "type": "object"
+          }
+        },
+        "required": [
+          "analysis"
+        ],
+        "title": "AnalysisSummaryResponse",
+        "type": "object"
+      },
       "AnomalyContribution": {
         "additionalProperties": false,
         "description": "One reason contributing to an access point anomaly score.",
@@ -871,6 +1010,42 @@
         "title": "ApiPage[EvilTwinCandidate]",
         "type": "object"
       },
+      "ApiPage_Finding_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ApiPage[Finding]",
+        "type": "object"
+      },
       "ApiPage_LabActiveCommand_": {
         "additionalProperties": false,
         "properties": {
@@ -1208,6 +1383,119 @@
         "title": "Client",
         "type": "object"
       },
+      "Conversation": {
+        "additionalProperties": false,
+        "description": "One top talker conversation.",
+        "properties": {
+          "bytes": {
+            "minimum": 0.0,
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "frames": {
+            "minimum": 0.0,
+            "title": "Frames",
+            "type": "integer"
+          },
+          "left": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Left",
+            "type": "string"
+          },
+          "right": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Right",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bytes",
+          "frames",
+          "left",
+          "right"
+        ],
+        "title": "Conversation",
+        "type": "object"
+      },
+      "ConversationsEvidence": {
+        "additionalProperties": false,
+        "description": "Conversation evidence for WLAN and IP conversations.",
+        "properties": {
+          "conversations": {
+            "items": {
+              "$ref": "#/components/schemas/Conversation"
+            },
+            "title": "Conversations",
+            "type": "array"
+          }
+        },
+        "title": "ConversationsEvidence",
+        "type": "object"
+      },
+      "DeauthBurst": {
+        "additionalProperties": false,
+        "description": "One detected deauthentication burst.",
+        "properties": {
+          "bssid": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Bssid",
+            "type": "string"
+          },
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "first_seen_epoch": {
+            "minimum": 0.0,
+            "title": "First Seen Epoch",
+            "type": "number"
+          },
+          "last_seen_epoch": {
+            "minimum": 0.0,
+            "title": "Last Seen Epoch",
+            "type": "number"
+          }
+        },
+        "required": [
+          "bssid",
+          "count",
+          "first_seen_epoch",
+          "last_seen_epoch"
+        ],
+        "title": "DeauthBurst",
+        "type": "object"
+      },
+      "DeauthBurstsEvidence": {
+        "additionalProperties": false,
+        "description": "Deauthentication burst evidence.",
+        "properties": {
+          "bursts": {
+            "items": {
+              "$ref": "#/components/schemas/DeauthBurst"
+            },
+            "title": "Bursts",
+            "type": "array"
+          },
+          "threshold": {
+            "default": 10,
+            "minimum": 1.0,
+            "title": "Threshold",
+            "type": "integer"
+          },
+          "window_seconds": {
+            "default": 300,
+            "minimum": 1.0,
+            "title": "Window Seconds",
+            "type": "integer"
+          }
+        },
+        "title": "DeauthBurstsEvidence",
+        "type": "object"
+      },
       "DemoStatusResponse": {
         "description": "Demo data presence summary.",
         "properties": {
@@ -1417,6 +1705,129 @@
         ],
         "title": "EvilTwinCandidate",
         "type": "object"
+      },
+      "FailedFindingEvidence": {
+        "additionalProperties": false,
+        "description": "Sanitized failed-filter evidence.",
+        "properties": {
+          "filter_name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Filter Name",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "filter_name",
+          "reason"
+        ],
+        "title": "FailedFindingEvidence",
+        "type": "object"
+      },
+      "Finding": {
+        "additionalProperties": false,
+        "description": "Persisted structured PCAP finding.",
+        "properties": {
+          "analysis_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Analysis Id",
+            "type": "string"
+          },
+          "engagement_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Engagement Id",
+            "type": "string"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProtocolHierarchyEvidence"
+              },
+              {
+                "$ref": "#/components/schemas/ConversationsEvidence"
+              },
+              {
+                "$ref": "#/components/schemas/DeauthBurstsEvidence"
+              },
+              {
+                "$ref": "#/components/schemas/FailedFindingEvidence"
+              }
+            ],
+            "title": "Evidence"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/FindingKind"
+          },
+          "pcap_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Pcap Id",
+            "type": "string"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/FindingSeverity"
+          },
+          "summary": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pcap_id",
+          "engagement_id",
+          "analysis_id",
+          "kind",
+          "severity",
+          "summary",
+          "evidence",
+          "generated_at"
+        ],
+        "title": "Finding",
+        "type": "object"
+      },
+      "FindingKind": {
+        "description": "Finding kinds generated by the Phase 2B filter library.",
+        "enum": [
+          "protocol_hierarchy",
+          "conversations",
+          "deauth_bursts",
+          "filter_failed"
+        ],
+        "title": "FindingKind",
+        "type": "string"
+      },
+      "FindingSeverity": {
+        "description": "Operator-facing finding severity.",
+        "enum": [
+          "info",
+          "low",
+          "medium",
+          "high"
+        ],
+        "title": "FindingSeverity",
+        "type": "string"
       },
       "HTTPValidationError": {
         "properties": {
@@ -1761,6 +2172,56 @@
         ],
         "title": "PcapStatus",
         "type": "string"
+      },
+      "ProtocolHierarchyEvidence": {
+        "additionalProperties": false,
+        "description": "Protocol hierarchy evidence.",
+        "properties": {
+          "protocols": {
+            "items": {
+              "$ref": "#/components/schemas/ProtocolNode"
+            },
+            "title": "Protocols",
+            "type": "array"
+          }
+        },
+        "title": "ProtocolHierarchyEvidence",
+        "type": "object"
+      },
+      "ProtocolNode": {
+        "additionalProperties": false,
+        "description": "One protocol hierarchy row.",
+        "properties": {
+          "bytes": {
+            "minimum": 0.0,
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "depth": {
+            "minimum": 0.0,
+            "title": "Depth",
+            "type": "integer"
+          },
+          "frames": {
+            "minimum": 0.0,
+            "title": "Frames",
+            "type": "integer"
+          },
+          "protocol": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Protocol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bytes",
+          "depth",
+          "frames",
+          "protocol"
+        ],
+        "title": "ProtocolNode",
+        "type": "object"
       },
       "ReadinessCheck": {
         "additionalProperties": false,
@@ -3863,6 +4324,246 @@
           }
         },
         "summary": "Get Pcap",
+        "tags": [
+          "pcaps"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}/analysis": {
+      "get": {
+        "description": "Return current analysis status and finding counts.",
+        "operationId": "get_analysis_api_v1_engagements__engagement_id__pcaps__pcap_id__analysis_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "pcap_id",
+            "required": true,
+            "schema": {
+              "title": "Pcap Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisSummaryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Analysis",
+        "tags": [
+          "pcaps"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}/analyze": {
+      "post": {
+        "description": "Queue analysis for one uploaded capture.",
+        "operationId": "analyze_pcap_api_v1_engagements__engagement_id__pcaps__pcap_id__analyze_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "pcap_id",
+            "required": true,
+            "schema": {
+              "title": "Pcap Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisStartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Analyze Pcap",
+        "tags": [
+          "pcaps"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}/findings": {
+      "get": {
+        "description": "List structured findings for one capture.",
+        "operationId": "list_findings_api_v1_engagements__engagement_id__pcaps__pcap_id__findings_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "pcap_id",
+            "required": true,
+            "schema": {
+              "title": "Pcap Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiPage_Finding_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Findings",
+        "tags": [
+          "pcaps"
+        ]
+      }
+    },
+    "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}/findings/{finding_id}": {
+      "get": {
+        "description": "Return one structured finding.",
+        "operationId": "get_finding_api_v1_engagements__engagement_id__pcaps__pcap_id__findings__finding_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "pcap_id",
+            "required": true,
+            "schema": {
+              "title": "Pcap Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "finding_id",
+            "required": true,
+            "schema": {
+              "title": "Finding Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Finding"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Finding",
         "tags": [
           "pcaps"
         ]

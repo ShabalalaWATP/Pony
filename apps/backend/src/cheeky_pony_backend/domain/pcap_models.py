@@ -19,6 +19,21 @@ class PcapStatus(StrEnum):
     FAILED = "failed"
 
 
+class PcapAnalysisClaimStatus(StrEnum):
+    """Result of attempting to claim a PCAP for analysis."""
+
+    CLAIMED = "claimed"
+    BUSY = "busy"
+    NOT_FOUND = "not_found"
+
+
+class PcapAnalysisClaim(BaseModel):
+    """Atomic claim result for per-PCAP analysis concurrency."""
+
+    status: PcapAnalysisClaimStatus
+    pcap: Pcap | None = None
+
+
 class Pcap(BaseModel):
     """Persisted PCAP metadata."""
 

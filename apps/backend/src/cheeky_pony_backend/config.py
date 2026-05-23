@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     use_in_memory_store: bool = False
     report_download_token_minutes: int = Field(default=15, ge=1, le=1440)
     pcap_max_upload_mb: int = Field(default=100, ge=1, le=500)
+    tshark_min_version: str = "4.2.0"
+    tshark_path: str = "tshark"
+    tshark_stdout_max_mb: int = Field(default=50, ge=1, le=100)
+    tshark_timeout_seconds: int = Field(default=90, ge=1, le=300)
     totp_recent_minutes: int = Field(default=15, ge=1, le=120)
     label_confidence_threshold: float = Field(default=0.6, ge=0.0, le=1.0)
     sensor_gateway_header_secret: str | None = Field(default=None, min_length=32)

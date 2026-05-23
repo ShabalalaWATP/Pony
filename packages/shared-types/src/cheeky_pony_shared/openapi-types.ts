@@ -10,6 +10,10 @@ export interface components {
     "AlertSeverity": unknown;
     "AllowTargetRequest": unknown;
     "AllowedTarget": unknown;
+    "AnalysisRun": unknown;
+    "AnalysisRunStatus": unknown;
+    "AnalysisStartResponse": unknown;
+    "AnalysisSummaryResponse": unknown;
     "AnomalyContribution": unknown;
     "AnomalyReason": unknown;
     "ApType": unknown;
@@ -22,6 +26,7 @@ export interface components {
     "ApiPage_Engagement_": unknown;
     "ApiPage_Event_": unknown;
     "ApiPage_EvilTwinCandidate_": unknown;
+    "ApiPage_Finding_": unknown;
     "ApiPage_LabActiveCommand_": unknown;
     "ApiPage_Pcap_": unknown;
     "ApiPage_Sensor_": unknown;
@@ -29,6 +34,10 @@ export interface components {
     "AuditLog": unknown;
     "Body_upload_pcap_api_v1_engagements__engagement_id__pcaps_post": unknown;
     "Client": unknown;
+    "Conversation": unknown;
+    "ConversationsEvidence": unknown;
+    "DeauthBurst": unknown;
+    "DeauthBurstsEvidence": unknown;
     "DemoStatusResponse": unknown;
     "DeviceClass": unknown;
     "Engagement": unknown;
@@ -36,6 +45,10 @@ export interface components {
     "Event": unknown;
     "EventKind": unknown;
     "EvilTwinCandidate": unknown;
+    "FailedFindingEvidence": unknown;
+    "Finding": unknown;
+    "FindingKind": unknown;
+    "FindingSeverity": unknown;
     "HTTPValidationError": unknown;
     "LabActiveCommand": unknown;
     "LabModule": unknown;
@@ -49,6 +62,8 @@ export interface components {
     "Pcap": unknown;
     "PcapDeleteRequest": unknown;
     "PcapStatus": unknown;
+    "ProtocolHierarchyEvidence": unknown;
+    "ProtocolNode": unknown;
     "ReadinessCheck": unknown;
     "ReadinessCheckId": unknown;
     "RegisterRequest": unknown;
@@ -99,6 +114,10 @@ export interface paths {
   "/api/v1/engagements/{engagement_id}/end": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/pcaps": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}": Record<string, unknown>;
+  "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}/analysis": Record<string, unknown>;
+  "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}/analyze": Record<string, unknown>;
+  "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}/findings": Record<string, unknown>;
+  "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}/findings/{finding_id}": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/reports": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/reports/{report_id}": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/reports/{report_id}/download": Record<string, unknown>;

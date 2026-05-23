@@ -248,7 +248,26 @@ engagement id.
 Authenticated operators can list and read capture metadata for engagements they
 can access. There is no raw capture download route in this phase. Deleting a
 capture requires admin plus recent TOTP, CSRF, and typing the sanitized filename
-back in the request body. Analysis via tshark lands in the next Phase 2 slice.
+back in the request body.
 
-Screenshot placeholder: Phase 5 frontend will add the upload and capture metadata
-screens against these backend endpoints.
+## Analyzing captures
+
+Admins with recent TOTP verification can start analysis for an uploaded capture
+with `POST /api/v1/engagements/{id}/pcaps/{pcap_id}/analyze`. The backend queues
+the run, marks the capture as `analyzing`, and returns an `analysis_id`. Only one
+analysis can run for a given capture at a time; a second request receives `409`.
+
+The worker runs the local `tshark` binary against code-reviewed filters only. No
+operator-supplied tshark expressions are accepted. The first analysis slice
+extracts protocol hierarchy, top conversations, and deauthentication-burst
+findings. Operators can poll `/analysis` for status and read structured findings
+from `/findings`; raw tshark stdout and stderr are never exposed or persisted as
+operator-facing data.
+
+Backend startup requires `tshark >= CHEEKY_PONY_TSHARK_MIN_VERSION` (default
+`4.2.0`) unless the app runs in the test environment. The Docker image and CI
+install tshark automatically. Local non-Docker development needs tshark on `PATH`
+or `CHEEKY_PONY_TSHARK_PATH` pointing at the binary.
+
+Screenshot placeholder: Phase 5 frontend will add the upload, capture metadata,
+analysis status, and findings screens against these backend endpoints.

@@ -14,8 +14,10 @@ from cheeky_pony_backend.domain.oui_lookup import OuiService, create_oui_service
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.infra.operator_broker import OperatorBroker
+from cheeky_pony_backend.infra.pcap_analysis_store import PcapAnalysisStore
 from cheeky_pony_backend.infra.pcap_store import PcapStore
 from cheeky_pony_backend.infra.sensor_command_broker import SensorCommandBroker
+from cheeky_pony_backend.pcap.tshark import TsharkRunner
 from cheeky_pony_backend.security import (
     CsrfService,
     PasswordService,
@@ -82,6 +84,32 @@ def get_pcap_store(request: Request) -> PcapStore:
     """
 
     return cast(PcapStore, request.app.state.pcap_store)
+
+
+def get_pcap_analysis_store(request: Request) -> PcapAnalysisStore:
+    """Return the PCAP analysis store from FastAPI state.
+
+    Args:
+        request: FastAPI request.
+
+    Returns:
+        Configured PCAP analysis store.
+    """
+
+    return cast(PcapAnalysisStore, request.app.state.pcap_analysis_store)
+
+
+def get_tshark_runtime(request: Request) -> TsharkRunner:
+    """Return the tshark runtime from FastAPI state.
+
+    Args:
+        request: FastAPI request.
+
+    Returns:
+        Configured tshark runtime.
+    """
+
+    return cast(TsharkRunner, request.app.state.tshark_runtime)
 
 
 def get_password_service() -> PasswordService:

@@ -3,6 +3,9 @@ FROM python:3.12-slim
 
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tshark \
+    && rm -rf /var/lib/apt/lists/*
 RUN addgroup --system cheekypony && adduser --system --ingroup cheekypony cheekypony
 
 COPY packages/shared-types /app/packages/shared-types

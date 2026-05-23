@@ -7,9 +7,16 @@ import base64
 from datetime import UTC, datetime
 from typing import Any, cast
 
+from cheeky_pony_backend.config import Settings
 from cheeky_pony_backend.domain.alerts import AlertRuleEngine
+from cheeky_pony_backend.domain.pcap_models import PcapStatus
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.reports import ReportStatus, render_report_artifact
+from cheeky_pony_backend.infra.pcap_analysis_store import PcapAnalysisStore
+from cheeky_pony_backend.infra.pcap_store import PcapStore
+from cheeky_pony_backend.pcap.analyzer import PcapAnalyzer
+from cheeky_pony_backend.pcap.findings import AnalysisRun, AnalysisRunStatus
+from cheeky_pony_backend.pcap.tshark import TsharkRunner
 from cheeky_pony_shared import Event
 
 
@@ -124,6 +131,44 @@ async def generate_report(ctx: dict[str, Any], report_id: str) -> bool:
     return updated.status == ReportStatus.READY
 
 
+async def analyze_pcap_capture(
+    ctx: dict[str, Any],
+    engagement_id: str,
+    pcap_id: str,
+    actor_id: str,
+    analysis_id: str,
+) -> bool:
+    """Analyze one PCAP using the worker's configured stores and tshark runtime."""
+
+    pcaps = _pcap_store_from_context(ctx)
+    analysis_store = _pcap_analysis_store_from_context(ctx)
+    settings = _settings_from_context(ctx)
+    runtime = _tshark_runtime_from_context(ctx)
+    if pcaps is None or analysis_store is None or settings is None or runtime is None:
+        return False
+    pcap = await pcaps.get_pcap(engagement_id, pcap_id)
+    if pcap is None:
+        return False
+    try:
+        await PcapAnalyzer(pcaps, analysis_store, runtime, settings).analyze(
+            pcap,
+            actor_id=actor_id,
+            analysis_id=analysis_id,
+        )
+        return True
+    except Exception as exc:
+        await pcaps.update_pcap_status(engagement_id, pcap_id, PcapStatus.FAILED)
+        await _record_failed_analysis(
+            analysis_store,
+            engagement_id,
+            pcap_id,
+            actor_id,
+            analysis_id,
+            exc,
+        )
+        return False
+
+
 def _store_from_context(ctx: dict[str, Any]) -> Store | None:
     store = ctx.get("store")
     if store is None:
@@ -131,5 +176,66 @@ def _store_from_context(ctx: dict[str, Any]) -> Store | None:
     return cast(Store, store)
 
 
+def _pcap_store_from_context(ctx: dict[str, Any]) -> PcapStore | None:
+    pcaps = ctx.get("pcap_store")
+    if pcaps is None:
+        return None
+    return cast(PcapStore, pcaps)
+
+
+def _pcap_analysis_store_from_context(ctx: dict[str, Any]) -> PcapAnalysisStore | None:
+    analysis_store = ctx.get("pcap_analysis_store")
+    if analysis_store is None:
+        return None
+    return cast(PcapAnalysisStore, analysis_store)
+
+
+def _settings_from_context(ctx: dict[str, Any]) -> Settings | None:
+    settings = ctx.get("settings")
+    if settings is None:
+        return None
+    return cast(Settings, settings)
+
+
+def _tshark_runtime_from_context(ctx: dict[str, Any]) -> TsharkRunner | None:
+    runtime = ctx.get("tshark_runtime")
+    if runtime is None:
+        return None
+    return cast(TsharkRunner, runtime)
+
+
 def _events_in_range(events: list[Event], since: datetime, until: datetime) -> list[Event]:
     return [event for event in events if since <= event.occurred_at <= until]
+
+
+async def _record_failed_analysis(
+    analysis_store: PcapAnalysisStore,
+    engagement_id: str,
+    pcap_id: str,
+    actor_id: str,
+    analysis_id: str,
+    exc: Exception,
+) -> None:
+    existing = await analysis_store.latest_run(engagement_id, pcap_id)
+    if existing is not None and existing.id == analysis_id:
+        updated = existing.model_copy(
+            update={
+                "status": AnalysisRunStatus.FAILED,
+                "error": str(exc)[:200] or "analysis_failed",
+                "finished_at": datetime.now(tz=UTC),
+            }
+        )
+        await analysis_store.update_run(updated)
+        return
+    await analysis_store.create_run(
+        AnalysisRun(
+            id=analysis_id,
+            pcap_id=pcap_id,
+            engagement_id=engagement_id,
+            actor_id=actor_id,
+            status=AnalysisRunStatus.FAILED,
+            error=str(exc)[:200] or "analysis_failed",
+            started_at=datetime.now(tz=UTC),
+            finished_at=datetime.now(tz=UTC),
+        )
+    )
