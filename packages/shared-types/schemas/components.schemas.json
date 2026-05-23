@@ -1489,12 +1489,24 @@
         "title": "Acknowledgement On File",
         "type": "boolean"
       },
+      "checks": {
+        "items": {
+          "$ref": "#/components/schemas/ReadinessCheck"
+        },
+        "title": "Checks",
+        "type": "array"
+      },
       "is_admin_2fa": {
         "title": "Is Admin 2Fa",
         "type": "boolean"
       },
       "lab_mode": {
         "title": "Lab Mode",
+        "type": "boolean"
+      },
+      "ready": {
+        "default": false,
+        "title": "Ready",
         "type": "boolean"
       }
     },
@@ -1592,6 +1604,69 @@
     ],
     "title": "OuiLookupResponse",
     "type": "object"
+  },
+  "ReadinessCheck": {
+    "additionalProperties": false,
+    "description": "Operator-facing lab-readiness checklist item.",
+    "properties": {
+      "fix_hint": {
+        "maxLength": 256,
+        "minLength": 1,
+        "title": "Fix Hint",
+        "type": "string"
+      },
+      "fix_route": {
+        "anyOf": [
+          {
+            "maxLength": 128,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Fix Route"
+      },
+      "id": {
+        "$ref": "#/components/schemas/ReadinessCheckId"
+      },
+      "label": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Label",
+        "type": "string"
+      },
+      "status": {
+        "enum": [
+          "ok",
+          "missing",
+          "not_applicable"
+        ],
+        "title": "Status",
+        "type": "string"
+      }
+    },
+    "required": [
+      "id",
+      "label",
+      "status",
+      "fix_hint"
+    ],
+    "title": "ReadinessCheck",
+    "type": "object"
+  },
+  "ReadinessCheckId": {
+    "description": "Lab-readiness checklist item identifiers.",
+    "enum": [
+      "lab_mode_env",
+      "admin_role",
+      "totp_recent",
+      "engagement_active",
+      "authorized_operator",
+      "allow_list_nonempty"
+    ],
+    "title": "ReadinessCheckId",
+    "type": "string"
   },
   "RegisterRequest": {
     "additionalProperties": false,

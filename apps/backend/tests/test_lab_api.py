@@ -38,11 +38,56 @@ async def test_lab_status_reports_gate_inputs() -> None:
     response = await bundle.client.get("/api/v1/lab/status")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "lab_mode": True,
-        "acknowledgement_on_file": True,
-        "is_admin_2fa": True,
-    }
+    assert response.json()["lab_mode"] is True
+    assert response.json()["acknowledgement_on_file"] is True
+    assert response.json()["is_admin_2fa"] is True
+    assert response.json()["ready"] is True
+    assert len(response.json()["checks"]) == 6
+    assert {check["status"] for check in response.json()["checks"]} == {"ok"}
+
+    await bundle.client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_lab_status_is_not_admin_gated() -> None:
+    """Authenticated non-admin operators can see why lab readiness is blocked."""
+
+    bundle = await _lab_client(lab_mode=True)
+    await bundle.store.create_user(
+        UserRecord(
+            id="operator-1",
+            email="operator@example.com",
+            password_hash="hash",
+            roles=["operator"],
+        )
+    )
+    bundle.client.cookies.set(
+        "access_token",
+        TokenService(bundle.settings).create_access_token("operator-1", "csrf"),
+    )
+
+    response = await bundle.client.get("/api/v1/lab/status")
+
+    assert response.status_code == 200
+    assert response.json()["ready"] is False
+    statuses = {check["id"]: check["status"] for check in response.json()["checks"]}
+    assert statuses["admin_role"] == "missing"
+    assert statuses["totp_recent"] == "not_applicable"
+
+    await bundle.client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_lab_status_audits_unauthenticated_refusal() -> None:
+    """Unauthenticated readiness reads are refused and audit-visible."""
+
+    bundle = await _lab_client(lab_mode=True)
+
+    response = await bundle.client.get("/api/v1/lab/status")
+
+    assert response.status_code == 401
+    assert bundle.store.audit_logs[-1].action == "lab.status.read"
+    assert bundle.store.audit_logs[-1].outcome == "denied:authentication_required"
 
     await bundle.client.aclose()
 
@@ -181,9 +226,16 @@ def test_lab_start_stop_commands_flow_over_sensor_gateway() -> None:
 class LabBundle:
     """Async lab test bundle."""
 
-    def __init__(self, client: httpx.AsyncClient, store: InMemoryStore, csrf: str = "") -> None:
+    def __init__(
+        self,
+        client: httpx.AsyncClient,
+        store: InMemoryStore,
+        settings: Settings,
+        csrf: str = "",
+    ) -> None:
         self.client = client
         self.store = store
+        self.settings = settings
         self.csrf = csrf
 
 
@@ -194,7 +246,7 @@ async def _lab_client(lab_mode: bool) -> LabBundle:
     app = create_app(settings=settings, store=store)
     transport = httpx.ASGITransport(app=app)
     client = httpx.AsyncClient(transport=transport, base_url="http://test")
-    return LabBundle(client, store)
+    return LabBundle(client, store, settings)
 
 
 async def _prepared_lab_client(

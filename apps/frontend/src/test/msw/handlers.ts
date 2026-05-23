@@ -95,6 +95,7 @@ export const fixtures = {
     lab_mode: false,
     acknowledgement_on_file: false,
     is_admin_2fa: false,
+    ready: false,
   } satisfies LabStatusResponse,
   allowedTarget: {
     kind: "bssid",

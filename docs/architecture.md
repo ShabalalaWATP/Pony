@@ -133,10 +133,10 @@ flowchart TD
   class D401,D403A,D403B,D403C,D403D,D403E,D403F,D403G deny
 ```
 
-The `/api/v1/lab/status` probe exposes the four user-facing gate inputs
-(`lab_mode`, `acknowledgement_on_file`, `is_admin_2fa`, plus implicit
-engagement context) so the UI can tell the operator *which* gate is missing
-before they trigger a refusal.
+The `/api/v1/lab/status` probe exposes the user-facing gate inputs and a
+readiness checklist (`lab_mode`, admin role, recent TOTP, acknowledgement,
+active engagement, and allow-list state) so the UI can tell the operator
+*which* gate is missing before they trigger a refusal.
 
 ## Login + TOTP step-up sequence
 

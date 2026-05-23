@@ -63,6 +63,17 @@ class TargetKind(StrEnum):
     CLIENT_MAC = "client_mac"
 
 
+class ReadinessCheckId(StrEnum):
+    """Lab-readiness checklist item identifiers."""
+
+    LAB_MODE_ENV = "lab_mode_env"
+    ADMIN_ROLE = "admin_role"
+    TOTP_RECENT = "totp_recent"
+    ENGAGEMENT_ACTIVE = "engagement_active"
+    AUTHORIZED_OPERATOR = "authorized_operator"
+    ALLOW_LIST_NONEMPTY = "allow_list_nonempty"
+
+
 class CommandKind(StrEnum):
     """Commands sent from backend to sensors."""
 
@@ -211,6 +222,16 @@ class AllowedTarget(StrictBase):
 
     kind: TargetKind
     value: str = Field(min_length=1, max_length=128)
+
+
+class ReadinessCheck(StrictBase):
+    """Operator-facing lab-readiness checklist item."""
+
+    id: ReadinessCheckId
+    label: str = Field(min_length=1, max_length=128)
+    status: Literal["ok", "missing", "not_applicable"]
+    fix_hint: str = Field(min_length=1, max_length=256)
+    fix_route: str | None = Field(default=None, max_length=128)
 
 
 class UserPublic(StrictBase):

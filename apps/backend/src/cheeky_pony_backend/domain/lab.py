@@ -10,7 +10,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from cheeky_pony_shared import SensorCapability, TargetKind
+from cheeky_pony_shared import ReadinessCheck, SensorCapability, TargetKind
 
 
 class LabModule(StrEnum):
@@ -81,6 +81,8 @@ class LabStatusResponse(BaseModel):
     lab_mode: bool
     acknowledgement_on_file: bool
     is_admin_2fa: bool
+    ready: bool = False
+    checks: list[ReadinessCheck] = Field(default_factory=list)
 
 
 _MAC_RE = re.compile(r"^[0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5}$")
