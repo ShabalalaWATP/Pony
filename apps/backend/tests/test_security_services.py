@@ -47,7 +47,7 @@ def test_production_settings_reject_development_secrets() -> None:
     """Production-like environments must not boot with known defaults."""
 
     with pytest.raises(ValueError, match="JWT_SECRET"):
-        Settings(env="prod")
+        Settings(env="prod", _env_file=None)
 
 
 def test_sensor_gateway_signed_headers_are_bound_to_sensor_identity() -> None:

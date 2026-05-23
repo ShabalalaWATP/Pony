@@ -14,6 +14,7 @@ from cheeky_pony_backend.domain.oui_lookup import OuiService, create_oui_service
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.infra.operator_broker import OperatorBroker
+from cheeky_pony_backend.infra.pcap_store import PcapStore
 from cheeky_pony_backend.infra.sensor_command_broker import SensorCommandBroker
 from cheeky_pony_backend.security import (
     CsrfService,
@@ -68,6 +69,19 @@ def get_operator_broker(request: Request) -> OperatorBroker:
     """
 
     return cast(OperatorBroker, request.app.state.operator_broker)
+
+
+def get_pcap_store(request: Request) -> PcapStore:
+    """Return the PCAP store from FastAPI state.
+
+    Args:
+        request: FastAPI request.
+
+    Returns:
+        Configured PCAP store.
+    """
+
+    return cast(PcapStore, request.app.state.pcap_store)
 
 
 def get_password_service() -> PasswordService:

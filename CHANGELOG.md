@@ -5,6 +5,14 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 2A — PCAP ingest and storage (#61)
+
+- Added engagement-scoped PCAP upload, metadata list/read, and typed-confirm
+  deletion backed by GridFS.
+- Added streaming PCAP magic/size validation and upload/delete audit entries.
+- Hardened the release workflow cosign signing step so Semgrep no longer sees
+  direct GitHub-context interpolation in a shell command.
+
 ### Backend Phase 1E — lab readiness endpoint (#60)
 
 - Extended `GET /api/v1/lab/status` with response-only `ready` and `checks`

@@ -23,9 +23,11 @@ export interface components {
     "ApiPage_Event_": unknown;
     "ApiPage_EvilTwinCandidate_": unknown;
     "ApiPage_LabActiveCommand_": unknown;
+    "ApiPage_Pcap_": unknown;
     "ApiPage_Sensor_": unknown;
     "ApiPage_UserPublic_": unknown;
     "AuditLog": unknown;
+    "Body_upload_pcap_api_v1_engagements__engagement_id__pcaps_post": unknown;
     "Client": unknown;
     "DemoStatusResponse": unknown;
     "DeviceClass": unknown;
@@ -44,6 +46,9 @@ export interface components {
     "LoginRequest": unknown;
     "LoginResponse": unknown;
     "OuiLookupResponse": unknown;
+    "Pcap": unknown;
+    "PcapDeleteRequest": unknown;
+    "PcapStatus": unknown;
     "ReadinessCheck": unknown;
     "ReadinessCheckId": unknown;
     "RegisterRequest": unknown;
@@ -92,6 +97,8 @@ export interface paths {
   "/api/v1/engagements/{engagement_id}": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/allow-list": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/end": Record<string, unknown>;
+  "/api/v1/engagements/{engagement_id}/pcaps": Record<string, unknown>;
+  "/api/v1/engagements/{engagement_id}/pcaps/{pcap_id}": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/reports": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/reports/{report_id}": Record<string, unknown>;
   "/api/v1/engagements/{engagement_id}/reports/{report_id}/download": Record<string, unknown>;
