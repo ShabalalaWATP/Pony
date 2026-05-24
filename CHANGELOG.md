@@ -5,6 +5,14 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 3A — LLM insight foundation (#66)
+
+- Added the opt-in OpenAI-compatible LLM insight pipeline with prompt redaction,
+  versioned templates, output validation, Mongo-backed cache, monthly budget
+  ledger, and hashed audit metadata.
+- Added authenticated alert-context insight reads and alert-engine worker
+  generation hooks while keeping free-form prompts out of the API.
+
 ### Backend Phase 2E — PCAP demo and report integration (#65)
 
 - Added demo PCAP assets to `make seed-demo`, persisted through validation,

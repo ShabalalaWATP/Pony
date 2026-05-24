@@ -167,6 +167,29 @@ Method: STRIDE per major component.
   where the platform supports it, so reviewed code controls both the binary and
   all arguments.
 
+## LLM Insight Generation
+
+- Spoofing: insight reads require an authenticated operator session and accept
+  only entity ids for named insight kinds. There is no free-form prompt route.
+- Tampering: prompt contexts are built server-side from validated persisted
+  records, templates are versioned files in the repository, and every model
+  response is parsed through a per-insight Pydantic schema before it can reach an
+  operator.
+- Repudiation: every insight route call and worker generation path writes an
+  audit entry with actor, target, template version, hashes, token counts, cost,
+  latency, and outcome. Raw prompts and raw responses are never stored in audit.
+- Information disclosure: all prompts cross the prompt redactor first. MAC and
+  BSSID values become prompt-scoped opaque tokens, sensitive keys are dropped,
+  optional settings redact SSID/vendor names, and `LLM_API_KEY` is a secret
+  setting that is never returned by settings dumps or audit logs.
+- Denial of service: `LLM_ENABLED=false` short-circuits all calls, request
+  timeouts and retry caps bound provider interaction, cache hits avoid repeat
+  dispatch, and the monthly usage ledger refuses calls that would exceed the
+  configured budget.
+- Elevation of privilege: insights are read-only GET routes and cannot mutate
+  state. The LLM informs operators but does not execute actions or influence lab
+  gate decisions.
+
 ## Accepted advisory exceptions
 
 Specific SCA advisories that the project has explicitly assessed and

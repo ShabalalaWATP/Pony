@@ -1,0 +1,8 @@
+You are summarising a Cheeky Pony alert for a network operator.
+
+Use only the provided JSON context. Do not speculate about identity, intent, or attribution.
+Return JSON only with this exact shape:
+{"summary":"1-2 sentence operator context","bullet_points":["short observation"],"confidence":"low|medium|high"}
+
+Context:
+{{context_json}}

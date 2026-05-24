@@ -13,6 +13,9 @@ from cheeky_pony_backend.dependencies import reset_auth_rate_limiters
 from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
 from cheeky_pony_backend.infra.pcap_analysis_store import InMemoryPcapAnalysisStore
 from cheeky_pony_backend.infra.pcap_store import InMemoryPcapStore
+from cheeky_pony_backend.llm.budget import InMemoryUsageLedger
+from cheeky_pony_backend.llm.cache import InMemoryInsightCache
+from cheeky_pony_backend.llm.fake_client import FakeLlmClient
 from cheeky_pony_backend.main import create_app
 from cheeky_pony_backend.pcap.tshark import TsharkResult
 
@@ -26,11 +29,25 @@ class BackendClient:
         store: InMemoryStore,
         pcap_store: InMemoryPcapStore | None = None,
         pcap_analysis_store: InMemoryPcapAnalysisStore | None = None,
+        llm_client: FakeLlmClient | None = None,
+        insight_cache: InMemoryInsightCache | None = None,
+        usage_ledger: InMemoryUsageLedger | None = None,
+        settings: Settings | None = None,
     ) -> None:
         self.client = client
+        self.settings = settings or Settings(
+            env="test",
+            cookie_secure=False,
+            jwt_secret="j" * 32,
+            bootstrap_token="bootstrap-token-test",
+            use_in_memory_store=True,
+        )
         self.store = store
         self.pcap_store = pcap_store
         self.pcap_analysis_store = pcap_analysis_store
+        self.llm_client = llm_client
+        self.insight_cache = insight_cache
+        self.usage_ledger = usage_ledger
 
 
 class TestTsharkRuntime:
@@ -88,16 +105,31 @@ async def backend_client() -> AsyncIterator[BackendClient]:
     store = InMemoryStore()
     pcap_store = InMemoryPcapStore()
     pcap_analysis_store = InMemoryPcapAnalysisStore()
+    llm_client = FakeLlmClient()
+    insight_cache = InMemoryInsightCache()
+    usage_ledger = InMemoryUsageLedger()
     app = create_app(
         settings=settings,
         store=store,
         pcap_store=pcap_store,
         pcap_analysis_store=pcap_analysis_store,
         tshark_runtime=TestTsharkRuntime(),
+        llm_client=llm_client,
+        insight_cache=insight_cache,
+        usage_ledger=usage_ledger,
     )
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        yield BackendClient(client, store, pcap_store, pcap_analysis_store)
+        yield BackendClient(
+            client,
+            store,
+            pcap_store,
+            pcap_analysis_store,
+            llm_client,
+            insight_cache,
+            usage_ledger,
+            settings,
+        )
 
 
 def _deauth_rows() -> str:

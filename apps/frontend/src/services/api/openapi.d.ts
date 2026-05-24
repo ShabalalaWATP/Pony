@@ -1021,6 +1021,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/insights/alert/{alert_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Alert Context Insight
+         * @description Return LLM-generated context for an alert.
+         */
+        get: operations["get_alert_context_insight_api_v1_insights_alert__alert_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/lab/active": {
         parameters: {
             query?: never;
@@ -2351,6 +2371,42 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * Insight
+         * @description Operator-facing validated insight.
+         */
+        Insight: {
+            /** Bullet Points */
+            bullet_points?: string[];
+            /**
+             * Cached
+             * @default false
+             */
+            cached: boolean;
+            /**
+             * Confidence
+             * @enum {string}
+             */
+            confidence: "low" | "medium" | "high";
+            /** Entity Id */
+            entity_id: string;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /**
+             * Kind
+             * @constant
+             */
+            kind: "alert_context";
+            /** Model */
+            model: string;
+            /** Summary */
+            summary: string;
+            /** Template Version */
+            template_version: string;
         };
         /**
          * LabActiveCommand
@@ -4120,6 +4176,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Event"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_alert_context_insight_api_v1_insights_alert__alert_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Insight"];
                 };
             };
             /** @description Validation Error */

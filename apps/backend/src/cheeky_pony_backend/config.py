@@ -5,11 +5,12 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEV_JWT_SECRET = "dev-only-change-me-dev-only-change-me"  # noqa: S105  # nosec B105
 DEV_SEED_ADMIN_PASSWORD = "change-me-now"  # noqa: S105  # nosec B105
+PLACEHOLDER_LLM_API_KEY = "replace-with-openai-compatible-api-key"  # noqa: S105  # nosec B105
 
 
 class Settings(BaseSettings):
@@ -43,6 +44,15 @@ class Settings(BaseSettings):
     tshark_timeout_seconds: int = Field(default=90, ge=1, le=300)
     totp_recent_minutes: int = Field(default=15, ge=1, le=120)
     label_confidence_threshold: float = Field(default=0.6, ge=0.0, le=1.0)
+    llm_enabled: bool = False
+    llm_api_base_url: str = "https://api.openai.com/v1"
+    llm_api_key: SecretStr | None = None
+    llm_model: str = "gpt-4o-mini"
+    llm_budget_usd_monthly: float = Field(default=0.0, ge=0.0)
+    llm_redact_ssid: bool = False
+    llm_redact_vendor: bool = False
+    llm_request_timeout_seconds: int = Field(default=30, ge=1, le=120)
+    llm_max_response_tokens: int = Field(default=500, ge=1, le=4000)
     sensor_gateway_header_secret: str | None = Field(default=None, min_length=32)
     sensor_gateway_header_skew_seconds: int = Field(default=300, ge=30, le=3600)
 
@@ -101,6 +111,16 @@ class Settings(BaseSettings):
             raise ValueError(msg)
         return suffixes
 
+    @field_validator("llm_api_base_url")
+    @classmethod
+    def validate_llm_api_base_url(cls, value: str) -> str:
+        """Require HTTP(S) LLM endpoints."""
+
+        if not value.startswith(("http://", "https://")):
+            msg = "llm_api_base_url must start with http:// or https://"
+            raise ValueError(msg)
+        return value.rstrip("/")
+
     @model_validator(mode="after")
     def reject_production_defaults(self) -> Settings:
         """Reject known development secrets in production-like environments.
@@ -120,7 +140,25 @@ class Settings(BaseSettings):
         if self.sensor_gateway_header_secret is None:
             msg = "CHEEKY_PONY_SENSOR_GATEWAY_HEADER_SECRET must be set outside development"
             raise ValueError(msg)
+        if (
+            self.llm_enabled
+            and self.llm_api_key is not None
+            and self.llm_api_key.get_secret_value() == PLACEHOLDER_LLM_API_KEY
+        ):
+            msg = "CHEEKY_PONY_LLM_API_KEY must not use the placeholder outside development"
+            raise ValueError(msg)
         return self
+
+    @model_validator(mode="after")
+    def validate_llm_credentials(self) -> Settings:
+        """Require an API key for enabled non-local LLM endpoints."""
+
+        if not self.llm_enabled or self.llm_api_key is not None:
+            return self
+        if self.llm_api_base_url.startswith("http://"):
+            return self
+        msg = "CHEEKY_PONY_LLM_API_KEY is required when LLM is enabled for HTTPS endpoints"
+        raise ValueError(msg)
 
 
 @lru_cache
