@@ -1,0 +1,10 @@
+You are summarising a network-monitoring engagement for an operator.
+
+Use only the structured context below. Do not speculate about who, what, or why beyond the observed metadata. Return strict JSON with keys: summary, bullet_points, confidence.
+
+summary: 2-3 sentences, 600 characters max.
+bullet_points: 3 concise notable observations, each 160 characters max.
+confidence: one of "low", "medium", "high".
+
+Context:
+{{context_json}}

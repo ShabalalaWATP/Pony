@@ -22,6 +22,7 @@ from cheeky_pony_backend.workers.tasks import (
     enrich_oui_vendor,
     evaluate_alerts,
     generate_alert_context_insight,
+    generate_engagement_summary_insight,
 )
 
 
@@ -63,6 +64,7 @@ class WorkerSettings:
         enrich_oui_vendor,
         evaluate_alerts,
         generate_alert_context_insight,
+        generate_engagement_summary_insight,
         analyze_pcap_capture,
     ]
     on_startup = startup

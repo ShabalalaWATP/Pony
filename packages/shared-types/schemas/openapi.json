@@ -2290,7 +2290,10 @@
             "type": "string"
           },
           "kind": {
-            "const": "alert_context",
+            "enum": [
+              "alert_context",
+              "engagement_summary"
+            ],
             "title": "Kind",
             "type": "string"
           },
@@ -4631,7 +4634,7 @@
     },
     "/api/v1/engagements/{engagement_id}/end": {
       "post": {
-        "description": "End an engagement and cancel scoped lab commands.\n\nArgs:\n    engagement_id: Engagement identifier.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n    command_broker: Sensor command broker.\n    operator_broker: Operator broker.",
+        "description": "End an engagement and cancel scoped lab commands.\n\nArgs:\n    engagement_id: Engagement identifier.\n    background_tasks: Background task collector.\n    user: Current admin with verified TOTP.\n    store: Application store.\n    audit: Audit logger.\n    command_broker: Sensor command broker.\n    operator_broker: Operator broker.\n    settings: Runtime settings.\n    llm_context: LLM worker context for summary generation.",
         "operationId": "end_engagement_api_v1_engagements__engagement_id__end_post",
         "parameters": [
           {
@@ -5471,6 +5474,49 @@
           }
         },
         "summary": "Get Alert Context Insight",
+        "tags": [
+          "insights"
+        ]
+      }
+    },
+    "/api/v1/insights/engagement/{engagement_id}": {
+      "get": {
+        "description": "Return LLM-generated summary for an engagement.",
+        "operationId": "get_engagement_summary_insight_api_v1_insights_engagement__engagement_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "engagement_id",
+            "required": true,
+            "schema": {
+              "title": "Engagement Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Insight"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Engagement Summary Insight",
         "tags": [
           "insights"
         ]

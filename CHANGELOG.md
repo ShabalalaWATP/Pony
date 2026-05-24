@@ -5,6 +5,13 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 3B — LLM engagement summary (#67)
+
+- Added authenticated engagement-summary insight reads with one-hour cache TTL,
+  aggregate event/alert/PCAP finding context, and validated model output.
+- Added engagement-end background generation that runs once per newly ended
+  engagement without blocking the existing end flow.
+
 ### Backend Phase 3A — LLM insight foundation (#66)
 
 - Added the opt-in OpenAI-compatible LLM insight pipeline with prompt redaction,

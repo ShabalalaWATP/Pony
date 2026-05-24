@@ -7,7 +7,7 @@ from pathlib import Path
 
 from cheeky_pony_backend.llm.types import InsightKind, PromptTemplate
 
-_PROMPT_KINDS: tuple[InsightKind, ...] = ("alert_context",)
+_PROMPT_KINDS: tuple[InsightKind, ...] = ("alert_context", "engagement_summary")
 
 
 class PromptTemplates:

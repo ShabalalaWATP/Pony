@@ -23,6 +23,7 @@ from cheeky_pony_backend.llm.client import LlmClient
 from cheeky_pony_backend.llm.prompts import PromptTemplates
 from cheeky_pony_backend.llm.redactor import PromptRedactor
 from cheeky_pony_backend.llm.service import LlmInsightService
+from cheeky_pony_backend.llm.task_context import LlmTaskContext
 from cheeky_pony_backend.pcap.tshark import TsharkRunner
 from cheeky_pony_backend.security import (
     CsrfService,
@@ -156,6 +157,8 @@ def get_llm_insight_service(
     ledger: Annotated[UsageLedger, Depends(get_usage_ledger)],
     redactor: Annotated[PromptRedactor, Depends(get_prompt_redactor)],
     templates: Annotated[PromptTemplates, Depends(get_prompt_templates)],
+    pcap_store: Annotated[PcapStore, Depends(get_pcap_store)],
+    pcap_analysis_store: Annotated[PcapAnalysisStore, Depends(get_pcap_analysis_store)],
     audit: Annotated[AuditLogger, Depends(get_audit_logger)],
 ) -> LlmInsightService:
     """Return an LLM insight service bound to request-scoped dependencies."""
@@ -169,6 +172,34 @@ def get_llm_insight_service(
         audit=audit,
         settings=settings,
         store=store,
+        pcap_store=pcap_store,
+        pcap_analysis_store=pcap_analysis_store,
+    )
+
+
+def get_llm_task_context(
+    settings: Annotated[Settings, Depends(get_settings)],
+    store: Annotated[Store, Depends(get_store)],
+    pcap_store: Annotated[PcapStore, Depends(get_pcap_store)],
+    pcap_analysis_store: Annotated[PcapAnalysisStore, Depends(get_pcap_analysis_store)],
+    client: Annotated[LlmClient, Depends(get_llm_client)],
+    cache: Annotated[InsightCache, Depends(get_insight_cache)],
+    ledger: Annotated[UsageLedger, Depends(get_usage_ledger)],
+    redactor: Annotated[PromptRedactor, Depends(get_prompt_redactor)],
+    templates: Annotated[PromptTemplates, Depends(get_prompt_templates)],
+) -> LlmTaskContext:
+    """Return the worker context needed for in-process LLM task dispatch."""
+
+    return LlmTaskContext(
+        settings=settings,
+        store=store,
+        pcap_store=pcap_store,
+        pcap_analysis_store=pcap_analysis_store,
+        client=client,
+        cache=cache,
+        ledger=ledger,
+        redactor=redactor,
+        templates=templates,
     )
 
 

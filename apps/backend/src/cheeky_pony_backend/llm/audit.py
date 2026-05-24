@@ -8,6 +8,11 @@ from datetime import datetime
 
 from cheeky_pony_backend.domain.audit import AuditLogger
 
+_TARGET_ACTIONS = {
+    "alert": "llm.insight.alert_context",
+    "engagement": "llm.insight.engagement_summary",
+}
+
 
 def sha256_text(value: str) -> str:
     """Return a stable SHA-256 content hash with an explicit algorithm prefix."""
@@ -37,7 +42,7 @@ async def record_llm_audit(
     audit_outcome = "ok" if outcome in {"cached", "generated"} else "denied"
     await audit.record(
         actor_id,
-        "llm.insight.alert_context",
+        _TARGET_ACTIONS.get(str(target.get("kind")), "llm.insight.alert_context"),
         target,
         {
             "prompt_hash": prompt_hash,

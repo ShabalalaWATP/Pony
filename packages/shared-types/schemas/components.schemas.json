@@ -2288,7 +2288,10 @@
         "type": "string"
       },
       "kind": {
-        "const": "alert_context",
+        "enum": [
+          "alert_context",
+          "engagement_summary"
+        ],
         "title": "Kind",
         "type": "string"
       },
