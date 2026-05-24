@@ -19,6 +19,7 @@ async def audit_cached(
     template_version: str,
     start: float,
     started_at: datetime,
+    action: str | None = None,
 ) -> None:
     """Record a cache-hit insight read."""
 
@@ -37,6 +38,7 @@ async def audit_cached(
         latency_ms=latency_ms(start),
         started_at=started_at,
         finished_at=datetime.now(tz=UTC),
+        action=action,
     )
 
 
@@ -54,6 +56,7 @@ async def audit_generated(
     cost_micro_cents: int,
     start: float,
     started_at: datetime,
+    action: str | None = None,
 ) -> None:
     """Record a freshly generated insight."""
 
@@ -72,6 +75,7 @@ async def audit_generated(
         latency_ms=latency_ms(start),
         started_at=started_at,
         finished_at=datetime.now(tz=UTC),
+        action=action,
     )
 
 
@@ -86,6 +90,7 @@ async def audit_unavailable(
     started_at: datetime,
     prompt_hash: str | None = None,
     cost_micro_cents: int | None = None,
+    action: str | None = None,
 ) -> None:
     """Record a refused or unavailable insight path."""
 
@@ -104,6 +109,7 @@ async def audit_unavailable(
         latency_ms=latency_ms(start),
         started_at=started_at,
         finished_at=datetime.now(tz=UTC),
+        action=action,
     )
 
 

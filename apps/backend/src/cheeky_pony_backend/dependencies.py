@@ -22,6 +22,7 @@ from cheeky_pony_backend.llm.cache import InsightCache
 from cheeky_pony_backend.llm.client import LlmClient
 from cheeky_pony_backend.llm.prompts import PromptTemplates
 from cheeky_pony_backend.llm.redactor import PromptRedactor
+from cheeky_pony_backend.llm.runtime_flags import LlmRuntimeFlags
 from cheeky_pony_backend.llm.service import LlmInsightService
 from cheeky_pony_backend.llm.task_context import LlmTaskContext
 from cheeky_pony_backend.pcap.tshark import TsharkRunner
@@ -137,6 +138,12 @@ def get_usage_ledger(request: Request) -> UsageLedger:
     return cast(UsageLedger, request.app.state.usage_ledger)
 
 
+def get_runtime_flags(request: Request) -> LlmRuntimeFlags:
+    """Return configured LLM runtime flags."""
+
+    return cast(LlmRuntimeFlags, request.app.state.runtime_flags)
+
+
 def get_prompt_templates(request: Request) -> PromptTemplates:
     """Return loaded LLM prompt templates from FastAPI state."""
 
@@ -168,6 +175,7 @@ def get_llm_insight_service(
     ledger: Annotated[UsageLedger, Depends(get_usage_ledger)],
     redactor: Annotated[PromptRedactor, Depends(get_prompt_redactor)],
     templates: Annotated[PromptTemplates, Depends(get_prompt_templates)],
+    runtime_flags: Annotated[LlmRuntimeFlags, Depends(get_runtime_flags)],
     pcap_store: Annotated[PcapStore, Depends(get_pcap_store)],
     pcap_analysis_store: Annotated[PcapAnalysisStore, Depends(get_pcap_analysis_store)],
     audit: Annotated[AuditLogger, Depends(get_audit_logger)],
@@ -183,6 +191,7 @@ def get_llm_insight_service(
         audit=audit,
         settings=settings,
         store=store,
+        runtime_flags=runtime_flags,
         pcap_store=pcap_store,
         pcap_analysis_store=pcap_analysis_store,
         oui=oui,
@@ -199,6 +208,7 @@ def get_llm_task_context(
     ledger: Annotated[UsageLedger, Depends(get_usage_ledger)],
     redactor: Annotated[PromptRedactor, Depends(get_prompt_redactor)],
     templates: Annotated[PromptTemplates, Depends(get_prompt_templates)],
+    runtime_flags: Annotated[LlmRuntimeFlags, Depends(get_runtime_flags)],
 ) -> LlmTaskContext:
     """Return the worker context needed for in-process LLM task dispatch."""
 
@@ -212,6 +222,7 @@ def get_llm_task_context(
         ledger=ledger,
         redactor=redactor,
         templates=templates,
+        runtime_flags=runtime_flags,
     )
 
 

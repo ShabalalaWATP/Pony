@@ -1084,6 +1084,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/insights/kill-switch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Toggle Llm Kill Switch
+         * @description Toggle the runtime LLM kill switch after admin, TOTP, and typed confirm.
+         */
+        post: operations["toggle_llm_kill_switch_api_v1_insights_kill_switch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/insights/pcap-finding/{finding_id}": {
         parameters: {
             query?: never;
@@ -1098,6 +1118,46 @@ export interface paths {
         get: operations["get_pcap_finding_insight_api_v1_insights_pcap_finding__finding_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Llm Usage
+         * @description Return admin-only LLM usage telemetry.
+         */
+        get: operations["get_llm_usage_api_v1_insights_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/{kind}/{entity_id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh Insight
+         * @description Force fresh generation for one named insight kind.
+         */
+        post: operations["refresh_insight_api_v1_insights__kind___entity_id__refresh_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2472,6 +2532,31 @@ export interface components {
             template_version: string;
         };
         /**
+         * KillSwitchRequest
+         * @description Typed-confirm body for runtime LLM kill-switch changes.
+         */
+        KillSwitchRequest: {
+            /**
+             * Confirm
+             * @enum {string}
+             */
+            confirm: "ENABLE" | "DISABLE";
+            /** Enable */
+            enable: boolean;
+        };
+        /**
+         * KillSwitchResponse
+         * @description Runtime LLM kill-switch state.
+         */
+        KillSwitchResponse: {
+            /** Effective Enabled */
+            effective_enabled: boolean;
+            /** Env Enabled */
+            env_enabled: boolean;
+            /** Runtime Disabled */
+            runtime_disabled: boolean;
+        };
+        /**
          * LabActiveCommand
          * @description Active lab command dashboard item.
          */
@@ -2551,6 +2636,71 @@ export interface components {
             kind: components["schemas"]["TargetKind"];
             /** Value */
             value: string;
+        };
+        /**
+         * LlmAuditSummary
+         * @description Prompt-safe LLM audit summary.
+         */
+        LlmAuditSummary: {
+            /** Action */
+            action: string;
+            /** Cost Micro Cents */
+            cost_micro_cents: number | null;
+            /** Model */
+            model: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Outcome */
+            outcome: string;
+            /** Prompt Hash */
+            prompt_hash: string | null;
+            /** Response Hash */
+            response_hash: string | null;
+            /** Target Id */
+            target_id: string | null;
+            /** Target Kind */
+            target_kind: string | null;
+            /** Tokens Input */
+            tokens_input: number | null;
+            /** Tokens Output */
+            tokens_output: number | null;
+        };
+        /**
+         * LlmKindUsage
+         * @description Generation/cache counts for one insight kind.
+         */
+        LlmKindUsage: {
+            /** Cached */
+            cached: number;
+            /** Generated */
+            generated: number;
+            /** Kind */
+            kind: string;
+        };
+        /**
+         * LlmUsageResponse
+         * @description Admin-facing LLM usage telemetry.
+         */
+        LlmUsageResponse: {
+            /** Budget Micro Cents */
+            budget_micro_cents: number | null;
+            /** Budget Remaining Micro Cents */
+            budget_remaining_micro_cents: number | null;
+            /** Budget Remaining Usd */
+            budget_remaining_usd: string;
+            /** Current Month */
+            current_month: string;
+            /** Current Month Spend Micro Cents */
+            current_month_spend_micro_cents: number;
+            /** Current Month Spend Usd */
+            current_month_spend_usd: string;
+            /** Last 30 Days */
+            last_30_days: components["schemas"]["LlmKindUsage"][];
+            /** Recent Audit Entries */
+            recent_audit_entries: components["schemas"]["LlmAuditSummary"][];
         };
         /**
          * LoginRequest
@@ -4345,12 +4495,97 @@ export interface operations {
             };
         };
     };
+    toggle_llm_kill_switch_api_v1_insights_kill_switch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KillSwitchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KillSwitchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_pcap_finding_insight_api_v1_insights_pcap_finding__finding_id__get: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 finding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Insight"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_llm_usage_api_v1_insights_usage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LlmUsageResponse"];
+                };
+            };
+        };
+    };
+    refresh_insight_api_v1_insights__kind___entity_id__refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "alert_context" | "engagement_summary" | "ap_description" | "pcap_finding";
+                entity_id: string;
             };
             cookie?: never;
         };

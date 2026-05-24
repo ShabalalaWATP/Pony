@@ -18,6 +18,10 @@ from cheeky_pony_backend.infra.pcap_analysis_store import MongoPcapAnalysisStore
 from cheeky_pony_backend.infra.pcap_store import GridFsPcapStore
 from cheeky_pony_backend.infra.seed_demo import SeedOptions, _clean, _refusal_reason, _seed
 from cheeky_pony_backend.infra.signals_repo import SIGNAL_HISTORY_CAP
+from cheeky_pony_backend.llm.budget import InMemoryUsageLedger
+from cheeky_pony_backend.llm.cache import InMemoryInsightCache
+from cheeky_pony_backend.llm.fake_client import FakeLlmClient
+from cheeky_pony_backend.llm.runtime_flags import InMemoryLlmRuntimeFlags
 from cheeky_pony_shared import AccessPoint, EventKind, Sensor
 
 
@@ -71,6 +75,7 @@ async def test_seed_demo_counts_idempotency_and_clean(mongo_store: MongoStore) -
         "allow_list": 3,
         "pcaps": 3,
         "analysis_runs": 3,
+        "llm_insights": 0,
     }
     assert total_access_points == 51
     assert total_pcaps == 3
@@ -80,6 +85,8 @@ async def test_seed_demo_counts_idempotency_and_clean(mongo_store: MongoStore) -
     assert all(ap.location_source == "sensor_gps" for ap in geolocated_aps)
     assert await mongo_store.count_synthetic_records() == _synthetic_record_count(counts)
     assert {pcap.status.value for pcap in pcap_items} == {"analyzed"}
+    audit_logs, _ = await mongo_store.list_audit(1000, 0)
+    assert not any(log.action.startswith("llm.") for log in audit_logs)
     for pcap in pcap_items:
         finding_counts = await analysis_store.finding_counts(DEMO_PCAP_ENGAGEMENT_ID, pcap.id)
         assert sum(finding_counts.values()) == 9
@@ -92,6 +99,50 @@ async def test_seed_demo_counts_idempotency_and_clean(mongo_store: MongoStore) -
     assert remaining_pcaps == 0
     assert await mongo_store.count_synthetic_records() == 0
     assert await mongo_store.db.access_points.count_documents({"ssid": "Real"}) == 1
+
+
+@pytest.mark.slow
+async def test_seed_demo_generates_alert_insights_when_enabled(
+    mongo_store: MongoStore,
+) -> None:
+    """Dev seeding pre-generates a few alert insights only when LLM is enabled."""
+
+    await mongo_store.ensure_indexes()
+    settings = _dev_settings().model_copy(
+        update={"llm_enabled": True, "llm_api_base_url": "http://localhost:11434/v1"}
+    )
+    client = FakeLlmClient()
+    cache = InMemoryInsightCache()
+    ledger = InMemoryUsageLedger()
+    runtime_flags = InMemoryLlmRuntimeFlags()
+    options = SeedOptions(clean=False, with_active=False, force=False, actor_id="tester")
+
+    counts = await _seed(
+        mongo_store,
+        options,
+        settings,
+        TestTsharkRuntime(),
+        client,
+        cache,
+        ledger,
+        runtime_flags,
+    )
+    repeat_counts = await _seed(
+        mongo_store,
+        options,
+        settings,
+        TestTsharkRuntime(),
+        client,
+        cache,
+        ledger,
+        runtime_flags,
+    )
+
+    assert counts["llm_insights"] == 3
+    assert repeat_counts["llm_insights"] == 0
+    assert len(client.calls) == 3
+    audit_logs, _ = await mongo_store.list_audit(1000, 0)
+    assert sum(log.action == "llm.insight.alert_context" for log in audit_logs) == 6
 
 
 @pytest.mark.slow
@@ -333,4 +384,5 @@ def _sensor_locations(sensors: list[Sensor]) -> dict[str, tuple[float, float]]:
 
 
 def _synthetic_record_count(counts: dict[str, int]) -> int:
-    return sum(count for key, count in counts.items() if key not in {"pcaps", "analysis_runs"})
+    ignored = {"pcaps", "analysis_runs", "llm_insights"}
+    return sum(count for key, count in counts.items() if key not in ignored)

@@ -142,6 +142,7 @@ async def cache_and_audit_generated(
     cost_micro_cents: int,
     start: float,
     started_at: datetime,
+    audit_action: str | None = None,
 ) -> Insight:
     """Persist and audit a freshly generated insight."""
 
@@ -168,6 +169,7 @@ async def cache_and_audit_generated(
         cost_micro_cents=cost_micro_cents,
         start=start,
         started_at=started_at,
+        action=audit_action,
     )
     return insight
 

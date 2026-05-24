@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 
@@ -50,6 +51,11 @@ from cheeky_pony_backend.llm.cache import InMemoryInsightCache, InsightCache, Mo
 from cheeky_pony_backend.llm.client import LlmClient, OpenAICompatibleClient
 from cheeky_pony_backend.llm.prompts import PromptTemplates
 from cheeky_pony_backend.llm.redactor import PromptRedactor
+from cheeky_pony_backend.llm.runtime_flags import (
+    InMemoryLlmRuntimeFlags,
+    LlmRuntimeFlags,
+    MongoLlmRuntimeFlags,
+)
 from cheeky_pony_backend.logging import configure_logging
 from cheeky_pony_backend.pcap.tshark import TsharkRunner, TsharkRuntime, verify_tshark_startup
 from cheeky_pony_backend.security import CsrfService, TokenService
@@ -64,6 +70,7 @@ def create_app(
     llm_client: LlmClient | None = None,
     insight_cache: InsightCache | None = None,
     usage_ledger: UsageLedger | None = None,
+    runtime_flags: LlmRuntimeFlags | None = None,
 ) -> FastAPI:
     """Create and configure the FastAPI app.
 
@@ -86,6 +93,7 @@ def create_app(
     active_llm_client = llm_client or OpenAICompatibleClient(active_settings)
     active_insight_cache = insight_cache or _create_insight_cache(active_settings, active_store)
     active_usage_ledger = usage_ledger or _create_usage_ledger(active_settings, active_store)
+    active_runtime_flags = runtime_flags or _create_runtime_flags(active_settings, active_store)
     active_prompt_templates = PromptTemplates.load()
     active_prompt_redactor = PromptRedactor(
         redact_ssid=active_settings.llm_redact_ssid,
@@ -101,6 +109,7 @@ def create_app(
             active_analysis_store,
             active_insight_cache,
             active_usage_ledger,
+            active_runtime_flags,
         ),
     )
     app.state.settings = active_settings
@@ -111,6 +120,7 @@ def create_app(
     app.state.llm_client = active_llm_client
     app.state.insight_cache = active_insight_cache
     app.state.usage_ledger = active_usage_ledger
+    app.state.runtime_flags = active_runtime_flags
     app.state.prompt_templates = active_prompt_templates
     app.state.prompt_redactor = active_prompt_redactor
     app.state.operator_broker = OperatorBroker()
@@ -180,6 +190,14 @@ def _create_usage_ledger(settings: Settings, store: Store) -> UsageLedger:
     return InMemoryUsageLedger()
 
 
+def _create_runtime_flags(settings: Settings, store: Store) -> LlmRuntimeFlags:
+    if settings.use_in_memory_store or settings.env == "test":
+        return InMemoryLlmRuntimeFlags()
+    if isinstance(store, MongoStore):
+        return MongoLlmRuntimeFlags(store.db)
+    return InMemoryLlmRuntimeFlags()
+
+
 def _lifespan(
     settings: Settings,
     store: Store,
@@ -187,6 +205,7 @@ def _lifespan(
     pcap_analysis_store: PcapAnalysisStore,
     insight_cache: InsightCache,
     usage_ledger: UsageLedger,
+    runtime_flags: LlmRuntimeFlags,
 ) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -196,6 +215,7 @@ def _lifespan(
         await pcap_analysis_store.ensure_indexes()
         await insight_cache.ensure_indexes()
         await usage_ledger.ensure_indexes()
+        await runtime_flags.ensure_indexes()
         yield
 
     return lifespan
@@ -309,6 +329,11 @@ def _csrf_action(request: Request) -> str | None:
         return "pcap.upload" if path.endswith("/pcaps") else None
     if request.method == "DELETE" and path.startswith("/api/v1/engagements/"):
         return "pcap.delete" if "/pcaps/" in path else None
+    if request.method == "POST" and path == "/api/v1/insights/kill-switch":
+        return "llm.kill_switch.toggle"
+    if request.method == "POST" and path.startswith("/api/v1/insights/"):
+        match = re.match(r"^/api/v1/insights/([^/]+)/[^/]+/refresh$", path)
+        return None if match is None else f"llm.insight.{match.group(1)}.refresh"
     return None
 
 
@@ -364,6 +389,14 @@ def _validation_action(request: Request) -> str | None:
         return "system.acknowledgement"
     if request.method == "POST" and path == "/api/v1/alerts/rules":
         return "alerts.rules.create"
+    if request.method == "POST" and path == "/api/v1/insights/kill-switch":
+        return "llm.kill_switch.toggle"
+    if (
+        request.method == "POST"
+        and path.startswith("/api/v1/insights/")
+        and path.endswith("/refresh")
+    ):
+        return "llm.insight.refresh"
     return None
 
 

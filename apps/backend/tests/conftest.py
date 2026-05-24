@@ -16,6 +16,7 @@ from cheeky_pony_backend.infra.pcap_store import InMemoryPcapStore
 from cheeky_pony_backend.llm.budget import InMemoryUsageLedger
 from cheeky_pony_backend.llm.cache import InMemoryInsightCache
 from cheeky_pony_backend.llm.fake_client import FakeLlmClient
+from cheeky_pony_backend.llm.runtime_flags import InMemoryLlmRuntimeFlags
 from cheeky_pony_backend.main import create_app
 from cheeky_pony_backend.pcap.tshark import TsharkResult
 
@@ -32,6 +33,7 @@ class BackendClient:
         llm_client: FakeLlmClient | None = None,
         insight_cache: InMemoryInsightCache | None = None,
         usage_ledger: InMemoryUsageLedger | None = None,
+        runtime_flags: InMemoryLlmRuntimeFlags | None = None,
         settings: Settings | None = None,
     ) -> None:
         self.client = client
@@ -48,6 +50,7 @@ class BackendClient:
         self.llm_client = llm_client
         self.insight_cache = insight_cache
         self.usage_ledger = usage_ledger
+        self.runtime_flags = runtime_flags
 
 
 class TestTsharkRuntime:
@@ -108,6 +111,7 @@ async def backend_client() -> AsyncIterator[BackendClient]:
     llm_client = FakeLlmClient()
     insight_cache = InMemoryInsightCache()
     usage_ledger = InMemoryUsageLedger()
+    runtime_flags = InMemoryLlmRuntimeFlags()
     app = create_app(
         settings=settings,
         store=store,
@@ -117,6 +121,7 @@ async def backend_client() -> AsyncIterator[BackendClient]:
         llm_client=llm_client,
         insight_cache=insight_cache,
         usage_ledger=usage_ledger,
+        runtime_flags=runtime_flags,
     )
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
@@ -128,6 +133,7 @@ async def backend_client() -> AsyncIterator[BackendClient]:
             llm_client,
             insight_cache,
             usage_ledger,
+            runtime_flags,
             settings,
         )
 

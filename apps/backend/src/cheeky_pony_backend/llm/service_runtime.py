@@ -43,6 +43,8 @@ class InsightGenerationRequest:
     start: float
     target: dict[str, object]
     template_version: str
+    audit_action: str | None = None
+    force_refresh: bool = False
 
 
 class InsightGenerationRuntime:
@@ -66,11 +68,15 @@ class InsightGenerationRuntime:
     async def cached_or_generate(self, request: InsightGenerationRequest) -> Insight:
         """Return a cached insight or dispatch a fresh model completion."""
 
-        cached = await self._cached_insight(
-            request.kind,
-            request.entity_id,
-            request.prompt_hash,
-            request.template_version,
+        cached = (
+            None
+            if request.force_refresh
+            else await self._cached_insight(
+                request.kind,
+                request.entity_id,
+                request.prompt_hash,
+                request.template_version,
+            )
         )
         if cached is not None:
             await audit_cached(
@@ -81,6 +87,7 @@ class InsightGenerationRuntime:
                 template_version=request.template_version,
                 start=request.start,
                 started_at=request.started_at,
+                action=request.audit_action,
             )
             return cached
         return await self._generate_insight(request)
@@ -106,6 +113,7 @@ class InsightGenerationRuntime:
             cost_micro_cents=actual,
             start=request.start,
             started_at=request.started_at,
+            audit_action=request.audit_action,
         )
 
     async def _complete_insight(
@@ -170,6 +178,7 @@ class InsightGenerationRuntime:
             start=request.start,
             started_at=request.started_at,
             prompt_hash=request.prompt_hash,
+            action=request.audit_action,
         )
 
     async def _reserve_budget(
@@ -191,6 +200,7 @@ class InsightGenerationRuntime:
             started_at=request.started_at,
             prompt_hash=request.prompt_hash,
             cost_micro_cents=estimated_cost_micro_cents,
+            action=request.audit_action,
         )
         raise LlmBudgetExceededError()
 

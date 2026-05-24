@@ -27,6 +27,7 @@ from cheeky_pony_backend.llm.insights.engagement_summary import build_engagement
 from cheeky_pony_backend.llm.insights.pcap_finding import build_pcap_finding_context
 from cheeky_pony_backend.llm.prompts import PromptTemplates
 from cheeky_pony_backend.llm.redactor import PromptRedactor
+from cheeky_pony_backend.llm.runtime_flags import LlmRuntimeFlags, llm_effectively_enabled
 from cheeky_pony_backend.llm.service_audit import audit_unavailable
 from cheeky_pony_backend.llm.service_helpers import (
     InsightResponse,
@@ -58,6 +59,7 @@ class LlmInsightService:
         audit: AuditLogger,
         settings: Settings,
         store: Store,
+        runtime_flags: LlmRuntimeFlags | None = None,
         pcap_store: PcapStore | None = None,
         pcap_analysis_store: PcapAnalysisStore | None = None,
         oui: OuiService | None = None,
@@ -67,6 +69,7 @@ class LlmInsightService:
         self._audit = audit
         self._settings = settings
         self._store = store
+        self._runtime_flags = runtime_flags
         self._pcap_store = pcap_store
         self._pcap_analysis_store = pcap_analysis_store
         self._oui = oui
@@ -78,7 +81,14 @@ class LlmInsightService:
             settings=settings,
         )
 
-    async def alert_context(self, alert_id: str, *, actor_id: str) -> Insight:
+    async def alert_context(
+        self,
+        alert_id: str,
+        *,
+        actor_id: str,
+        force_refresh: bool = False,
+        audit_action: str | None = None,
+    ) -> Insight:
         """Generate or return cached context for an alert."""
 
         async def load_context() -> object | None:
@@ -92,9 +102,18 @@ class LlmInsightService:
             load_context=load_context,
             expires_at=None,
             parse_response=parse_alert_response,
+            force_refresh=force_refresh,
+            audit_action=audit_action,
         )
 
-    async def engagement_summary(self, engagement_id: str, *, actor_id: str) -> Insight:
+    async def engagement_summary(
+        self,
+        engagement_id: str,
+        *,
+        actor_id: str,
+        force_refresh: bool = False,
+        audit_action: str | None = None,
+    ) -> Insight:
         """Generate or return cached summary for an engagement."""
 
         async def load_context() -> object | None:
@@ -113,9 +132,18 @@ class LlmInsightService:
             load_context=load_context,
             expires_at=engagement_cache_expiry(),
             parse_response=parse_engagement_response,
+            force_refresh=force_refresh,
+            audit_action=audit_action,
         )
 
-    async def ap_description(self, bssid: str, *, actor_id: str) -> Insight:
+    async def ap_description(
+        self,
+        bssid: str,
+        *,
+        actor_id: str,
+        force_refresh: bool = False,
+        audit_action: str | None = None,
+    ) -> Insight:
         """Generate or return cached description for one access point."""
 
         normalized = normalize_bssid(bssid)
@@ -139,9 +167,18 @@ class LlmInsightService:
             load_context=load_context,
             expires_at=ap_cache_expiry(),
             parse_response=parse_ap_description_response,
+            force_refresh=force_refresh,
+            audit_action=audit_action,
         )
 
-    async def pcap_finding(self, finding_id: str, *, actor_id: str) -> Insight:
+    async def pcap_finding(
+        self,
+        finding_id: str,
+        *,
+        actor_id: str,
+        force_refresh: bool = False,
+        audit_action: str | None = None,
+    ) -> Insight:
         """Generate or return cached explanation for one PCAP finding."""
 
         async def load_context() -> object | None:
@@ -161,6 +198,40 @@ class LlmInsightService:
             load_context=load_context,
             expires_at=None,
             parse_response=parse_pcap_finding_response,
+            force_refresh=force_refresh,
+            audit_action=audit_action,
+        )
+
+    async def refresh(self, kind: InsightKind, entity_id: str, *, actor_id: str) -> Insight:
+        """Force a fresh generation for one named insight kind."""
+
+        action = f"llm.insight.{kind}.refresh"
+        if kind == "alert_context":
+            return await self.alert_context(
+                entity_id,
+                actor_id=actor_id,
+                force_refresh=True,
+                audit_action=action,
+            )
+        if kind == "engagement_summary":
+            return await self.engagement_summary(
+                entity_id,
+                actor_id=actor_id,
+                force_refresh=True,
+                audit_action=action,
+            )
+        if kind == "ap_description":
+            return await self.ap_description(
+                entity_id,
+                actor_id=actor_id,
+                force_refresh=True,
+                audit_action=action,
+            )
+        return await self.pcap_finding(
+            entity_id,
+            actor_id=actor_id,
+            force_refresh=True,
+            audit_action=action,
         )
 
     async def _insight_from_loader(
@@ -173,11 +244,20 @@ class LlmInsightService:
         load_context: Callable[[], Awaitable[object | None]],
         expires_at: datetime | None,
         parse_response: Callable[[str], InsightResponse],
+        force_refresh: bool = False,
+        audit_action: str | None = None,
     ) -> Insight:
         started_at = datetime.now(tz=UTC)
         start = monotonic()
         template = self._templates.get(kind)
-        await self._reject_when_disabled(actor_id, target, template.version, start, started_at)
+        await self._reject_when_disabled(
+            actor_id,
+            target,
+            template.version,
+            start,
+            started_at,
+            audit_action,
+        )
         context = await load_context()
         await self._reject_when_missing(
             actor_id,
@@ -186,6 +266,7 @@ class LlmInsightService:
             context,
             start,
             started_at,
+            audit_action,
         )
         prompt, prompt_hash = self._render_prompt(template.content, context)
         return await self._runtime.cached_or_generate(
@@ -201,6 +282,8 @@ class LlmInsightService:
                 start=start,
                 target=target,
                 template_version=template.version,
+                audit_action=audit_action,
+                force_refresh=force_refresh,
             )
         )
 
@@ -215,8 +298,9 @@ class LlmInsightService:
         template_version: str,
         start: float,
         started_at: datetime,
+        audit_action: str | None,
     ) -> None:
-        if self._settings.llm_enabled:
+        if await llm_effectively_enabled(self._settings, self._runtime_flags):
             return
         await self._audit_unavailable(
             actor_id,
@@ -225,6 +309,7 @@ class LlmInsightService:
             "disabled",
             start,
             started_at,
+            audit_action,
         )
         raise LlmInsightUnavailableError("disabled")
 
@@ -236,6 +321,7 @@ class LlmInsightService:
         context: object | None,
         start: float,
         started_at: datetime,
+        audit_action: str | None,
     ) -> None:
         if context is not None:
             return
@@ -246,6 +332,7 @@ class LlmInsightService:
             "refused",
             start,
             started_at,
+            audit_action,
         )
         raise LlmEntityNotFoundError()
 
@@ -257,6 +344,7 @@ class LlmInsightService:
         outcome: str,
         start: float,
         started_at: datetime,
+        audit_action: str | None,
     ) -> None:
         await audit_unavailable(
             self._audit,
@@ -266,4 +354,5 @@ class LlmInsightService:
             outcome=outcome,
             start=start,
             started_at=started_at,
+            action=audit_action,
         )

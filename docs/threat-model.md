@@ -170,7 +170,9 @@ Method: STRIDE per major component.
 ## LLM Insight Generation
 
 - Spoofing: insight reads require an authenticated operator session and accept
-  only entity ids for named insight kinds. There is no free-form prompt route.
+  only entity ids for named insight kinds. Refresh and runtime kill-switch
+  routes require admin, recent TOTP, and CSRF. Usage telemetry is admin-only.
+  There is no free-form prompt route.
 - Tampering: prompt contexts are built server-side from validated persisted
   records, including engagement metadata, aggregate event counts, alert severity
   summaries, completed PCAP finding counts for engagement summaries, and local
@@ -178,26 +180,30 @@ Method: STRIDE per major component.
   finding explanations use only structured finding metadata and safe evidence.
   Templates are versioned files in the repository, and every model response is
   parsed through a per-insight Pydantic schema before it can reach an operator.
-- Repudiation: every insight route call and worker generation path writes an
-  audit entry with actor, target, template version, hashes, token counts, cost,
-  latency, and outcome. Raw prompts and raw responses are never stored in audit.
+- Repudiation: every insight route call, worker generation path, refresh, usage
+  read, and kill-switch toggle writes an audit entry with actor, target,
+  template version, hashes, token counts, cost, latency, and outcome where
+  applicable. Raw prompts and raw responses are never stored in audit.
 - Information disclosure: all prompts cross the prompt redactor first. MAC and
   BSSID values become prompt-scoped opaque tokens, sensitive keys are dropped,
   optional settings redact SSID/vendor names, and `LLM_API_KEY` is a secret
-  setting that is never returned by settings dumps or audit logs. Raw `tshark`
-  output, raw EAPOL bytes, and PMKID material are excluded from LLM PCAP-finding
-  prompt contexts even when LAB_MODE permits those fields in the PCAP findings
-  API.
-- Denial of service: `LLM_ENABLED=false` short-circuits all calls, request
-  timeouts and retry caps bound provider interaction, cache hits avoid repeat
-  dispatch, and the monthly usage ledger refuses calls that would exceed the
-  configured budget. Engagement summaries cache for one hour and engagement-end
-  replays do not enqueue duplicate summary tasks. AP descriptions are on-demand
-  only and cache for 24 hours. PCAP finding explanations are on-demand only and
-  cache indefinitely because findings are immutable.
-- Elevation of privilege: insights are read-only GET routes and cannot mutate
-  state. The LLM informs operators but does not execute actions or influence lab
-  gate decisions.
+  setting that is never returned by settings dumps or audit logs. Usage telemetry
+  exposes counts, hashes, and cost metadata only. Raw `tshark` output, raw EAPOL
+  bytes, and PMKID material are excluded from LLM PCAP-finding prompt contexts
+  even when LAB_MODE permits those fields in the PCAP findings API.
+- Denial of service: `LLM_ENABLED=false` short-circuits all calls, and the
+  Mongo-backed runtime kill switch can disable dispatch without a restart.
+  Request timeouts and retry caps bound provider interaction, cache hits avoid
+  repeat dispatch, and the monthly usage ledger refuses calls that would exceed
+  the configured budget. Engagement summaries cache for one hour and
+  engagement-end replays do not enqueue duplicate summary tasks. AP descriptions
+  are on-demand only and cache for 24 hours. PCAP finding explanations are
+  on-demand only and cache indefinitely because findings are immutable.
+- Elevation of privilege: insight reads do not mutate source records. Refreshes
+  mutate only the insight cache and require admin plus recent TOTP. The runtime
+  kill switch can disable LLM dispatch but cannot force-enable it when
+  `LLM_ENABLED=false`. The LLM informs operators but does not execute actions or
+  influence lab gate decisions.
 
 ## Accepted advisory exceptions
 
