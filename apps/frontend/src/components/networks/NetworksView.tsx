@@ -12,6 +12,7 @@ import { RelativeTime } from "@/components/domain/RelativeTime";
 import { SignalBars } from "@/components/domain/SignalBars";
 import { SsidLabel } from "@/components/domain/SsidLabel";
 import { latestRssi } from "@/lib/signal-helpers";
+import { resolveVendor } from "@/lib/vendor";
 import { useAccessPointsList, type AccessPoint } from "@/services/api/queries";
 import { AccessPointDetail } from "./AccessPointDetail";
 
@@ -25,12 +26,9 @@ const columns: ColumnDef<AccessPoint, unknown>[] = [
     accessorKey: "bssid",
     header: "BSSID",
     cell: (ctx) => (
-      <MacAddress
-        value={ctx.getValue<string>()}
-        vendor={ctx.row.original.vendor_oui ?? undefined}
-      />
+      <MacAddress value={ctx.getValue<string>()} vendor={resolveVendor(ctx.row.original)} />
     ),
-    size: 200,
+    size: 240,
   },
   {
     accessorKey: "channel",

@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/domain/EmptyState";
 import { MacAddress } from "@/components/domain/MacAddress";
 import { SsidLabel } from "@/components/domain/SsidLabel";
 import { sensorStatus } from "@/lib/sensorStatus";
+import { resolveVendor } from "@/lib/vendor";
 import { useAccessPointsList, useSensorsList, type AccessPoint } from "@/services/api/queries";
 import { type MapPin, useMapPinsStore } from "@/stores/useMapPinsStore";
 import { useMapStyleStore } from "@/stores/useMapStyleStore";
@@ -358,7 +359,7 @@ function ApRow({ ap, placed, fromSensor, onPlace }: ApRowProps): JSX.Element {
           </Badge>
         )}
       </button>
-      <MacAddress value={ap.bssid} vendor={ap.vendor_oui ?? undefined} truncate />
+      <MacAddress value={ap.bssid} vendor={resolveVendor(ap)} truncate />
     </div>
   );
 }

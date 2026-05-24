@@ -6,6 +6,7 @@ import { RelativeTime } from "@/components/domain/RelativeTime";
 import { SignalBars } from "@/components/domain/SignalBars";
 import { SignalSparkline } from "@/components/domain/SignalSparkline";
 import { latestRssi, rssiSeries } from "@/lib/signal-helpers";
+import { resolveVendor } from "@/lib/vendor";
 import { type Client, useDeviceDetail } from "@/services/api/queries";
 
 interface DeviceDetailProps {
@@ -67,11 +68,11 @@ export function DeviceDetail({ mac, seed }: DeviceDetailProps): JSX.Element {
       <DetailSection label="Identity">
         <DetailRow
           label="MAC"
-          value={<MacAddress value={client.mac} vendor={client.vendor_oui ?? undefined} />}
+          value={<MacAddress value={client.mac} vendor={resolveVendor(client)} hideInlineVendor />}
         />
         <DetailRow
           label="Vendor"
-          value={client.vendor_oui ?? <span className="text-fg-40">unknown</span>}
+          value={resolveVendor(client) ?? <span className="text-fg-40">unknown</span>}
         />
         <DetailRow
           label="Associated AP"

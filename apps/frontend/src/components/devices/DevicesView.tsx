@@ -9,6 +9,7 @@ import { MacAddress } from "@/components/domain/MacAddress";
 import { RelativeTime } from "@/components/domain/RelativeTime";
 import { SignalBars } from "@/components/domain/SignalBars";
 import { latestRssi } from "@/lib/signal-helpers";
+import { resolveVendor } from "@/lib/vendor";
 import { useDevicesList, type Client } from "@/services/api/queries";
 import { DeviceDetail } from "./DeviceDetail";
 
@@ -19,13 +20,15 @@ const columns: ColumnDef<Client, unknown>[] = [
     cell: (ctx) => (
       <MacAddress
         value={ctx.getValue<string>()}
-        vendor={ctx.row.original.vendor_oui ?? undefined}
+        vendor={resolveVendor(ctx.row.original)}
+        hideInlineVendor
       />
     ),
     size: 220,
   },
   {
-    accessorKey: "vendor_oui",
+    id: "vendor",
+    accessorFn: (row) => resolveVendor(row) ?? null,
     header: "Vendor",
     cell: (ctx) => {
       const v = ctx.getValue<string | null>();
@@ -35,7 +38,7 @@ const columns: ColumnDef<Client, unknown>[] = [
         <span className="text-fg-40">unknown</span>
       );
     },
-    size: 160,
+    size: 200,
   },
   {
     id: "probes",
@@ -134,7 +137,10 @@ export function DevicesView(): JSX.Element {
         onClose={close}
         title={
           <div className="flex items-center gap-3 truncate">
-            <MacAddress value={seed?.mac ?? search.mac ?? ""} />
+            <MacAddress
+              value={seed?.mac ?? search.mac ?? ""}
+              vendor={seed ? resolveVendor(seed) : undefined}
+            />
           </div>
         }
       >

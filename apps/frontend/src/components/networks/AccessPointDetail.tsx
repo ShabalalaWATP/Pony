@@ -8,6 +8,7 @@ import { RelativeTime } from "@/components/domain/RelativeTime";
 import { SignalBars } from "@/components/domain/SignalBars";
 import { SignalSparkline } from "@/components/domain/SignalSparkline";
 import { latestRssi, rssiSeries } from "@/lib/signal-helpers";
+import { resolveVendor } from "@/lib/vendor";
 import {
   type AccessPoint,
   type Client,
@@ -114,11 +115,11 @@ export function AccessPointDetail({ bssid, seed }: AccessPointDetailProps): JSX.
         />
         <DetailRow
           label="BSSID"
-          value={<MacAddress value={ap.bssid} vendor={ap.vendor_oui ?? undefined} />}
+          value={<MacAddress value={ap.bssid} vendor={resolveVendor(ap)} hideInlineVendor />}
         />
         <DetailRow
           label="Vendor"
-          value={ap.vendor_oui ?? <span className="text-fg-40">unknown</span>}
+          value={resolveVendor(ap) ?? <span className="text-fg-40">unknown</span>}
         />
         <DetailRow label="Location" value={formatLocation(ap)} />
       </DetailSection>
@@ -216,13 +217,12 @@ function AssociatedClients({ bssid }: { bssid: string }): JSX.Element {
 
 function AssociatedClientRow({ client }: { client: Client }): JSX.Element {
   const dbm = latestRssi(client);
+  const vendor = resolveVendor(client);
   return (
     <li className="flex items-center gap-3 px-3 py-2 text-xs">
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <MacAddress value={client.mac} vendor={client.vendor_oui ?? undefined} truncate />
-        {client.vendor_oui && (
-          <span className="truncate text-2xs text-fg-60">{client.vendor_oui}</span>
-        )}
+        <MacAddress value={client.mac} vendor={vendor} truncate hideInlineVendor />
+        {vendor && <span className="truncate text-2xs text-fg-60">{vendor}</span>}
       </div>
       {dbm !== null ? <SignalBars dbm={dbm} /> : <span className="text-fg-40">—</span>}
       {client.last_seen && <RelativeTime value={client.last_seen} />}
