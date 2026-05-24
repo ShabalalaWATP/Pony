@@ -4411,7 +4411,7 @@
     },
     "/api/v1/auth/logout": {
       "post": {
-        "description": "Clear browser session cookies and record a logout audit event.\n\nArgs:\n    response: FastAPI response.\n    user: Current authenticated user.\n    audit: Audit logger.\n    store: Application store.\n    settings: Runtime settings.",
+        "description": "Clear browser session cookies and record a logout audit event.\n\nArgs:\n    response: FastAPI response.\n    audit: Audit logger.\n    store: Application store.\n    tokens: Token service.\n    settings: Runtime settings.",
         "operationId": "logout_api_v1_auth_logout_post",
         "responses": {
           "204": {

@@ -280,28 +280,42 @@ async def refresh(
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
+    request: Request,
     response: Response,
-    user: Annotated[UserRecord, Depends(current_user)],
     audit: Annotated[AuditLogger, Depends(get_audit_logger)],
     store: Annotated[Store, Depends(get_store)],
+    tokens: Annotated[TokenService, Depends(get_token_service)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> None:
     """Clear browser session cookies and record a logout audit event.
 
     Args:
         response: FastAPI response.
-        user: Current authenticated user.
         audit: Audit logger.
         store: Application store.
+        tokens: Token service.
         settings: Runtime settings.
     """
-
-    await store.update_user(user.next_refresh_token_version())
+    user = await optional_user(request, store, tokens)
+    if user is None:
+        refresh_token = request.cookies.get("refresh_token")
+        if refresh_token:
+            try:
+                claims = tokens.verify(refresh_token, "refresh")
+            except jwt.InvalidTokenError:
+                claims = None
+            if claims is not None:
+                candidate = await store.get_user(str(claims["sub"]))
+                if candidate is not None and refresh_claim_matches_user(claims, candidate):
+                    user = candidate
+    if user is not None:
+        await store.update_user(user.next_refresh_token_version())
     clear_cookie(response, "access_token", settings, httponly=True)
     clear_cookie(response, "refresh_token", settings, httponly=True)
     clear_cookie(response, "csrf_token", settings, httponly=False)
+    actor_id = ANONYMOUS_ACTOR if user is None else user.id
     await audit.record(
-        actor_id=user.id,
+        actor_id=actor_id,
         action="logout",
         target={},
         parameters={},
