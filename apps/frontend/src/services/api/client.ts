@@ -148,6 +148,42 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   return (await resp.json()) as T;
 }
 
+/**
+ * Multipart upload that bypasses the JSON-stringify code path.
+ *
+ * Used by PCAP upload (PR #71+ — multipart/form-data with a file
+ * field). The browser sets `Content-Type: multipart/form-data;
+ * boundary=…` automatically when the body is a FormData instance —
+ * we deliberately do NOT pre-set the header here, otherwise the
+ * boundary would be missing and the backend would 400.
+ *
+ * CSRF + cookies + 401-refresh logic are reapplied so the upload
+ * path inherits the same auth posture as the JSON endpoints.
+ */
+async function uploadMultipart<T>(path: string, body: FormData): Promise<T> {
+  const headers = new Headers();
+  headers.set("Accept", "application/json");
+  // Intentionally do NOT set Content-Type — fetch derives it from FormData.
+  if (needsCsrf("POST", path)) {
+    const csrf = readCsrfCookie();
+    if (csrf) headers.set("x-csrf-token", csrf);
+  }
+  const resp = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body,
+  });
+  if (resp.status === 401 && !PUBLIC_AUTH_PATHS.has(path) && !path.startsWith("/auth/")) {
+    const refreshed = await attemptRefresh();
+    if (refreshed) return uploadMultipart<T>(path, body);
+    throw new ApiError(401, "Not authenticated", null);
+  }
+  if (!resp.ok) throw await parseError(resp);
+  if (resp.status === 204) return undefined as T;
+  return (await resp.json()) as T;
+}
+
 export const apiClient = {
   get: <T>(path: string, init?: RequestOptions) => api<T>(path, { ...init, method: "GET" }),
   post: <T>(path: string, body?: unknown, init?: RequestOptions) =>
@@ -158,4 +194,5 @@ export const apiClient = {
     api<T>(path, { ...init, method: "PATCH", body }),
   delete: <T>(path: string, body?: unknown, init?: RequestOptions) =>
     api<T>(path, { ...init, method: "DELETE", body }),
+  upload: <T>(path: string, body: FormData) => uploadMultipart<T>(path, body),
 };
