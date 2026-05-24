@@ -16,6 +16,7 @@ from cheeky_pony_backend.llm.errors import LlmBudgetExceededError, LlmOutputVali
 from cheeky_pony_backend.llm.fake_client import FakeLlmClient
 from cheeky_pony_backend.llm.prompts import PromptTemplates
 from cheeky_pony_backend.llm.redactor import PromptRedactor
+from cheeky_pony_backend.llm.runtime_flags import InMemoryLlmRuntimeFlags
 from cheeky_pony_backend.llm.service import LlmInsightService
 from cheeky_pony_shared import Alert, AlertRule, AlertSeverity
 
@@ -94,6 +95,7 @@ async def test_service_rejects_invalid_output_without_cache() -> None:
         audit=AuditLogger(store),
         settings=_settings(),
         store=store,
+        runtime_flags=InMemoryLlmRuntimeFlags(),
     )
 
     with pytest.raises(LlmOutputValidationError):
@@ -120,6 +122,7 @@ async def test_service_budget_exceeded_is_audited() -> None:
         audit=AuditLogger(store),
         settings=settings,
         store=store,
+        runtime_flags=InMemoryLlmRuntimeFlags(),
     )
 
     response = await _budget_failure(service)

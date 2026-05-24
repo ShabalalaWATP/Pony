@@ -4,12 +4,15 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
 import pytest
 from conftest import BackendClient
 from helpers import create_verified_admin
 from httpx import Response
+from starlette.requests import Request
 
+from cheeky_pony_backend.api.pcap_upload_preflight import pcap_upload_preflight_response
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.security import PasswordService
 from cheeky_pony_shared import Engagement
@@ -165,6 +168,79 @@ async def test_pcap_routes_audit_unauthenticated_refusals(
     assert backend_client.store.audit_logs[-1].outcome == "denied:authentication_required"
 
 
+async def test_pcap_upload_preflight_rejects_unauthenticated_without_body_read(
+    backend_client: BackendClient,
+) -> None:
+    """Unauthenticated multipart upload is rejected before ASGI body reads."""
+
+    request = _preflight_request(
+        backend_client,
+        {
+            "content-type": "multipart/form-data; boundary=cheeky",
+            "content-length": "999999999",
+        },
+    )
+
+    response = await pcap_upload_preflight_response(request, backend_client.settings)
+
+    assert response is not None
+    assert response.status_code == 401
+    assert backend_client.store.audit_logs[-1].action == "pcap.upload.refused"
+    assert backend_client.store.audit_logs[-1].outcome == "denied:authentication_required"
+
+
+async def test_pcap_upload_preflight_caps_authenticated_body_length(
+    backend_client: BackendClient,
+) -> None:
+    """Authorized uploads over the pre-parser body cap are rejected early."""
+
+    csrf = await create_verified_admin(backend_client)
+    await backend_client.store.create_engagement(Engagement(id="eng-1", name="Live"))
+    token = backend_client.client.cookies.get("access_token")
+    assert token is not None
+    max_body = backend_client.settings.pcap_max_upload_mb * 1024 * 1024 + 1024 * 1024
+    request = _preflight_request(
+        backend_client,
+        {
+            "authorization": f"Bearer {token}",
+            "content-type": "multipart/form-data; boundary=cheeky",
+            "content-length": str(max_body + 1),
+            "x-csrf-token": csrf,
+        },
+    )
+
+    response = await pcap_upload_preflight_response(request, backend_client.settings)
+
+    assert response is not None
+    assert response.status_code == 413
+    assert backend_client.store.audit_logs[-1].action == "pcap.upload.refused"
+    assert backend_client.store.audit_logs[-1].outcome == "denied:request_too_large"
+
+
+async def test_pcap_upload_preflight_allows_authorized_bounded_upload(
+    backend_client: BackendClient,
+) -> None:
+    """Authorized uploads below the pre-parser cap continue to normal parsing."""
+
+    csrf = await create_verified_admin(backend_client)
+    await backend_client.store.create_engagement(Engagement(id="eng-1", name="Live"))
+    token = backend_client.client.cookies.get("access_token")
+    assert token is not None
+    request = _preflight_request(
+        backend_client,
+        {
+            "authorization": f"Bearer {token}",
+            "content-type": "multipart/form-data; boundary=cheeky",
+            "content-length": str(len(PCAP_BYTES) + 256),
+            "x-csrf-token": csrf,
+        },
+    )
+
+    response = await pcap_upload_preflight_response(request, backend_client.settings)
+
+    assert response is None
+
+
 async def test_pcap_delete_requires_exact_filename_confirmation(
     backend_client: BackendClient,
 ) -> None:
@@ -237,3 +313,25 @@ async def _login_user(bundle: BackendClient, user_id: str, roles: list[str]) -> 
         json={"email": f"{user_id}@example.com", "password": password},
     )
     return str(response.json()["csrf_token"])
+
+
+def _preflight_request(bundle: BackendClient, headers: dict[str, str]) -> Request:
+    async def receive() -> dict[str, object]:
+        raise AssertionError("PCAP upload preflight must not read the request body")
+
+    app = SimpleNamespace(state=SimpleNamespace(store=bundle.store))
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/api/v1/engagements/eng-1/pcaps",
+        "raw_path": b"/api/v1/engagements/eng-1/pcaps",
+        "query_string": b"",
+        "headers": [(key.lower().encode(), value.encode()) for key, value in headers.items()],
+        "client": ("127.0.0.1", 12345),
+        "server": ("test", 80),
+        "app": app,
+    }
+    return Request(scope, receive)

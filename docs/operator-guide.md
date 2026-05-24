@@ -358,7 +358,9 @@ Admins with recent TOTP verification can upload `.pcap` and `.pcapng` captures t
 an active engagement at `/api/v1/engagements/{id}/pcaps`. Uploads are capped by
 `CHEEKY_PONY_PCAP_MAX_UPLOAD_MB` (default `100`), validated by magic bytes, stored
 in GridFS, and audited with the sanitized filename, size, capture hash, and
-engagement id.
+engagement id. The backend also rejects unauthenticated or over-limit upload
+requests before multipart body parsing, so upload clients must send a
+`Content-Length` header.
 
 Authenticated operators can list and read capture metadata for engagements they
 can access. There is no raw capture download route in this phase. Deleting a

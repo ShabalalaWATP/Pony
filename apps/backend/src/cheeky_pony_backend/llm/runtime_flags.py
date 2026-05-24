@@ -109,5 +109,5 @@ async def llm_effectively_enabled(
     if not settings.llm_enabled:
         return False
     if runtime_flags is None:
-        return True
+        return False
     return not await runtime_flags.llm_disabled()

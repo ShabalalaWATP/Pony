@@ -23,6 +23,7 @@ from cheeky_pony_backend.llm.insights.engagement_summary import (
 )
 from cheeky_pony_backend.llm.prompts import PromptTemplates
 from cheeky_pony_backend.llm.redactor import PromptRedactor
+from cheeky_pony_backend.llm.runtime_flags import InMemoryLlmRuntimeFlags
 from cheeky_pony_backend.llm.task_context import LlmTaskContext
 from cheeky_pony_backend.pcap.findings import (
     FindingSeverity,
@@ -147,6 +148,7 @@ async def test_worker_generates_engagement_summary(backend_client: BackendClient
             "usage_ledger": backend_client.usage_ledger,
             "prompt_templates": PromptTemplates.load(),
             "prompt_redactor": PromptRedactor(),
+            "runtime_flags": InMemoryLlmRuntimeFlags(),
         },
         "eng-1",
     )
@@ -277,6 +279,7 @@ def _task_context(bundle: BackendClient, settings: Settings) -> LlmTaskContext:
         ledger=bundle.usage_ledger,
         redactor=PromptRedactor(),
         templates=PromptTemplates.load(),
+        runtime_flags=InMemoryLlmRuntimeFlags(),
     )
 
 
