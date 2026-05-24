@@ -27,6 +27,7 @@ import { Route as ShellSettingsSystemRouteImport } from "./routes/_shell.setting
 import { Route as ShellSettingsAccountRouteImport } from "./routes/_shell.settings.account";
 import { Route as ShellSettingsAboutRouteImport } from "./routes/_shell.settings.about";
 import { Route as ShellSensorsSensorIdRouteImport } from "./routes/_shell.sensors.$sensorId";
+import { Route as ShellNetworksEvilTwinsRouteImport } from "./routes/_shell.networks.evil-twins";
 import { Route as ShellNetworksBssidRouteImport } from "./routes/_shell.networks.$bssid";
 import { Route as ShellLabRogueApRouteImport } from "./routes/_shell.lab.rogue-ap";
 import { Route as ShellLabMitmRouteImport } from "./routes/_shell.lab.mitm";
@@ -126,6 +127,11 @@ const ShellSensorsSensorIdRoute = ShellSensorsSensorIdRouteImport.update({
   path: "/sensors/$sensorId",
   getParentRoute: () => ShellRoute,
 } as any);
+const ShellNetworksEvilTwinsRoute = ShellNetworksEvilTwinsRouteImport.update({
+  id: "/networks/evil-twins",
+  path: "/networks/evil-twins",
+  getParentRoute: () => ShellRoute,
+} as any);
 const ShellNetworksBssidRoute = ShellNetworksBssidRouteImport.update({
   id: "/networks/$bssid",
   path: "/networks/$bssid",
@@ -188,6 +194,7 @@ export interface FileRoutesByFullPath {
   "/lab/mitm": typeof ShellLabMitmRoute;
   "/lab/rogue-ap": typeof ShellLabRogueApRoute;
   "/networks/$bssid": typeof ShellNetworksBssidRoute;
+  "/networks/evil-twins": typeof ShellNetworksEvilTwinsRoute;
   "/sensors/$sensorId": typeof ShellSensorsSensorIdRoute;
   "/settings/about": typeof ShellSettingsAboutRoute;
   "/settings/account": typeof ShellSettingsAccountRoute;
@@ -216,6 +223,7 @@ export interface FileRoutesByTo {
   "/lab/mitm": typeof ShellLabMitmRoute;
   "/lab/rogue-ap": typeof ShellLabRogueApRoute;
   "/networks/$bssid": typeof ShellNetworksBssidRoute;
+  "/networks/evil-twins": typeof ShellNetworksEvilTwinsRoute;
   "/sensors/$sensorId": typeof ShellSensorsSensorIdRoute;
   "/settings/about": typeof ShellSettingsAboutRoute;
   "/settings/account": typeof ShellSettingsAccountRoute;
@@ -246,6 +254,7 @@ export interface FileRoutesById {
   "/_shell/lab/mitm": typeof ShellLabMitmRoute;
   "/_shell/lab/rogue-ap": typeof ShellLabRogueApRoute;
   "/_shell/networks/$bssid": typeof ShellNetworksBssidRoute;
+  "/_shell/networks/evil-twins": typeof ShellNetworksEvilTwinsRoute;
   "/_shell/sensors/$sensorId": typeof ShellSensorsSensorIdRoute;
   "/_shell/settings/about": typeof ShellSettingsAboutRoute;
   "/_shell/settings/account": typeof ShellSettingsAccountRoute;
@@ -276,6 +285,7 @@ export interface FileRouteTypes {
     | "/lab/mitm"
     | "/lab/rogue-ap"
     | "/networks/$bssid"
+    | "/networks/evil-twins"
     | "/sensors/$sensorId"
     | "/settings/about"
     | "/settings/account"
@@ -304,6 +314,7 @@ export interface FileRouteTypes {
     | "/lab/mitm"
     | "/lab/rogue-ap"
     | "/networks/$bssid"
+    | "/networks/evil-twins"
     | "/sensors/$sensorId"
     | "/settings/about"
     | "/settings/account"
@@ -333,6 +344,7 @@ export interface FileRouteTypes {
     | "/_shell/lab/mitm"
     | "/_shell/lab/rogue-ap"
     | "/_shell/networks/$bssid"
+    | "/_shell/networks/evil-twins"
     | "/_shell/sensors/$sensorId"
     | "/_shell/settings/about"
     | "/_shell/settings/account"
@@ -479,6 +491,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ShellSensorsSensorIdRouteImport;
       parentRoute: typeof ShellRoute;
     };
+    "/_shell/networks/evil-twins": {
+      id: "/_shell/networks/evil-twins";
+      path: "/networks/evil-twins";
+      fullPath: "/networks/evil-twins";
+      preLoaderRoute: typeof ShellNetworksEvilTwinsRouteImport;
+      parentRoute: typeof ShellRoute;
+    };
     "/_shell/networks/$bssid": {
       id: "/_shell/networks/$bssid";
       path: "/networks/$bssid";
@@ -560,6 +579,7 @@ interface ShellRouteChildren {
   ShellLabMitmRoute: typeof ShellLabMitmRoute;
   ShellLabRogueApRoute: typeof ShellLabRogueApRoute;
   ShellNetworksBssidRoute: typeof ShellNetworksBssidRoute;
+  ShellNetworksEvilTwinsRoute: typeof ShellNetworksEvilTwinsRoute;
   ShellSensorsSensorIdRoute: typeof ShellSensorsSensorIdRoute;
   ShellSettingsAboutRoute: typeof ShellSettingsAboutRoute;
   ShellSettingsAccountRoute: typeof ShellSettingsAccountRoute;
@@ -588,6 +608,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellLabMitmRoute: ShellLabMitmRoute,
   ShellLabRogueApRoute: ShellLabRogueApRoute,
   ShellNetworksBssidRoute: ShellNetworksBssidRoute,
+  ShellNetworksEvilTwinsRoute: ShellNetworksEvilTwinsRoute,
   ShellSensorsSensorIdRoute: ShellSensorsSensorIdRoute,
   ShellSettingsAboutRoute: ShellSettingsAboutRoute,
   ShellSettingsAccountRoute: ShellSettingsAccountRoute,

@@ -1,9 +1,12 @@
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { type ColumnDef } from "@tanstack/react-table";
+import { ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
 import { Drawer } from "@/components/ui/Drawer";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { AnomalyBadge } from "@/components/domain/AnomalyBadge";
 import { ChannelBadge } from "@/components/domain/ChannelBadge";
 import { EmptyState } from "@/components/domain/EmptyState";
 import { EncryptionChip } from "@/components/domain/EncryptionChip";
@@ -12,7 +15,10 @@ import { MacAddress } from "@/components/domain/MacAddress";
 import { RelativeTime } from "@/components/domain/RelativeTime";
 import { SignalBars } from "@/components/domain/SignalBars";
 import { SsidLabel } from "@/components/domain/SsidLabel";
+import type { components } from "@/services/api/openapi";
 import type { ApType } from "@/lib/labels";
+
+type AnomalyContribution = components["schemas"]["AnomalyContribution"];
 import { latestRssi } from "@/lib/signal-helpers";
 import { resolveVendor } from "@/lib/vendor";
 import { useAccessPointsList, type AccessPoint } from "@/services/api/queries";
@@ -78,6 +84,21 @@ const columns: ColumnDef<AccessPoint, unknown>[] = [
     size: 140,
   },
   {
+    id: "anomaly",
+    header: "Anomaly",
+    accessorFn: (row) => (row as AccessPoint & { anomaly_score?: number }).anomaly_score ?? 0,
+    cell: (ctx) => {
+      const row = ctx.row.original as AccessPoint & {
+        anomaly_score?: number;
+        anomaly_reasons?: AnomalyContribution[];
+      };
+      return (
+        <AnomalyBadge score={row.anomaly_score ?? 0} reasons={row.anomaly_reasons} hideScore />
+      );
+    },
+    size: 130,
+  },
+  {
     accessorKey: "last_seen",
     header: "Last seen",
     cell: (ctx) => {
@@ -127,7 +148,14 @@ export function NetworksView(): JSX.Element {
           onChange: setSearchTerm,
           placeholder: "Filter by SSID, BSSID, vendor…",
         }}
-      />
+      >
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/networks/evil-twins" data-testid="evil-twin-link">
+            <ShieldAlert className="size-3.5" aria-hidden="true" />
+            Evil-twin candidates
+          </Link>
+        </Button>
+      </PageHeader>
 
       <DataTable<AccessPoint>
         data={items}

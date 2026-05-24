@@ -197,6 +197,12 @@ export const authHandlers = [
   http.get("/api/v1/access_points", () =>
     HttpResponse.json({ items: [fixtures.accessPoint], total: 1, limit: 100, offset: 0 }),
   ),
+  // Evil-twin candidates default to empty so tests that don't care
+  // about this surface don't need an explicit handler. Cases that do
+  // care override with `server.use(...)`.
+  http.get("/api/v1/access_points/evil-twin-candidates", () =>
+    HttpResponse.json({ items: [], total: 0, limit: 100, offset: 0 }),
+  ),
   http.get("/api/v1/access_points/:bssid", ({ params }) => {
     if (
       typeof params.bssid === "string" &&
