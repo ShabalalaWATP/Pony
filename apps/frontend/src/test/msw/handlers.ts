@@ -281,6 +281,21 @@ export const authHandlers = [
   http.post("/api/v1/insights/:kind/:id/refresh", () =>
     HttpResponse.json({ detail: "llm_unavailable", reason: "disabled" }, { status: 503 }),
   ),
+  http.get("/api/v1/insights/usage", () =>
+    HttpResponse.json({
+      budget_micro_cents: 2_000_000,
+      budget_remaining_micro_cents: 1_500_000,
+      budget_remaining_usd: "15.00",
+      current_month: "2026-05",
+      current_month_spend_micro_cents: 500_000,
+      current_month_spend_usd: "5.00",
+      last_30_days: [],
+      recent_audit_entries: [],
+    }),
+  ),
+  http.post("/api/v1/insights/kill-switch", () =>
+    HttpResponse.json({ effective_enabled: false, env_enabled: true, runtime_disabled: true }),
+  ),
   http.get("/api/v1/access_points/:bssid", ({ params }) => {
     if (
       typeof params.bssid === "string" &&
