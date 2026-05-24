@@ -132,9 +132,13 @@ Method: STRIDE per major component.
 - Information disclosure: every PCAP is scoped to one engagement, cross-engagement
   reads and deletes return `404`, and this phase intentionally has no raw capture
   download route.
-- Denial of service: upload reads enforce `CHEEKY_PONY_PCAP_MAX_UPLOAD_MB`
-  before GridFS persistence; upload is also covered by the standard in-process
-  auth rate limiter.
+- Denial of service: upload requests pass a header-only pre-body guard before
+  multipart parsing. The guard requires authentication, CSRF, admin, recent TOTP,
+  an active engagement, and a bounded `Content-Length`; unauthenticated or
+  over-limit requests are rejected before Starlette can spool file parts to temp
+  storage. Upload reads still enforce `CHEEKY_PONY_PCAP_MAX_UPLOAD_MB` before
+  GridFS persistence, and upload is covered by the standard in-process auth rate
+  limiter.
 - Elevation of privilege: uploads require an active engagement, and deletes
   require a typed filename confirmation in addition to admin, recent TOTP, and
   CSRF.
@@ -192,13 +196,15 @@ Method: STRIDE per major component.
   bytes, and PMKID material are excluded from LLM PCAP-finding prompt contexts
   even when LAB_MODE permits those fields in the PCAP findings API.
 - Denial of service: `LLM_ENABLED=false` short-circuits all calls, and the
-  Mongo-backed runtime kill switch can disable dispatch without a restart.
-  Request timeouts and retry caps bound provider interaction, cache hits avoid
-  repeat dispatch, and the monthly usage ledger refuses calls that would exceed
-  the configured budget. Engagement summaries cache for one hour and
-  engagement-end replays do not enqueue duplicate summary tasks. AP descriptions
-  are on-demand only and cache for 24 hours. PCAP finding explanations are
-  on-demand only and cache indefinitely because findings are immutable.
+  Mongo-backed runtime kill switch can disable dispatch without a restart across
+  API requests, demo seeding, and production workers. Missing runtime-flag
+  wiring fails closed. Request timeouts and retry caps bound provider
+  interaction, cache hits avoid repeat dispatch, and the monthly usage ledger
+  refuses calls that would exceed the configured budget. Engagement summaries
+  cache for one hour and engagement-end replays do not enqueue duplicate summary
+  tasks. AP descriptions are on-demand only and cache for 24 hours. PCAP finding
+  explanations are on-demand only and cache indefinitely because findings are
+  immutable.
 - Elevation of privilege: insight reads do not mutate source records. Refreshes
   mutate only the insight cache and require admin plus recent TOTP. The runtime
   kill switch can disable LLM dispatch but cannot force-enable it when

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import pytest
 
+import cheeky_pony_backend.workers.settings as worker_settings
 from cheeky_pony_backend.config import Settings
 from cheeky_pony_backend.infra.in_memory_store import InMemoryStore
 from cheeky_pony_backend.llm.budget import InMemoryUsageLedger
@@ -12,6 +13,7 @@ from cheeky_pony_backend.llm.cache import InMemoryInsightCache
 from cheeky_pony_backend.llm.fake_client import FakeLlmClient
 from cheeky_pony_backend.llm.prompts import PromptTemplates
 from cheeky_pony_backend.llm.redactor import PromptRedactor
+from cheeky_pony_backend.llm.runtime_flags import InMemoryLlmRuntimeFlags
 from cheeky_pony_backend.workers.tasks import (
     batch_insert_events,
     enrich_oui_vendor,
@@ -76,6 +78,65 @@ async def test_alert_worker_generates_insight_when_llm_enabled() -> None:
     assert store.audit_logs[-1].action == "llm.insight.alert_context"
 
 
+async def test_alert_worker_respects_runtime_kill_switch() -> None:
+    """Runtime kill switch blocks worker LLM dispatch."""
+
+    store = InMemoryStore()
+    client = FakeLlmClient()
+    runtime_flags = InMemoryLlmRuntimeFlags()
+    await runtime_flags.set_llm_disabled(True)
+    await store.create_alert_rule(_free_ssid_rule())
+
+    alerts = await evaluate_alerts(
+        _llm_context(store, client, runtime_flags),
+        _free_ssid_event(),
+    )
+
+    assert alerts[0]["rule_id"] == "rule-1"
+    assert client.calls == []
+
+
+async def test_alert_worker_without_runtime_flags_fails_closed() -> None:
+    """Missing runtime flags cannot silently enable worker LLM dispatch."""
+
+    store = InMemoryStore()
+    client = FakeLlmClient()
+    await store.create_alert_rule(_free_ssid_rule())
+    ctx = _llm_context(store, client)
+    ctx.pop("runtime_flags")
+
+    alerts = await evaluate_alerts(ctx, _free_ssid_event())
+
+    assert alerts[0]["rule_id"] == "rule-1"
+    assert client.calls == []
+
+
+async def test_worker_startup_wires_runtime_flags(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Production worker context includes Mongo runtime flags for LLM gates."""
+
+    created: dict[str, FakeIndexable] = {}
+
+    class FakeRuntimeFlags(FakeIndexable):
+        def __init__(self, *_args: object) -> None:
+            super().__init__(*_args)
+            created["runtime_flags"] = self
+
+    monkeypatch.setattr(worker_settings, "get_settings", _worker_settings)
+    monkeypatch.setattr(worker_settings, "MongoStore", FakeMongoStore)
+    monkeypatch.setattr(worker_settings, "GridFsPcapStore", FakeIndexable)
+    monkeypatch.setattr(worker_settings, "MongoPcapAnalysisStore", FakeIndexable)
+    monkeypatch.setattr(worker_settings, "MongoInsightCache", FakeIndexable)
+    monkeypatch.setattr(worker_settings, "MongoUsageLedger", FakeIndexable)
+    monkeypatch.setattr(worker_settings, "MongoLlmRuntimeFlags", FakeRuntimeFlags)
+    monkeypatch.setattr(worker_settings, "create_oui_service", object)
+
+    ctx: dict[str, object] = {}
+    await worker_settings.startup(ctx)
+
+    assert ctx["runtime_flags"] is created["runtime_flags"]
+    assert created["runtime_flags"].ensured is True
+
+
 def _free_ssid_rule() -> AlertRule:
     return AlertRule(
         id="rule-1",
@@ -95,7 +156,11 @@ def _free_ssid_event() -> dict[str, object]:
     }
 
 
-def _llm_context(store: InMemoryStore, client: FakeLlmClient) -> dict[str, object]:
+def _llm_context(
+    store: InMemoryStore,
+    client: FakeLlmClient,
+    runtime_flags: InMemoryLlmRuntimeFlags | None = None,
+) -> dict[str, object]:
     return {
         "store": store,
         "settings": Settings(
@@ -112,4 +177,29 @@ def _llm_context(store: InMemoryStore, client: FakeLlmClient) -> dict[str, objec
         "usage_ledger": InMemoryUsageLedger(),
         "prompt_templates": PromptTemplates.load(),
         "prompt_redactor": PromptRedactor(),
+        "runtime_flags": runtime_flags or InMemoryLlmRuntimeFlags(),
     }
+
+
+def _worker_settings() -> Settings:
+    return Settings(
+        env="test",
+        cookie_secure=False,
+        jwt_secret="j" * 32,
+        bootstrap_token="bootstrap-token-test",
+        use_in_memory_store=False,
+    )
+
+
+class FakeIndexable:
+    def __init__(self, *_args: object) -> None:
+        self.ensured = False
+
+    async def ensure_indexes(self) -> None:
+        self.ensured = True
+
+
+class FakeMongoStore(FakeIndexable):
+    def __init__(self, *_args: object) -> None:
+        super().__init__(*_args)
+        self.db = object()

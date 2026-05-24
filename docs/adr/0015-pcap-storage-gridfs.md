@@ -15,6 +15,12 @@ content. The `PcapStore` interface is separate from the general application
 `Store` so later analysis code can read capture bytes without adding binary-file
 concerns to every repository implementation.
 
+Because FastAPI parses multipart bodies before endpoint dependencies run, PCAP
+uploads also pass a pre-body middleware guard. That guard authenticates the
+operator, checks CSRF/admin/recent-TOTP/active-engagement gates, and enforces a
+bounded `Content-Length` before Starlette can spool file parts to temporary
+storage.
+
 Duplicate uploads are stored independently. Operators may intentionally upload
 the same capture twice during a lab, and each upload is a separate audited action.
 Deduplication can be added later behind the same metadata shape if storage cost

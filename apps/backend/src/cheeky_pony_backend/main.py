@@ -14,6 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from cheeky_pony_backend.api.pcap_upload_preflight import pcap_upload_preflight_response
 from cheeky_pony_backend.api.v1 import (
     alerts,
     audit,
@@ -266,6 +267,9 @@ def _install_security_middleware(app: FastAPI, settings: Settings) -> None:
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
+        preflight_response = await pcap_upload_preflight_response(request, settings)
+        if preflight_response is not None:
+            return preflight_response
         csrf_response = await _csrf_failure_response(request, settings)
         if csrf_response is not None:
             return csrf_response

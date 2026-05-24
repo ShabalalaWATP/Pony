@@ -15,6 +15,7 @@ from cheeky_pony_backend.llm.cache import MongoInsightCache
 from cheeky_pony_backend.llm.client import OpenAICompatibleClient
 from cheeky_pony_backend.llm.prompts import PromptTemplates
 from cheeky_pony_backend.llm.redactor import PromptRedactor
+from cheeky_pony_backend.llm.runtime_flags import MongoLlmRuntimeFlags
 from cheeky_pony_backend.pcap.tshark import TsharkRuntime
 from cheeky_pony_backend.workers.tasks import (
     analyze_pcap_capture,
@@ -35,11 +36,13 @@ async def startup(ctx: dict[str, object]) -> None:
     analysis_store = MongoPcapAnalysisStore(store.db)
     insight_cache = MongoInsightCache(store.db)
     usage_ledger = MongoUsageLedger(store.db)
+    runtime_flags = MongoLlmRuntimeFlags(store.db)
     await store.ensure_indexes()
     await pcap_store.ensure_indexes()
     await analysis_store.ensure_indexes()
     await insight_cache.ensure_indexes()
     await usage_ledger.ensure_indexes()
+    await runtime_flags.ensure_indexes()
     ctx["settings"] = settings
     ctx["store"] = store
     ctx["pcap_store"] = pcap_store
@@ -49,6 +52,7 @@ async def startup(ctx: dict[str, object]) -> None:
     ctx["llm_client"] = OpenAICompatibleClient(settings)
     ctx["insight_cache"] = insight_cache
     ctx["usage_ledger"] = usage_ledger
+    ctx["runtime_flags"] = runtime_flags
     ctx["prompt_templates"] = PromptTemplates.load()
     ctx["prompt_redactor"] = PromptRedactor(
         redact_ssid=settings.llm_redact_ssid,
