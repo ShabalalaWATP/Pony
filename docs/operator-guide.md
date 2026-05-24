@@ -100,6 +100,37 @@ curl http://localhost:8000/api/v1/access_points/evil-twin-candidates
 The route is read-only, authenticated, and audited so unusual review activity is
 visible without requiring admin privileges.
 
+## AI-assisted insights
+
+AI-assisted insights are disabled by default. Set
+`CHEEKY_PONY_LLM_ENABLED=true` and configure an OpenAI-compatible endpoint with
+`CHEEKY_PONY_LLM_API_BASE_URL`, `CHEEKY_PONY_LLM_MODEL`, and
+`CHEEKY_PONY_LLM_API_KEY`. HTTP local endpoints can omit the key; HTTPS
+endpoints require one at startup.
+
+Slice 3A exposes alert context at:
+
+```shell
+curl http://localhost:8000/api/v1/insights/alert/<alert-id>
+```
+
+The route is read-only and requires an authenticated operator session. The
+backend does not expose a free-form prompt endpoint. Each insight kind uses a
+versioned prompt template in the repository, a Pydantic response schema, and a
+cache key that includes the template version and redacted prompt hash.
+
+Privacy controls apply before every dispatch. MAC and BSSID values become
+prompt-scoped opaque tokens, sensitive fields are dropped, and audit entries
+store only prompt/response hashes, token counts, latency, model, and cost.
+Enable `CHEEKY_PONY_LLM_REDACT_SSID=true` or
+`CHEEKY_PONY_LLM_REDACT_VENDOR=true` for deployments that do not want SSID or
+vendor names sent to the configured model.
+
+Set `CHEEKY_PONY_LLM_BUDGET_USD_MONTHLY` to cap monthly spend. The default `0`
+means unlimited and is intended for local/private models where per-call billing
+does not apply. `CHEEKY_PONY_LLM_ENABLED=false` is the kill switch and returns
+`llm_unavailable` without dispatching.
+
 ## First admin
 
 Set `CHEEKY_PONY_BOOTSTRAP_TOKEN` to a random value for first deploy. The first

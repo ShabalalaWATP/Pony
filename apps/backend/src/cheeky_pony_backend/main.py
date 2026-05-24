@@ -19,6 +19,7 @@ from cheeky_pony_backend.api.v1 import (
     auth,
     devices,
     engagements,
+    insights,
     lab,
     lab_status,
     oui,
@@ -44,6 +45,11 @@ from cheeky_pony_backend.infra.pcap_analysis_store import (
 )
 from cheeky_pony_backend.infra.pcap_store import GridFsPcapStore, InMemoryPcapStore, PcapStore
 from cheeky_pony_backend.infra.sensor_command_broker import SensorCommandBroker
+from cheeky_pony_backend.llm.budget import InMemoryUsageLedger, MongoUsageLedger, UsageLedger
+from cheeky_pony_backend.llm.cache import InMemoryInsightCache, InsightCache, MongoInsightCache
+from cheeky_pony_backend.llm.client import LlmClient, OpenAICompatibleClient
+from cheeky_pony_backend.llm.prompts import PromptTemplates
+from cheeky_pony_backend.llm.redactor import PromptRedactor
 from cheeky_pony_backend.logging import configure_logging
 from cheeky_pony_backend.pcap.tshark import TsharkRunner, TsharkRuntime, verify_tshark_startup
 from cheeky_pony_backend.security import CsrfService, TokenService
@@ -55,6 +61,9 @@ def create_app(
     pcap_store: PcapStore | None = None,
     pcap_analysis_store: PcapAnalysisStore | None = None,
     tshark_runtime: TsharkRunner | None = None,
+    llm_client: LlmClient | None = None,
+    insight_cache: InsightCache | None = None,
+    usage_ledger: UsageLedger | None = None,
 ) -> FastAPI:
     """Create and configure the FastAPI app.
 
@@ -74,6 +83,14 @@ def create_app(
         active_settings, active_store
     )
     active_tshark_runtime = tshark_runtime or TsharkRuntime(active_settings)
+    active_llm_client = llm_client or OpenAICompatibleClient(active_settings)
+    active_insight_cache = insight_cache or _create_insight_cache(active_settings, active_store)
+    active_usage_ledger = usage_ledger or _create_usage_ledger(active_settings, active_store)
+    active_prompt_templates = PromptTemplates.load()
+    active_prompt_redactor = PromptRedactor(
+        redact_ssid=active_settings.llm_redact_ssid,
+        redact_vendor=active_settings.llm_redact_vendor,
+    )
     app = FastAPI(
         title="Cheeky Pony API",
         version="0.1.0",
@@ -82,6 +99,8 @@ def create_app(
             active_store,
             active_pcap_store,
             active_analysis_store,
+            active_insight_cache,
+            active_usage_ledger,
         ),
     )
     app.state.settings = active_settings
@@ -89,6 +108,11 @@ def create_app(
     app.state.pcap_store = active_pcap_store
     app.state.pcap_analysis_store = active_analysis_store
     app.state.tshark_runtime = active_tshark_runtime
+    app.state.llm_client = active_llm_client
+    app.state.insight_cache = active_insight_cache
+    app.state.usage_ledger = active_usage_ledger
+    app.state.prompt_templates = active_prompt_templates
+    app.state.prompt_redactor = active_prompt_redactor
     app.state.operator_broker = OperatorBroker()
     app.state.sensor_command_broker = SensorCommandBroker()
     app.dependency_overrides[get_settings] = lambda: active_settings
@@ -140,11 +164,29 @@ def _create_pcap_analysis_store(settings: Settings, store: Store) -> PcapAnalysi
     return InMemoryPcapAnalysisStore()
 
 
+def _create_insight_cache(settings: Settings, store: Store) -> InsightCache:
+    if settings.use_in_memory_store or settings.env == "test":
+        return InMemoryInsightCache()
+    if isinstance(store, MongoStore):
+        return MongoInsightCache(store.db)
+    return InMemoryInsightCache()
+
+
+def _create_usage_ledger(settings: Settings, store: Store) -> UsageLedger:
+    if settings.use_in_memory_store or settings.env == "test":
+        return InMemoryUsageLedger()
+    if isinstance(store, MongoStore):
+        return MongoUsageLedger(store.db)
+    return InMemoryUsageLedger()
+
+
 def _lifespan(
     settings: Settings,
     store: Store,
     pcap_store: PcapStore,
     pcap_analysis_store: PcapAnalysisStore,
+    insight_cache: InsightCache,
+    usage_ledger: UsageLedger,
 ) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -152,6 +194,8 @@ def _lifespan(
         await store.ensure_indexes()
         await pcap_store.ensure_indexes()
         await pcap_analysis_store.ensure_indexes()
+        await insight_cache.ensure_indexes()
+        await usage_ledger.ensure_indexes()
         yield
 
     return lifespan
@@ -182,6 +226,7 @@ def _install_routes(app: FastAPI) -> None:
     app.include_router(sensors.router, prefix="/api/v1")
     app.include_router(devices.router, prefix="/api/v1")
     app.include_router(alerts.router, prefix="/api/v1")
+    app.include_router(insights.router, prefix="/api/v1")
     app.include_router(lab.router, prefix="/api/v1")
     app.include_router(lab_status.router, prefix="/api/v1")
     app.include_router(oui.router, prefix="/api/v1")

@@ -17,6 +17,12 @@ from cheeky_pony_backend.infra.operator_broker import OperatorBroker
 from cheeky_pony_backend.infra.pcap_analysis_store import PcapAnalysisStore
 from cheeky_pony_backend.infra.pcap_store import PcapStore
 from cheeky_pony_backend.infra.sensor_command_broker import SensorCommandBroker
+from cheeky_pony_backend.llm.budget import UsageLedger
+from cheeky_pony_backend.llm.cache import InsightCache
+from cheeky_pony_backend.llm.client import LlmClient
+from cheeky_pony_backend.llm.prompts import PromptTemplates
+from cheeky_pony_backend.llm.redactor import PromptRedactor
+from cheeky_pony_backend.llm.service import LlmInsightService
 from cheeky_pony_backend.pcap.tshark import TsharkRunner
 from cheeky_pony_backend.security import (
     CsrfService,
@@ -110,6 +116,60 @@ def get_tshark_runtime(request: Request) -> TsharkRunner:
     """
 
     return cast(TsharkRunner, request.app.state.tshark_runtime)
+
+
+def get_llm_client(request: Request) -> LlmClient:
+    """Return the configured LLM client from FastAPI state."""
+
+    return cast(LlmClient, request.app.state.llm_client)
+
+
+def get_insight_cache(request: Request) -> InsightCache:
+    """Return the configured insight cache from FastAPI state."""
+
+    return cast(InsightCache, request.app.state.insight_cache)
+
+
+def get_usage_ledger(request: Request) -> UsageLedger:
+    """Return the configured LLM usage ledger from FastAPI state."""
+
+    return cast(UsageLedger, request.app.state.usage_ledger)
+
+
+def get_prompt_templates(request: Request) -> PromptTemplates:
+    """Return loaded LLM prompt templates from FastAPI state."""
+
+    return cast(PromptTemplates, request.app.state.prompt_templates)
+
+
+def get_prompt_redactor(request: Request) -> PromptRedactor:
+    """Return the configured prompt redactor from FastAPI state."""
+
+    return cast(PromptRedactor, request.app.state.prompt_redactor)
+
+
+def get_llm_insight_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+    store: Annotated[Store, Depends(get_store)],
+    client: Annotated[LlmClient, Depends(get_llm_client)],
+    cache: Annotated[InsightCache, Depends(get_insight_cache)],
+    ledger: Annotated[UsageLedger, Depends(get_usage_ledger)],
+    redactor: Annotated[PromptRedactor, Depends(get_prompt_redactor)],
+    templates: Annotated[PromptTemplates, Depends(get_prompt_templates)],
+    audit: Annotated[AuditLogger, Depends(get_audit_logger)],
+) -> LlmInsightService:
+    """Return an LLM insight service bound to request-scoped dependencies."""
+
+    return LlmInsightService(
+        client=client,
+        cache=cache,
+        ledger=ledger,
+        redactor=redactor,
+        templates=templates,
+        audit=audit,
+        settings=settings,
+        store=store,
+    )
 
 
 def get_password_service() -> PasswordService:

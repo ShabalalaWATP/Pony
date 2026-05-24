@@ -9,6 +9,7 @@ from typing import Any, cast
 
 from cheeky_pony_backend.config import Settings
 from cheeky_pony_backend.domain.alerts import AlertRuleEngine
+from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.oui_lookup import OuiService
 from cheeky_pony_backend.domain.pcap_models import PcapStatus
 from cheeky_pony_backend.domain.ports import Store
@@ -19,6 +20,13 @@ from cheeky_pony_backend.domain.report_capture_findings import (
 from cheeky_pony_backend.domain.reports import ReportStatus, render_report_artifact
 from cheeky_pony_backend.infra.pcap_analysis_store import PcapAnalysisStore
 from cheeky_pony_backend.infra.pcap_store import PcapStore
+from cheeky_pony_backend.llm.budget import UsageLedger
+from cheeky_pony_backend.llm.cache import InsightCache
+from cheeky_pony_backend.llm.client import LlmClient
+from cheeky_pony_backend.llm.errors import LlmEntityNotFoundError, LlmInsightUnavailableError
+from cheeky_pony_backend.llm.prompts import PromptTemplates
+from cheeky_pony_backend.llm.redactor import PromptRedactor
+from cheeky_pony_backend.llm.service import LlmInsightService
 from cheeky_pony_backend.pcap.analyzer import PcapAnalyzer
 from cheeky_pony_backend.pcap.findings import AnalysisRun, AnalysisRunStatus, Finding
 from cheeky_pony_backend.pcap.tshark import TsharkRunner
@@ -45,7 +53,9 @@ async def batch_insert_events(ctx: dict[str, Any], events: list[dict[str, Any]])
     for payload in events:
         event = Event.model_validate(payload)
         await store.insert_event(event)
-        await engine.evaluate_event(event)
+        alerts = await engine.evaluate_event(event)
+        for alert in alerts:
+            await generate_alert_context_insight(ctx, alert.id)
         inserted += 1
     return inserted
 
@@ -80,7 +90,23 @@ async def evaluate_alerts(ctx: dict[str, Any], event: dict[str, Any]) -> list[di
     if store is None:
         return []
     alerts = await AlertRuleEngine(store).evaluate_event(Event.model_validate(event))
+    for alert in alerts:
+        await generate_alert_context_insight(ctx, alert.id)
     return [alert.model_dump(mode="json") for alert in alerts]
+
+
+async def generate_alert_context_insight(ctx: dict[str, Any], alert_id: str) -> bool:
+    """Generate alert-context insight from worker context when LLM is enabled."""
+
+    service = _llm_service_from_context(ctx)
+    settings = _settings_from_context(ctx)
+    if service is None or settings is None or not settings.llm_enabled:
+        return False
+    try:
+        await service.alert_context(alert_id, actor_id="system:alert_engine")
+        return True
+    except (LlmEntityNotFoundError, LlmInsightUnavailableError):
+        return False
 
 
 async def generate_report(ctx: dict[str, Any], report_id: str) -> bool:
@@ -222,6 +248,42 @@ def _oui_service_from_context(ctx: dict[str, Any]) -> OuiService | None:
     if oui is None:
         return None
     return cast(OuiService, oui)
+
+
+def _llm_service_from_context(ctx: dict[str, Any]) -> LlmInsightService | None:
+    store = _store_from_context(ctx)
+    settings = _settings_from_context(ctx)
+    client = ctx.get("llm_client")
+    cache = ctx.get("insight_cache")
+    ledger = ctx.get("usage_ledger")
+    redactor = ctx.get("prompt_redactor")
+    templates = ctx.get("prompt_templates")
+    if not _has_llm_context(store, settings, client, cache, ledger, redactor, templates):
+        return None
+    return LlmInsightService(
+        client=cast(LlmClient, client),
+        cache=cast(InsightCache, cache),
+        ledger=cast(UsageLedger, ledger),
+        redactor=cast(PromptRedactor, redactor),
+        templates=cast(PromptTemplates, templates),
+        audit=AuditLogger(cast(Store, store)),
+        settings=cast(Settings, settings),
+        store=cast(Store, store),
+    )
+
+
+def _has_llm_context(
+    store: Store | None,
+    settings: Settings | None,
+    client: object,
+    cache: object,
+    ledger: object,
+    redactor: object,
+    templates: object,
+) -> bool:
+    return all(
+        item is not None for item in (store, settings, client, cache, ledger, redactor, templates)
+    )
 
 
 def _events_in_range(events: list[Event], since: datetime, until: datetime) -> list[Event]:

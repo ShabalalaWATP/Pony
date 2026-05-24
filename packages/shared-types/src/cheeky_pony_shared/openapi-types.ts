@@ -60,6 +60,7 @@ export interface components {
     "FindingKind": unknown;
     "FindingSeverity": unknown;
     "HTTPValidationError": unknown;
+    "Insight": unknown;
     "LabActiveCommand": unknown;
     "LabModule": unknown;
     "LabModuleStartRequest": unknown;
@@ -137,6 +138,7 @@ export interface paths {
   "/api/v1/engagements/{engagement_id}/resume": Record<string, unknown>;
   "/api/v1/events": Record<string, unknown>;
   "/api/v1/events/{event_id}": Record<string, unknown>;
+  "/api/v1/insights/alert/{alert_id}": Record<string, unknown>;
   "/api/v1/lab/active": Record<string, unknown>;
   "/api/v1/lab/status": Record<string, unknown>;
   "/api/v1/lab/{module}/start": Record<string, unknown>;

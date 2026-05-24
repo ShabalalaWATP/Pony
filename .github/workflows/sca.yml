@@ -39,7 +39,17 @@ jobs:
           mkdir -p /tmp/osv-input/backend /tmp/osv-input/sensor
           cp apps/backend/requirements.lock /tmp/osv-input/backend/requirements.txt
           cp apps/sensor-agent/requirements.lock /tmp/osv-input/sensor/requirements.txt
-          osv-scanner scan source --config osv-scanner.toml -r /tmp/osv-input
+          for attempt in 1 2 3; do
+            if osv-scanner scan source --config osv-scanner.toml -r /tmp/osv-input; then
+              exit 0
+            fi
+            status=$?
+            if [ "$attempt" -eq 3 ]; then
+              exit "$status"
+            fi
+            echo "::warning::OSV-Scanner failed with exit $status; retrying"
+            sleep $((attempt * 15))
+          done
       - name: Install Trivy
         run: |
           curl -sSfL -o /tmp/trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.70.0/trivy_0.70.0_Linux-64bit.tar.gz

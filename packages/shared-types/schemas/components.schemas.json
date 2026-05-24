@@ -2250,6 +2250,79 @@
     "title": "HTTPValidationError",
     "type": "object"
   },
+  "Insight": {
+    "additionalProperties": false,
+    "description": "Operator-facing validated insight.",
+    "properties": {
+      "bullet_points": {
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 5,
+        "title": "Bullet Points",
+        "type": "array"
+      },
+      "cached": {
+        "default": false,
+        "title": "Cached",
+        "type": "boolean"
+      },
+      "confidence": {
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "title": "Confidence",
+        "type": "string"
+      },
+      "entity_id": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Entity Id",
+        "type": "string"
+      },
+      "generated_at": {
+        "format": "date-time",
+        "title": "Generated At",
+        "type": "string"
+      },
+      "kind": {
+        "const": "alert_context",
+        "title": "Kind",
+        "type": "string"
+      },
+      "model": {
+        "maxLength": 128,
+        "minLength": 1,
+        "title": "Model",
+        "type": "string"
+      },
+      "summary": {
+        "maxLength": 600,
+        "minLength": 1,
+        "title": "Summary",
+        "type": "string"
+      },
+      "template_version": {
+        "maxLength": 16,
+        "minLength": 1,
+        "title": "Template Version",
+        "type": "string"
+      }
+    },
+    "required": [
+      "kind",
+      "entity_id",
+      "summary",
+      "confidence",
+      "generated_at",
+      "model",
+      "template_version"
+    ],
+    "title": "Insight",
+    "type": "object"
+  },
   "LabActiveCommand": {
     "description": "Active lab command dashboard item.",
     "properties": {
