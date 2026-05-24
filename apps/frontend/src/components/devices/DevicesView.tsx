@@ -5,10 +5,12 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Drawer } from "@/components/ui/Drawer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/domain/EmptyState";
+import { LabelBadge } from "@/components/domain/LabelBadge";
 import { MacAddress } from "@/components/domain/MacAddress";
 import { RelativeTime } from "@/components/domain/RelativeTime";
 import { SignalBars } from "@/components/domain/SignalBars";
 import { latestRssi } from "@/lib/signal-helpers";
+import type { DeviceClass } from "@/lib/labels";
 import { resolveVendor } from "@/lib/vendor";
 import { useDevicesList, type Client } from "@/services/api/queries";
 import { DeviceDetail } from "./DeviceDetail";
@@ -39,6 +41,19 @@ const columns: ColumnDef<Client, unknown>[] = [
       );
     },
     size: 200,
+  },
+  {
+    id: "label",
+    header: "Class",
+    accessorFn: (row) => (row as Client & { label?: DeviceClass | null }).label ?? "unknown",
+    cell: (ctx) => {
+      const row = ctx.row.original as Client & {
+        label?: DeviceClass | null;
+        label_confidence?: number;
+      };
+      return <LabelBadge kind="device" label={row.label} confidence={row.label_confidence} />;
+    },
+    size: 120,
   },
   {
     id: "probes",
