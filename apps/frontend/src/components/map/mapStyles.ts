@@ -38,7 +38,6 @@ export interface MapStyleDef {
   style: string | StyleSpecification;
 }
 
-
 const localStreetStyle: StyleSpecification = {
   version: 8,
   sources: {},
