@@ -111,6 +111,13 @@ class PcapAnalyzer:
                 timeout_seconds=self._settings.tshark_timeout_seconds,
             )
             return spec.parse(context, result.stdout)
+        except OSError:
+            return failed_finding(
+                spec.name,
+                context.pcap,
+                context.analysis_id,
+                "tshark_runtime_error",
+            )
         except (TsharkError, ValueError) as exc:
             return failed_finding(
                 spec.name,

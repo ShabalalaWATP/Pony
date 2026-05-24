@@ -12,11 +12,15 @@ from cheeky_pony_backend.domain.alerts import AlertRuleEngine
 from cheeky_pony_backend.domain.oui_lookup import OuiService
 from cheeky_pony_backend.domain.pcap_models import PcapStatus
 from cheeky_pony_backend.domain.ports import Store
+from cheeky_pony_backend.domain.report_capture_findings import (
+    CaptureFindingsSection,
+    build_capture_findings_section,
+)
 from cheeky_pony_backend.domain.reports import ReportStatus, render_report_artifact
 from cheeky_pony_backend.infra.pcap_analysis_store import PcapAnalysisStore
 from cheeky_pony_backend.infra.pcap_store import PcapStore
 from cheeky_pony_backend.pcap.analyzer import PcapAnalyzer
-from cheeky_pony_backend.pcap.findings import AnalysisRun, AnalysisRunStatus
+from cheeky_pony_backend.pcap.findings import AnalysisRun, AnalysisRunStatus, Finding
 from cheeky_pony_backend.pcap.tshark import TsharkRunner
 from cheeky_pony_shared import Event
 
@@ -103,12 +107,18 @@ async def generate_report(ctx: dict[str, Any], report_id: str) -> bool:
         events, _ = await store.list_events(500, 0)
         alerts, _ = await store.list_alerts(500, 0, None, None)
         audit_logs, _ = await store.list_audit(500, 0)
+        capture_findings = await _capture_findings_section(
+            report.engagement_id,
+            _pcap_store_from_context(ctx),
+            _pcap_analysis_store_from_context(ctx),
+        )
         artifact = render_report_artifact(
             report,
             engagement,
             _events_in_range(events, report.since, report.until),
             alerts,
             audit_logs,
+            capture_findings,
         )
         updated = report.model_copy(
             update={
@@ -216,6 +226,22 @@ def _oui_service_from_context(ctx: dict[str, Any]) -> OuiService | None:
 
 def _events_in_range(events: list[Event], since: datetime, until: datetime) -> list[Event]:
     return [event for event in events if since <= event.occurred_at <= until]
+
+
+async def _capture_findings_section(
+    engagement_id: str,
+    pcaps: PcapStore | None,
+    analysis_store: PcapAnalysisStore | None,
+) -> CaptureFindingsSection | None:
+    if pcaps is None or analysis_store is None:
+        return None
+    pcap_items, _ = await pcaps.list_pcaps(engagement_id, 100, 0)
+    analyzed = [pcap for pcap in pcap_items if pcap.status == PcapStatus.ANALYZED]
+    findings: list[Finding] = []
+    for pcap in analyzed:
+        page, _ = await analysis_store.list_findings(engagement_id, pcap.id, 500, 0)
+        findings.extend(page)
+    return build_capture_findings_section(pcap_items, findings)
 
 
 async def _record_failed_analysis(

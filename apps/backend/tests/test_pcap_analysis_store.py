@@ -88,6 +88,14 @@ async def _assert_analysis_store_contract(factory: StoreFactory) -> None:
     assert wrong_scope is None
     assert counts == {FindingKind.PROTOCOL_HIERARCHY: 1}
 
+    await store.delete_for_pcap("eng-1", "pcap-1")
+    deleted_latest = await store.latest_run("eng-1", "pcap-1")
+    deleted_findings, deleted_total = await store.list_findings("eng-1", "pcap-1", 10, 0)
+
+    assert deleted_latest is None
+    assert deleted_findings == []
+    assert deleted_total == 0
+
 
 async def _in_memory_store() -> PcapAnalysisStore:
     return InMemoryPcapAnalysisStore()

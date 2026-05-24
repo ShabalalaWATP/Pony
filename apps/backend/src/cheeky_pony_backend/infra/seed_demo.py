@@ -13,7 +13,9 @@ from datetime import UTC, datetime, timedelta
 from cheeky_pony_backend.config import Settings, get_settings
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.infra.demo_dataset import DemoDataset, build_demo_dataset
+from cheeky_pony_backend.infra.demo_pcaps import clean_demo_pcaps, seed_demo_pcaps
 from cheeky_pony_backend.infra.mongo_store import SYNTHETIC_COUNT_COLLECTIONS, MongoStore
+from cheeky_pony_backend.pcap.tshark import TsharkRunner
 from cheeky_pony_shared import (
     AccessPoint,
     Alert,
@@ -61,17 +63,25 @@ async def run(options: SeedOptions) -> int:
             counts = await _clean(store, options.actor_id)
             LOGGER.info("removed synthetic demo records: %s", counts)
             return 0
-        counts = await _seed(store, options)
+        counts = await _seed(store, options, settings)
         LOGGER.info("seeded synthetic demo records: %s", counts)
         return 0
     finally:
         store.client.close()
 
 
-async def _seed(store: MongoStore, options: SeedOptions) -> dict[str, int]:
+async def _seed(
+    store: MongoStore,
+    options: SeedOptions,
+    settings: Settings | None = None,
+    runtime: TsharkRunner | None = None,
+) -> dict[str, int]:
     dataset = build_demo_dataset(datetime.now(tz=UTC), options.with_active)
     await _upsert_dataset(store, dataset)
     counts = _seed_counts(dataset)
+    counts.update(
+        await seed_demo_pcaps(store, settings or get_settings(), options.actor_id, runtime)
+    )
     await AuditLogger(store).record(
         options.actor_id,
         "demo.seed.run",
@@ -87,6 +97,7 @@ async def _clean(store: MongoStore, actor_id: str) -> dict[str, int]:
     for collection_name in SYNTHETIC_COUNT_COLLECTIONS:
         result = await store.db[collection_name].delete_many({"synthetic": True})
         deleted[collection_name] = int(result.deleted_count)
+    deleted.update(await clean_demo_pcaps(store))
     await AuditLogger(store).record(actor_id, "demo.seed.clean", {}, {"deleted": deleted}, "ok")
     return deleted
 

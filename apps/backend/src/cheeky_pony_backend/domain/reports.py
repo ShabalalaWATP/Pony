@@ -14,6 +14,11 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from cheeky_pony_backend.domain.report_capture_findings import (
+    CaptureFindingsSection,
+    render_capture_findings_html,
+    render_capture_findings_text,
+)
 from cheeky_pony_shared import Alert, AuditLog, Engagement, Event
 
 
@@ -165,6 +170,7 @@ def render_report_artifact(
     events: list[Event],
     alerts: list[Alert],
     audit_logs: list[AuditLog],
+    capture_findings: CaptureFindingsSection | None = None,
 ) -> ReportArtifact:
     """Render one report artifact.
 
@@ -174,15 +180,16 @@ def render_report_artifact(
         events: Events in the requested range.
         alerts: Alerts to summarize.
         audit_logs: Audit log entries to summarize.
+        capture_findings: Optional structured PCAP finding section.
 
     Returns:
         Rendered artifact bytes and metadata.
     """
 
-    summary = _summary(report, engagement, events, alerts, audit_logs)
+    summary = _summary(report, engagement, events, alerts, audit_logs, capture_findings)
     stem = f"engagement-{engagement.id}-report-{report.id}"
     if report.format == ReportFormat.JSONL:
-        content = _jsonl(summary, events, alerts, audit_logs)
+        content = _jsonl(summary, events, alerts, audit_logs, capture_findings)
         return ReportArtifact(
             content=content,
             content_type="application/x-ndjson",
@@ -190,7 +197,7 @@ def render_report_artifact(
         )
     if report.format == ReportFormat.HTML:
         return ReportArtifact(
-            content=_html(summary).encode(),
+            content=_html(summary, capture_findings).encode(),
             content_type="text/html; charset=utf-8",
             filename=f"{stem}.html",
         )
@@ -201,7 +208,7 @@ def render_report_artifact(
             filename=f"{stem}.pcap",
         )
     return ReportArtifact(
-        content=_pdf(summary),
+        content=_pdf(summary, capture_findings),
         content_type="application/pdf",
         filename=f"{stem}.pdf",
     )
@@ -213,7 +220,9 @@ def _summary(
     events: list[Event],
     alerts: list[Alert],
     audit_logs: list[AuditLog],
+    capture_findings: CaptureFindingsSection | None,
 ) -> dict[str, Any]:
+    capture_counts = _capture_counts(capture_findings)
     return {
         "report_id": report.id,
         "engagement_id": engagement.id,
@@ -226,6 +235,8 @@ def _summary(
             "events": len(events),
             "alerts": len(alerts),
             "audit_logs": len(audit_logs),
+            "pcaps": capture_counts["pcaps"],
+            "capture_findings": capture_counts["capture_findings"],
         },
     }
 
@@ -235,15 +246,20 @@ def _jsonl(
     events: list[Event],
     alerts: list[Alert],
     audit_logs: list[AuditLog],
+    capture_findings: CaptureFindingsSection | None,
 ) -> bytes:
     rows: list[dict[str, Any]] = [{"kind": "summary", "payload": summary}]
     rows.extend({"kind": "event", "payload": event.model_dump(mode="json")} for event in events)
     rows.extend({"kind": "alert", "payload": alert.model_dump(mode="json")} for alert in alerts)
     rows.extend({"kind": "audit", "payload": _audit_payload(log)} for log in audit_logs)
+    if capture_findings is not None:
+        rows.append(
+            {"kind": "capture_findings", "payload": capture_findings.model_dump(mode="json")}
+        )
     return ("\n".join(json.dumps(row, separators=(",", ":")) for row in rows) + "\n").encode()
 
 
-def _html(summary: dict[str, Any]) -> str:
+def _html(summary: dict[str, Any], capture_findings: CaptureFindingsSection | None) -> str:
     counts = summary["counts"]
     return (
         '<!doctype html><html><head><meta charset="utf-8"><title>Cheeky Pony Report</title>'
@@ -251,11 +267,13 @@ def _html(summary: dict[str, Any]) -> str:
         f"<p>Engagement: {escape(str(summary['engagement_name']))}</p>"
         f"<p>Window: {escape(str(summary['since']))} to {escape(str(summary['until']))}</p>"
         f"<ul><li>Events: {counts['events']}</li><li>Alerts: {counts['alerts']}</li>"
-        f"<li>Audit logs: {counts['audit_logs']}</li></ul></body></html>"
+        f"<li>Audit logs: {counts['audit_logs']}</li>"
+        f"<li>PCAPs: {counts['pcaps']}</li></ul>"
+        f"{render_capture_findings_html(capture_findings)}</body></html>"
     )
 
 
-def _pdf(summary: dict[str, Any]) -> bytes:
+def _pdf(summary: dict[str, Any], capture_findings: CaptureFindingsSection | None) -> bytes:
     text = (
         "Cheeky Pony Engagement Report\n"
         f"Engagement: {summary['engagement_name']}\n"
@@ -263,6 +281,8 @@ def _pdf(summary: dict[str, Any]) -> bytes:
         f"Events: {summary['counts']['events']}\n"
         f"Alerts: {summary['counts']['alerts']}\n"
         f"Audit logs: {summary['counts']['audit_logs']}\n"
+        f"PCAPs: {summary['counts']['pcaps']}\n"
+        f"{render_capture_findings_text(capture_findings)}"
     )
     escaped = text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
     stream = f"BT /F1 12 Tf 72 720 Td ({escaped}) Tj ET"
@@ -286,3 +306,12 @@ def _audit_payload(log: AuditLog) -> dict[str, Any]:
     payload = log.model_dump(mode="json")
     payload.pop("raw_tool_output_ref", None)
     return payload
+
+
+def _capture_counts(capture_findings: CaptureFindingsSection | None) -> dict[str, int]:
+    if capture_findings is None:
+        return {"pcaps": 0, "capture_findings": 0}
+    return {
+        "pcaps": capture_findings.total_pcaps,
+        "capture_findings": capture_findings.total_findings,
+    }

@@ -5,6 +5,13 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 2E — PCAP demo and report integration (#65)
+
+- Added demo PCAP assets to `make seed-demo`, persisted through validation,
+  GridFS, and the curated analyzer path with idempotent cleanup.
+- Added capture finding summaries to engagement reports without exposing raw
+  tshark output or packet bytes.
+
 ### Backend Phase 2D — PCAP network findings (#64)
 
 - Added DNS, TLS SNI, and DHCP structured PCAP findings with pre-persistence
