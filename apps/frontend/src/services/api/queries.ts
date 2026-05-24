@@ -2,15 +2,26 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ApiError, apiClient } from "./client";
 import type { components } from "./openapi";
 
+// Alerts + alert rules live in `./alertQueries` — re-exported here so
+// existing call sites that import from `services/api/queries` keep
+// working without churn. Phase 4+ can migrate imports gradually.
+export {
+  useAlertsList,
+  useAckAlert,
+  useAlertRulesList,
+  useCreateAlertRule,
+  useUpdateAlertRule,
+  useDeleteAlertRule,
+  type Alert,
+  type AlertRule,
+  type AlertSeverity,
+  type AlertsListParams,
+} from "./alertQueries";
+
 type Sensor = components["schemas"]["Sensor"];
 type AccessPoint = components["schemas"]["AccessPoint"];
 type Client = components["schemas"]["Client"];
 type Event = components["schemas"]["Event"];
-type Alert = components["schemas"]["Alert"];
-type AlertRule = components["schemas"]["AlertRule"];
-type AlertSeverity = components["schemas"]["AlertSeverity"];
-type AlertRuleCreateRequest = components["schemas"]["AlertRuleCreateRequest"];
-type AlertRuleUpdateRequest = components["schemas"]["AlertRuleUpdateRequest"];
 type SensorCommandAcceptedResponse = components["schemas"]["SensorCommandAcceptedResponse"];
 type SetChannelRequest = components["schemas"]["SetChannelRequest"];
 type SensorCapability = components["schemas"]["SensorCapability"];
@@ -47,22 +58,6 @@ function withQuery(path: string, params: Pagination = {}): string {
   const search = new URLSearchParams();
   if (params.limit !== undefined) search.set("limit", String(params.limit));
   if (params.offset !== undefined) search.set("offset", String(params.offset));
-  const qs = search.toString();
-  return qs ? `${path}?${qs}` : path;
-}
-
-interface AlertsListParams extends Pagination {
-  severity?: AlertSeverity[];
-  /** `true` → acked only, `false` → unacked only, omit → all. */
-  acked?: boolean;
-}
-
-function withAlertQuery(path: string, params: AlertsListParams): string {
-  const search = new URLSearchParams();
-  if (params.limit !== undefined) search.set("limit", String(params.limit));
-  if (params.offset !== undefined) search.set("offset", String(params.offset));
-  for (const s of params.severity ?? []) search.append("severity", s);
-  if (params.acked !== undefined) search.set("acked", String(params.acked));
   const qs = search.toString();
   return qs ? `${path}?${qs}` : path;
 }
@@ -235,89 +230,6 @@ export function useSensorsList(pagination: Pagination = {}) {
   });
 }
 
-const ALERTS_ROOT_KEY = ["alerts"] as const;
-const ALERT_RULES_ROOT_KEY = ["alert_rules"] as const;
-
-/**
- * Paginated list of alerts. Supports filtering by severity (repeated
- * query param) and ack state. The query key embeds the filters so
- * different filter combinations cache separately.
- */
-export function useAlertsList(params: AlertsListParams = {}) {
-  const { limit = 100, offset = 0, severity, acked } = params;
-  const filters = { limit, offset, severity: severity ?? [], acked };
-  return useQuery<Page<Alert>, ApiError>({
-    queryKey: [...ALERTS_ROOT_KEY, filters],
-    queryFn: () => apiClient.get<Page<Alert>>(withAlertQuery("/alerts", filters)),
-    staleTime: 10_000,
-  });
-}
-
-/**
- * Acknowledge an alert. On success, both the alerts and (cached) rules
- * queries are invalidated so the inbox + Overview tile reflect the new
- * `acked_by` / `acked_at` state without a manual refetch.
- */
-export function useAckAlert() {
-  const qc = useQueryClient();
-  return useMutation<void, ApiError, string>({
-    mutationFn: (alertId) =>
-      apiClient.post<undefined>(`/alerts/${encodeURIComponent(alertId)}/ack`),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ALERTS_ROOT_KEY });
-    },
-  });
-}
-
-/**
- * Paginated list of alert rules. Rule management is admin-gated on the
- * backend so a vanilla operator may see a 403 — callers inspect
- * `error.status` and render an explanatory empty state.
- */
-export function useAlertRulesList(pagination: Pagination = {}) {
-  const { limit = 100, offset = 0 } = pagination;
-  return useQuery<Page<AlertRule>, ApiError>({
-    queryKey: [...ALERT_RULES_ROOT_KEY, { limit, offset }],
-    queryFn: () => apiClient.get<Page<AlertRule>>(withQuery("/alerts/rules", { limit, offset })),
-    staleTime: PAGE_STALE_TIME,
-    retry: (count, error) => {
-      if (error.status === 401 || error.status === 403) return false;
-      return count < 1;
-    },
-  });
-}
-
-export function useCreateAlertRule() {
-  const qc = useQueryClient();
-  return useMutation<AlertRule, ApiError, AlertRuleCreateRequest>({
-    mutationFn: (req) => apiClient.post<AlertRule>("/alerts/rules", req),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ALERT_RULES_ROOT_KEY });
-    },
-  });
-}
-
-export function useUpdateAlertRule() {
-  const qc = useQueryClient();
-  return useMutation<AlertRule, ApiError, { id: string; patch: AlertRuleUpdateRequest }>({
-    mutationFn: ({ id, patch }) =>
-      apiClient.patch<AlertRule>(`/alerts/rules/${encodeURIComponent(id)}`, patch),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ALERT_RULES_ROOT_KEY });
-    },
-  });
-}
-
-export function useDeleteAlertRule() {
-  const qc = useQueryClient();
-  return useMutation<void, ApiError, string>({
-    mutationFn: (id) => apiClient.delete<undefined>(`/alerts/rules/${encodeURIComponent(id)}`),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ALERT_RULES_ROOT_KEY });
-    },
-  });
-}
-
 /**
  * Send a sensor-lifecycle command. The backend returns 202 + a
  * `command_id`; the actual outcome arrives later on the operator
@@ -388,17 +300,18 @@ export function useRevokeSensor() {
   });
 }
 
+// `AlertRuleCreateRequest` / `AlertRuleUpdateRequest` moved with the
+// alerts hooks to `./alertQueries`. Re-export here for any consumer
+// still importing them from this module so the split is non-breaking.
+export type AlertRuleCreateRequest = components["schemas"]["AlertRuleCreateRequest"];
+export type AlertRuleUpdateRequest = components["schemas"]["AlertRuleUpdateRequest"];
+
 export type {
   Page,
   Sensor,
   AccessPoint,
   Client,
   Event,
-  Alert,
-  AlertRule,
-  AlertSeverity,
-  AlertRuleCreateRequest,
-  AlertRuleUpdateRequest,
   SensorCapability,
   SensorCommandAcceptedResponse,
   SensorRegisterRequest,
