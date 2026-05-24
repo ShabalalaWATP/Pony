@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-InsightKind = Literal["alert_context", "engagement_summary"]
+InsightKind = Literal["alert_context", "engagement_summary", "ap_description"]
 InsightConfidence = Literal["low", "medium", "high"]
 MessageRole = Literal["system", "user", "assistant"]
 

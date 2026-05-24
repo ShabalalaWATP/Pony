@@ -15,6 +15,7 @@ from cheeky_pony_backend.llm.audit import sha256_text
 from cheeky_pony_backend.llm.cache import InsightCache, cache_key, cache_record
 from cheeky_pony_backend.llm.errors import LlmOutputValidationError
 from cheeky_pony_backend.llm.insights.alert_context import AlertContextResponse
+from cheeky_pony_backend.llm.insights.ap_description import ApDescriptionResponse
 from cheeky_pony_backend.llm.insights.engagement_summary import EngagementSummaryResponse
 from cheeky_pony_backend.llm.pricing import (
     estimate_completion_cost_micro_cents,
@@ -48,6 +49,16 @@ def parse_engagement_response(content: str) -> EngagementSummaryResponse:
     try:
         parsed = json.loads(content)
         return EngagementSummaryResponse.model_validate(parsed)
+    except (json.JSONDecodeError, ValidationError) as exc:
+        raise LlmOutputValidationError() from exc
+
+
+def parse_ap_description_response(content: str) -> ApDescriptionResponse:
+    """Parse and validate an AP-description model response."""
+
+    try:
+        parsed = json.loads(content)
+        return ApDescriptionResponse.model_validate(parsed)
     except (json.JSONDecodeError, ValidationError) as exc:
         raise LlmOutputValidationError() from exc
 
@@ -154,6 +165,12 @@ def engagement_cache_expiry() -> datetime:
     """Return the conservative engagement-summary cache expiry."""
 
     return datetime.now(tz=UTC) + timedelta(hours=1)
+
+
+def ap_cache_expiry() -> datetime:
+    """Return the conservative AP-description cache expiry."""
+
+    return datetime.now(tz=UTC) + timedelta(hours=24)
 
 
 def actual_cost(

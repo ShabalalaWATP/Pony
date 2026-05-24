@@ -57,3 +57,24 @@ async def get_engagement_summary_insight(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={"detail": "llm_unavailable", "reason": exc.reason},
         )
+
+
+@router.get("/ap/{bssid}", response_model=Insight)
+async def get_ap_description_insight(
+    bssid: str,
+    user: Annotated[UserRecord, Depends(current_user)],
+    service: Annotated[LlmInsightService, Depends(get_llm_insight_service)],
+) -> Insight | JSONResponse:
+    """Return LLM-generated description for an access point."""
+
+    try:
+        return await service.ap_description(bssid, actor_id=user.id)
+    except LlmEntityNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="access_point_not_found"
+        ) from exc
+    except LlmInsightUnavailableError as exc:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"detail": "llm_unavailable", "reason": exc.reason},
+        )

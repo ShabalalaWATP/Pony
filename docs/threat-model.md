@@ -173,9 +173,10 @@ Method: STRIDE per major component.
   only entity ids for named insight kinds. There is no free-form prompt route.
 - Tampering: prompt contexts are built server-side from validated persisted
   records, including engagement metadata, aggregate event counts, alert severity
-  summaries, and completed PCAP finding counts for engagement summaries.
-  Templates are versioned files in the repository, and every model response is
-  parsed through a per-insight Pydantic schema before it can reach an operator.
+  summaries, completed PCAP finding counts for engagement summaries, and local
+  AP metadata/classification/anomaly summaries for AP descriptions. Templates
+  are versioned files in the repository, and every model response is parsed
+  through a per-insight Pydantic schema before it can reach an operator.
 - Repudiation: every insight route call and worker generation path writes an
   audit entry with actor, target, template version, hashes, token counts, cost,
   latency, and outcome. Raw prompts and raw responses are never stored in audit.
@@ -187,7 +188,8 @@ Method: STRIDE per major component.
   timeouts and retry caps bound provider interaction, cache hits avoid repeat
   dispatch, and the monthly usage ledger refuses calls that would exceed the
   configured budget. Engagement summaries cache for one hour and engagement-end
-  replays do not enqueue duplicate summary tasks.
+  replays do not enqueue duplicate summary tasks. AP descriptions are on-demand
+  only and cache for 24 hours.
 - Elevation of privilege: insights are read-only GET routes and cannot mutate
   state. The LLM informs operators but does not execute actions or influence lab
   gate decisions.

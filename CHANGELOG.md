@@ -5,6 +5,15 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 3C — LLM AP description (#68)
+
+- Added authenticated, on-demand AP-description insight reads with 24-hour
+  cache TTL, signal summaries, local label/anomaly context, and associated
+  client aggregate context.
+- Split the shared LLM generation runtime out of the service orchestrator so
+  new named insight kinds reuse the same budget, cache, validation, and audit
+  path without growing a large service file.
+
 ### Backend Phase 3B — LLM engagement summary (#67)
 
 - Added authenticated engagement-summary insight reads with one-hour cache TTL,
