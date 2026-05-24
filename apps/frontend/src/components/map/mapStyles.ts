@@ -7,9 +7,9 @@
  * by `id` so swapping in a new style is a one-line append here.
  *
  * Design rules:
- * - **No API keys in the client.** Esri's public ArcGIS REST endpoints
- *   are key-less for non-commercial use; MapLibre demotiles is public.
- *   Anything that needs a token belongs behind the backend.
+ * - **No third-party defaults.** The built-in `street` style is local
+ *   JSON (no external fetches). Remote styles must be explicitly added
+ *   and documented with the deployment privacy posture.
  * - **HTTPS only.** Each tile source uses `https://…` so the page
  *   stays mixed-content-clean.
  * - **Attribution baked in.** Esri's ToS requires "Source: Esri,
@@ -19,12 +19,8 @@
  * - **Open/closed.** Adding a 4th style means appending to
  *   `MAP_STYLES`. No other file in the app needs to change.
  *
- * Note on CSP: the backend's content-security-policy currently uses
- * `default-src 'self'` and so will block tile fetches in production.
- * The accompanying backend brief lists the domains that need to be
- * added to `connect-src` / `img-src` (`demotiles.maplibre.org` and
- * `server.arcgisonline.com`). In dev, Vite serves the SPA without a
- * CSP so the switcher is fully exercisable.
+ * Note on CSP: remote tile domains still require explicit `connect-src`
+ * / `img-src` allow-listing where a deployment opts into them.
  */
 
 import type { StyleSpecification } from "maplibre-gl";
@@ -41,6 +37,19 @@ export interface MapStyleDef {
   /** MapLibre style — URL or full spec object. */
   style: string | StyleSpecification;
 }
+
+
+const localStreetStyle: StyleSpecification = {
+  version: 8,
+  sources: {},
+  layers: [
+    {
+      id: "street-background",
+      type: "background",
+      paint: { "background-color": "#0f172a" },
+    },
+  ],
+};
 
 const ESRI_IMAGERY_TILES =
   "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
@@ -99,7 +108,7 @@ export const MAP_STYLES: readonly [MapStyleDef, MapStyleDef, MapStyleDef] = [
     id: "street",
     label: "Street",
     description: "MapLibre vector basemap — dark, low-detail, no labels obscuring markers.",
-    style: "https://demotiles.maplibre.org/style.json",
+    style: localStreetStyle,
   },
   {
     id: "satellite",
