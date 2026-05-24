@@ -25,12 +25,14 @@ vi.mock("@/components/map/MapCanvas", () => ({
     const styleId =
       typeof style === "string"
         ? "street"
-        : style && typeof style === "object" && "sources" in style
-          ? Object.keys((style as { sources: Record<string, unknown> }).sources).includes(
-              "esri-labels",
-            )
-            ? "hybrid"
-            : "satellite"
+        : style && typeof style === "object" && "sources" in style && "layers" in style
+          ? Object.keys((style as { sources: Record<string, unknown> }).sources).length === 0
+            ? "street"
+            : Object.keys((style as { sources: Record<string, unknown> }).sources).includes(
+                  "esri-labels",
+                )
+              ? "hybrid"
+              : "satellite"
           : "unknown";
     const sensors = sensorMarkers ?? {};
     return (
