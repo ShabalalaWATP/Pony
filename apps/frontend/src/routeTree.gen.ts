@@ -24,6 +24,7 @@ import { Route as ShellDevicesIndexRouteImport } from "./routes/_shell.devices.i
 import { Route as ShellAlertsIndexRouteImport } from "./routes/_shell.alerts.index";
 import { Route as ShellSettingsUsersRouteImport } from "./routes/_shell.settings.users";
 import { Route as ShellSettingsSystemRouteImport } from "./routes/_shell.settings.system";
+import { Route as ShellSettingsInsightsRouteImport } from "./routes/_shell.settings.insights";
 import { Route as ShellSettingsAccountRouteImport } from "./routes/_shell.settings.account";
 import { Route as ShellSettingsAboutRouteImport } from "./routes/_shell.settings.about";
 import { Route as ShellSensorsSensorIdRouteImport } from "./routes/_shell.sensors.$sensorId";
@@ -111,6 +112,11 @@ const ShellSettingsUsersRoute = ShellSettingsUsersRouteImport.update({
 const ShellSettingsSystemRoute = ShellSettingsSystemRouteImport.update({
   id: "/settings/system",
   path: "/settings/system",
+  getParentRoute: () => ShellRoute,
+} as any);
+const ShellSettingsInsightsRoute = ShellSettingsInsightsRouteImport.update({
+  id: "/settings/insights",
+  path: "/settings/insights",
   getParentRoute: () => ShellRoute,
 } as any);
 const ShellSettingsAccountRoute = ShellSettingsAccountRouteImport.update({
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   "/sensors/$sensorId": typeof ShellSensorsSensorIdRoute;
   "/settings/about": typeof ShellSettingsAboutRoute;
   "/settings/account": typeof ShellSettingsAccountRoute;
+  "/settings/insights": typeof ShellSettingsInsightsRoute;
   "/settings/system": typeof ShellSettingsSystemRoute;
   "/settings/users": typeof ShellSettingsUsersRoute;
   "/alerts/": typeof ShellAlertsIndexRoute;
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   "/sensors/$sensorId": typeof ShellSensorsSensorIdRoute;
   "/settings/about": typeof ShellSettingsAboutRoute;
   "/settings/account": typeof ShellSettingsAccountRoute;
+  "/settings/insights": typeof ShellSettingsInsightsRoute;
   "/settings/system": typeof ShellSettingsSystemRoute;
   "/settings/users": typeof ShellSettingsUsersRoute;
   "/alerts": typeof ShellAlertsIndexRoute;
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   "/_shell/sensors/$sensorId": typeof ShellSensorsSensorIdRoute;
   "/_shell/settings/about": typeof ShellSettingsAboutRoute;
   "/_shell/settings/account": typeof ShellSettingsAccountRoute;
+  "/_shell/settings/insights": typeof ShellSettingsInsightsRoute;
   "/_shell/settings/system": typeof ShellSettingsSystemRoute;
   "/_shell/settings/users": typeof ShellSettingsUsersRoute;
   "/_shell/alerts/": typeof ShellAlertsIndexRoute;
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | "/sensors/$sensorId"
     | "/settings/about"
     | "/settings/account"
+    | "/settings/insights"
     | "/settings/system"
     | "/settings/users"
     | "/alerts/"
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
     | "/sensors/$sensorId"
     | "/settings/about"
     | "/settings/account"
+    | "/settings/insights"
     | "/settings/system"
     | "/settings/users"
     | "/alerts"
@@ -360,6 +371,7 @@ export interface FileRouteTypes {
     | "/_shell/sensors/$sensorId"
     | "/_shell/settings/about"
     | "/_shell/settings/account"
+    | "/_shell/settings/insights"
     | "/_shell/settings/system"
     | "/_shell/settings/users"
     | "/_shell/alerts/"
@@ -483,6 +495,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ShellSettingsSystemRouteImport;
       parentRoute: typeof ShellRoute;
     };
+    "/_shell/settings/insights": {
+      id: "/_shell/settings/insights";
+      path: "/settings/insights";
+      fullPath: "/settings/insights";
+      preLoaderRoute: typeof ShellSettingsInsightsRouteImport;
+      parentRoute: typeof ShellRoute;
+    };
     "/_shell/settings/account": {
       id: "/_shell/settings/account";
       path: "/settings/account";
@@ -603,6 +622,7 @@ interface ShellRouteChildren {
   ShellSensorsSensorIdRoute: typeof ShellSensorsSensorIdRoute;
   ShellSettingsAboutRoute: typeof ShellSettingsAboutRoute;
   ShellSettingsAccountRoute: typeof ShellSettingsAccountRoute;
+  ShellSettingsInsightsRoute: typeof ShellSettingsInsightsRoute;
   ShellSettingsSystemRoute: typeof ShellSettingsSystemRoute;
   ShellSettingsUsersRoute: typeof ShellSettingsUsersRoute;
   ShellAlertsIndexRoute: typeof ShellAlertsIndexRoute;
@@ -633,6 +653,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellSensorsSensorIdRoute: ShellSensorsSensorIdRoute,
   ShellSettingsAboutRoute: ShellSettingsAboutRoute,
   ShellSettingsAccountRoute: ShellSettingsAccountRoute,
+  ShellSettingsInsightsRoute: ShellSettingsInsightsRoute,
   ShellSettingsSystemRoute: ShellSettingsSystemRoute,
   ShellSettingsUsersRoute: ShellSettingsUsersRoute,
   ShellAlertsIndexRoute: ShellAlertsIndexRoute,

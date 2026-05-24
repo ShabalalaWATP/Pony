@@ -102,3 +102,41 @@ export function useRefreshInsight(kind: InsightKind) {
     },
   });
 }
+
+export type LlmUsage = components["schemas"]["LlmUsageResponse"];
+export type KillSwitchState = components["schemas"]["KillSwitchResponse"];
+
+const USAGE_KEY = ["insights", "usage"] as const;
+const KILL_SWITCH_KEY = ["insights", "kill-switch"] as const;
+
+/**
+ * Admin-only LLM usage telemetry. 403 surfaces normally so the
+ * settings panel can render a "you need to be admin" hint.
+ */
+export function useLlmUsage() {
+  return useQuery<LlmUsage, ApiError>({
+    queryKey: USAGE_KEY,
+    queryFn: () => apiClient.get<LlmUsage>("/insights/usage"),
+    staleTime: 30_000,
+    retry: false,
+  });
+}
+
+/**
+ * Admin-only runtime kill-switch toggle. The body's typed-confirm
+ * (`ENABLE` / `DISABLE`) mirrors the backend's KillSwitchRequest
+ * contract, matching the sensor-revoke and PCAP-delete patterns.
+ */
+export function useToggleKillSwitch() {
+  const qc = useQueryClient();
+  return useMutation<KillSwitchState, ApiError, { enable: boolean; confirm: "ENABLE" | "DISABLE" }>(
+    {
+      mutationFn: ({ enable, confirm }) =>
+        apiClient.post<KillSwitchState>("/insights/kill-switch", { enable, confirm }),
+      onSuccess: () => {
+        void qc.invalidateQueries({ queryKey: KILL_SWITCH_KEY });
+        void qc.invalidateQueries({ queryKey: USAGE_KEY });
+      },
+    },
+  );
+}
