@@ -256,7 +256,7 @@ function AllowListItems({
         return (
           <li
             key={`${t.kind}:${t.value}`}
-            data-testid="allow-list-row"
+            data-testid="lab-allow-list-row"
             className="flex items-center gap-2 px-2 py-1.5 text-xs"
           >
             <Badge tone="neutral" outline>

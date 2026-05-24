@@ -5,16 +5,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
-import { DetailRow, DetailSection } from "@/components/ui/DetailGrid";
 import { Drawer } from "@/components/ui/Drawer";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { AlertSeverityChip } from "@/components/domain/AlertSeverityChip";
 import { EmptyState } from "@/components/domain/EmptyState";
 import { LiveDot } from "@/components/domain/LiveDot";
 import { RelativeTime } from "@/components/domain/RelativeTime";
-import { InsightCard } from "@/components/insights/InsightCard";
 import { type Alert, type AlertSeverity, useAckAlert, useAlertsList } from "@/services/api/queries";
 import { useLiveTopic, useOperatorConnection } from "@/services/ws/hooks";
+import { AlertDetail } from "./AlertDetail";
 
 const ALL_SEVERITIES: AlertSeverity[] = ["critical", "high", "medium", "low", "info"];
 type AckFilter = "all" | "unacked" | "acked";
@@ -109,7 +108,7 @@ function buildColumns(
             variant="ghost"
             size="sm"
             disabled={pending}
-            onClick={(ev) => {
+            onClick={(ev: React.MouseEvent<HTMLButtonElement>) => {
               ev.stopPropagation();
               onAck(a.id);
             }}
@@ -341,63 +340,6 @@ function AckToggle({ value, onChange }: AckToggleProps): JSX.Element {
           {o.label}
         </button>
       ))}
-    </div>
-  );
-}
-
-interface AlertDetailProps {
-  alert: Alert;
-  onAck: () => void;
-  acking: boolean;
-}
-function AlertDetail({ alert, onAck, acking }: AlertDetailProps): JSX.Element {
-  return (
-    <div className="flex flex-col gap-5">
-      <DetailSection label="Identity">
-        <DetailRow
-          label="ID"
-          value={<span className="font-mono text-xs text-fg-80">{alert.id}</span>}
-        />
-        <DetailRow
-          label="Rule"
-          value={<span className="font-mono text-xs text-fg-80">{alert.rule_id}</span>}
-        />
-        <DetailRow label="Severity" value={<AlertSeverityChip severity={alert.severity} />} />
-      </DetailSection>
-
-      <DetailSection label="Related entities">
-        {(alert.related_entities ?? []).length === 0 ? (
-          <span className="text-xs text-fg-60">none</span>
-        ) : (
-          <ul className="flex flex-col gap-1">
-            {(alert.related_entities ?? []).map((e) => (
-              <li key={e} className="font-mono text-xs text-fg-100">
-                {e}
-              </li>
-            ))}
-          </ul>
-        )}
-      </DetailSection>
-
-      <DetailSection label="Acknowledgement">
-        {alert.acked_at ? (
-          <>
-            <DetailRow label="When" value={<RelativeTime value={alert.acked_at} />} />
-            <DetailRow
-              label="By"
-              value={
-                <span className="font-mono text-xs text-fg-80">{alert.acked_by ?? "unknown"}</span>
-              }
-            />
-          </>
-        ) : (
-          <Button onClick={onAck} disabled={acking}>
-            {acking ? "Acking…" : "Acknowledge"}
-          </Button>
-        )}
-      </DetailSection>
-
-      <InsightCard kind="alert_context" entityId={alert.id} />
     </div>
   );
 }

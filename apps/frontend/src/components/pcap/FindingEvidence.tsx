@@ -1,5 +1,6 @@
 import { AlertOctagon } from "lucide-react";
 import { MacAddress } from "@/components/domain/MacAddress";
+import { SsidLabel } from "@/components/domain/SsidLabel";
 import type { components } from "@/services/api/openapi";
 
 type Evidence = components["schemas"]["Finding"]["evidence"];
@@ -153,7 +154,7 @@ function Beacons({ ev }: { ev: components["schemas"]["BeaconsEvidence"] }): JSX.
             <MacAddress value={n.bssid} truncate />
           </Td>
           <Td className="font-mono text-xs">
-            {n.ssid ?? <span className="italic text-fg-40">&lt;hidden&gt;</span>}
+            <SsidLabel ssid={n.ssid} />
           </Td>
           <Td className="tabular-nums">{n.channel ?? "—"}</Td>
           <Td className="tabular-nums">{n.beacon_interval_tu ?? "—"}</Td>
