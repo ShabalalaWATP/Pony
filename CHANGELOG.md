@@ -5,6 +5,13 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 3D — LLM PCAP finding (#69)
+
+- Added authenticated, on-demand PCAP-finding insight reads with immutable
+  cache TTL and structured engagement/finding context.
+- Excluded raw `tshark` output, raw EAPOL bytes, and PMKID material from LLM
+  prompt contexts even when lab-mode PCAP APIs can return that evidence.
+
 ### Backend Phase 3C — LLM AP description (#68)
 
 - Added authenticated, on-demand AP-description insight reads with 24-hour

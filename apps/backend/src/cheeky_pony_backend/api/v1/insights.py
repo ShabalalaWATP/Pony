@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from fastapi.responses import JSONResponse
 
 from cheeky_pony_backend.dependencies import current_user, get_llm_insight_service
@@ -72,6 +72,27 @@ async def get_ap_description_insight(
     except LlmEntityNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="access_point_not_found"
+        ) from exc
+    except LlmInsightUnavailableError as exc:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"detail": "llm_unavailable", "reason": exc.reason},
+        )
+
+
+@router.get("/pcap-finding/{finding_id}", response_model=Insight)
+async def get_pcap_finding_insight(
+    finding_id: Annotated[str, Path(min_length=1, max_length=128)],
+    user: Annotated[UserRecord, Depends(current_user)],
+    service: Annotated[LlmInsightService, Depends(get_llm_insight_service)],
+) -> Insight | JSONResponse:
+    """Return LLM-generated explanation for a structured PCAP finding."""
+
+    try:
+        return await service.pcap_finding(finding_id, actor_id=user.id)
+    except LlmEntityNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="pcap_finding_not_found"
         ) from exc
     except LlmInsightUnavailableError as exc:
         return JSONResponse(

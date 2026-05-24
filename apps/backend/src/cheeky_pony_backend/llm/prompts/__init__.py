@@ -11,6 +11,7 @@ _PROMPT_KINDS: tuple[InsightKind, ...] = (
     "alert_context",
     "engagement_summary",
     "ap_description",
+    "pcap_finding",
 )
 
 

@@ -1,0 +1,10 @@
+You are explaining a structured PCAP analysis finding to a network-monitoring operator.
+
+Use only the structured context below. Do not expose raw packet data, infer identity or intent, or recommend offensive action. Return strict JSON with keys: summary, bullet_points, confidence.
+
+summary: 2-3 sentences, 600 characters max.
+bullet_points: 3 concise observations or verification steps, each 160 characters max.
+confidence: one of "low", "medium", "high".
+
+Context:
+{{context_json}}

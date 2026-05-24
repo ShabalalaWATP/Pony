@@ -45,6 +45,9 @@ class PcapAnalysisStore(Protocol):
     ) -> Finding | None:
         """Return one engagement-scoped finding."""
 
+    async def get_finding_by_id(self, finding_id: str) -> Finding | None:
+        """Return one finding by globally unique id."""
+
     async def finding_counts(self, engagement_id: str, pcap_id: str) -> dict[FindingKind, int]:
         """Return finding counts by kind for one PCAP."""
 
@@ -127,6 +130,11 @@ class InMemoryPcapAnalysisStore:
             return None
         return finding
 
+    async def get_finding_by_id(self, finding_id: str) -> Finding | None:
+        """Return one in-memory finding by id."""
+
+        return self.findings.get(finding_id)
+
     async def finding_counts(self, engagement_id: str, pcap_id: str) -> dict[FindingKind, int]:
         """Return in-memory finding counts by kind."""
 
@@ -167,6 +175,7 @@ class MongoPcapAnalysisStore:
             [("engagement_id", 1), ("pcap_id", 1), ("id", 1)],
             unique=True,
         )
+        await self._db.pcap_findings.create_index([("id", 1)], unique=True)
 
     async def create_run(self, run: AnalysisRun) -> AnalysisRun:
         """Persist an analysis run."""
@@ -230,6 +239,12 @@ class MongoPcapAnalysisStore:
             {"engagement_id": engagement_id, "pcap_id": pcap_id, "id": finding_id},
             {"_id": False},
         )
+        return Finding.model_validate(data) if data else None
+
+    async def get_finding_by_id(self, finding_id: str) -> Finding | None:
+        """Return one finding by globally unique id."""
+
+        data = await self._db.pcap_findings.find_one({"id": finding_id}, {"_id": False})
         return Finding.model_validate(data) if data else None
 
     async def finding_counts(self, engagement_id: str, pcap_id: str) -> dict[FindingKind, int]:

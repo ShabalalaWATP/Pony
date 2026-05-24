@@ -17,6 +17,7 @@ from cheeky_pony_backend.llm.errors import LlmOutputValidationError
 from cheeky_pony_backend.llm.insights.alert_context import AlertContextResponse
 from cheeky_pony_backend.llm.insights.ap_description import ApDescriptionResponse
 from cheeky_pony_backend.llm.insights.engagement_summary import EngagementSummaryResponse
+from cheeky_pony_backend.llm.insights.pcap_finding import PcapFindingResponse
 from cheeky_pony_backend.llm.pricing import (
     estimate_completion_cost_micro_cents,
     estimate_tokens,
@@ -59,6 +60,16 @@ def parse_ap_description_response(content: str) -> ApDescriptionResponse:
     try:
         parsed = json.loads(content)
         return ApDescriptionResponse.model_validate(parsed)
+    except (json.JSONDecodeError, ValidationError) as exc:
+        raise LlmOutputValidationError() from exc
+
+
+def parse_pcap_finding_response(content: str) -> PcapFindingResponse:
+    """Parse and validate a PCAP-finding model response."""
+
+    try:
+        parsed = json.loads(content)
+        return PcapFindingResponse.model_validate(parsed)
     except (json.JSONDecodeError, ValidationError) as exc:
         raise LlmOutputValidationError() from exc
 
