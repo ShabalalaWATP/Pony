@@ -8,33 +8,42 @@ import { fixtures } from "./msw/handlers";
 import { server } from "./msw/server";
 
 describe("LabView", () => {
-  it("renders the gate banner with per-flag rows from /lab/status", async () => {
+  it("renders the gate banner with per-check rows from /lab/status.checks", async () => {
     const { node } = withQueryAndRouter(<LabView />, { initialPath: "/lab" });
     render(node);
-    expect(await screen.findByTestId("lab-gate-banner")).toBeInTheDocument();
-    // Default fixture has all flags false and no active engagement → 4 red rows.
-    const rows = screen.getAllByTestId("lab-gate");
-    expect(rows).toHaveLength(4);
-    for (const r of rows) expect(r.getAttribute("data-ok")).toBe("false");
+    expect(await screen.findByTestId("lab-readiness-checklist")).toBeInTheDocument();
+    // Default fixture's checks[] has 6 rows from the readiness contract.
+    const rows = screen.getAllByTestId("lab-readiness-check");
+    expect(rows).toHaveLength(6);
+    // Most are "missing" (default fixture is fully gated); one is "not_applicable".
+    const missing = rows.filter((r) => r.getAttribute("data-check-status") === "missing");
+    expect(missing.length).toBeGreaterThanOrEqual(5);
     // Module cards are still rendered, but disabled.
     const card = screen.getByTestId("module-card-rogue-ap");
     const btn = card.querySelector("button");
     expect(btn).toBeDisabled();
   });
 
-  it("flips the engagement gate row to ok=true when /engagements/active resolves", async () => {
+  it("surfaces the engagement readiness row from /lab/status.checks", async () => {
     server.use(
       http.get("/api/v1/engagements/active", () => HttpResponse.json(fixtures.engagement)),
+      http.get("/api/v1/lab/status", () =>
+        HttpResponse.json({
+          ...fixtures.labStatus,
+          checks: fixtures.labStatus.checks?.map((c) =>
+            c.id === "engagement_active" ? { ...c, status: "ok" } : c,
+          ),
+        }),
+      ),
     );
     const { node } = withQueryAndRouter(<LabView />, { initialPath: "/lab" });
     render(node);
-    await screen.findByTestId("lab-gate-banner");
-    const banner = screen.getByTestId("lab-gate-banner");
-    expect(banner).toHaveTextContent(/active engagement/i);
+    await screen.findByTestId("lab-readiness-checklist");
+    const banner = screen.getByTestId("lab-readiness-checklist");
+    expect(banner).toHaveTextContent(/engagement is active/i);
     const okRows = screen
-      .getAllByTestId("lab-gate")
-      .filter((el) => el.getAttribute("data-ok") === "true");
-    // At least the active-engagement row is now green.
+      .getAllByTestId("lab-readiness-check")
+      .filter((el) => el.getAttribute("data-check-status") === "ok");
     expect(okRows.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -84,11 +93,11 @@ describe("LabView", () => {
   it("does NOT render the reports panel when no engagement is active", async () => {
     const { node } = withQueryAndRouter(<LabView />, { initialPath: "/lab" });
     render(node);
-    await screen.findByTestId("lab-gate-banner");
+    await screen.findByTestId("lab-readiness-checklist");
     const engagementGate = screen
-      .getAllByTestId("lab-gate")
-      .find((row) => row.textContent?.includes("Active engagement"));
-    expect(engagementGate).toHaveAttribute("data-ok", "false");
+      .getAllByTestId("lab-readiness-check")
+      .find((row) => row.getAttribute("data-check-id") === "engagement_active");
+    expect(engagementGate).toHaveAttribute("data-check-status", "missing");
     expect(screen.queryByTestId("reports-panel")).toBeNull();
   });
 
@@ -114,7 +123,7 @@ describe("LabView", () => {
   it("disables Configure buttons when no engagement is active", async () => {
     const { node } = withQueryAndRouter(<LabView />, { initialPath: "/lab" });
     render(node);
-    await screen.findByTestId("lab-gate-banner");
+    await screen.findByTestId("lab-readiness-checklist");
     for (const id of ["rogue-ap", "deauth", "evil-twin", "captive-portal", "mitm"]) {
       const card = screen.getByTestId(`module-card-${id}`);
       expect(card.querySelector("button")).toBeDisabled();

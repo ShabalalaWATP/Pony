@@ -2,29 +2,23 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   AlertOctagon,
   Beaker,
-  CheckCircle2,
   Globe,
   Network,
   ShieldX,
   Skull,
   Wifi,
-  XCircle,
   type LucideIcon,
 } from "lucide-react";
 import { useMemo } from "react";
 import { ActiveLabCommandsList } from "./ActiveLabCommandsList";
 import { EngagementPanel } from "./EngagementPanel";
+import { LabReadinessChecklist } from "./LabReadinessChecklist";
 import { ReportsPanel } from "./ReportsPanel";
 import { StartLabModuleDialog } from "./StartLabModuleDialog";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/domain/EmptyState";
-import {
-  type LabModule,
-  type LabStatusResponse,
-  useActiveEngagement,
-  useLabStatus,
-} from "@/services/api/labQueries";
+import { type LabModule, useActiveEngagement, useLabStatus } from "@/services/api/labQueries";
 
 interface LabSearch {
   module?: string;
@@ -109,8 +103,13 @@ export function LabView(): JSX.Element {
     labStatusQuery.error?.status === 401 ||
     labStatusQuery.error?.status === 403;
   const status = labStatusQuery.data ?? null;
+  // Prefer the server-derived `ready` flag from PR #60 (covers the
+  // full checklist including allow-list non-emptiness); fall back to
+  // the legacy three-flag computation when an older backend doesn't
+  // expose it.
   const allGatesGreen = Boolean(
-    status?.lab_mode && status.acknowledgement_on_file && status.is_admin_2fa && engagement,
+    status?.ready ??
+    (status?.lab_mode && status.acknowledgement_on_file && status.is_admin_2fa && engagement),
   );
 
   return (
@@ -124,9 +123,7 @@ export function LabView(): JSX.Element {
         />
       )}
 
-      {!unauthorized && status && (
-        <GateStatusBanner status={status} hasEngagement={Boolean(engagement)} />
-      )}
+      {!unauthorized && status && <LabReadinessChecklist status={status} />}
 
       {!unauthorized && noEngagement && !status && (
         <div className="flex flex-col gap-3 rounded-md border border-accent-amber/40 bg-accent-amber/10 p-4 text-sm text-accent-amber">
@@ -163,83 +160,6 @@ export function LabView(): JSX.Element {
 
       <StartLabModuleDialog module={activeModule} engagement={engagement} onClose={closeModule} />
     </div>
-  );
-}
-
-interface GateStatusBannerProps {
-  status: LabStatusResponse;
-  hasEngagement: boolean;
-}
-
-/**
- * Surfaces each lab-gate flag so the operator can see exactly which
- * gate is still failing before they pick a target. The `engagement`
- * flag derives from the separate `/engagements/active` call — keeping
- * them on the same banner keeps the diagnostic in one place.
- */
-function GateStatusBanner({ status, hasEngagement }: GateStatusBannerProps): JSX.Element {
-  const gates: { label: string; ok: boolean; hint: string }[] = [
-    {
-      label: "Lab mode",
-      ok: status.lab_mode,
-      hint: "Set LAB_MODE=true on the backend.",
-    },
-    {
-      label: "Authorized-operator acknowledgement",
-      ok: status.acknowledgement_on_file,
-      hint: "Accept the authorized-operator statement under /settings.",
-    },
-    {
-      label: "Admin + recent 2FA",
-      ok: status.is_admin_2fa,
-      hint: "Sign in as admin and re-verify TOTP.",
-    },
-    {
-      label: "Active engagement",
-      ok: hasEngagement,
-      hint: "Create or resume an engagement at /engagements.",
-    },
-  ];
-  const allGreen = gates.every((g) => g.ok);
-
-  return (
-    <section
-      data-testid="lab-gate-banner"
-      className={
-        allGreen
-          ? "rounded-md border border-accent-green/40 bg-accent-green/10 p-3 text-sm text-accent-green"
-          : "rounded-md border border-accent-amber/40 bg-accent-amber/10 p-3 text-sm text-accent-amber"
-      }
-    >
-      <div className="flex items-center gap-2 text-2xs uppercase tracking-wide">
-        {allGreen ? (
-          <CheckCircle2 className="size-3.5" aria-hidden="true" />
-        ) : (
-          <ShieldX className="size-3.5" aria-hidden="true" />
-        )}
-        Lab gates
-      </div>
-      <ul className="mt-2 grid grid-cols-1 gap-1.5 text-xs sm:grid-cols-2">
-        {gates.map((g) => (
-          <li
-            key={g.label}
-            data-testid="lab-gate"
-            data-ok={g.ok}
-            className="flex items-start gap-2 text-fg-100"
-          >
-            {g.ok ? (
-              <CheckCircle2 className="size-3 shrink-0 text-accent-green" aria-hidden="true" />
-            ) : (
-              <XCircle className="size-3 shrink-0 text-accent-red" aria-hidden="true" />
-            )}
-            <span className="flex flex-col">
-              <span>{g.label}</span>
-              {!g.ok && <span className="text-2xs text-fg-60">{g.hint}</span>}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }
 
