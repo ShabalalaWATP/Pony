@@ -1,17 +1,26 @@
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { type ColumnDef } from "@tanstack/react-table";
+import { ShieldAlert } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
 import { Drawer } from "@/components/ui/Drawer";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { AnomalyBadge } from "@/components/domain/AnomalyBadge";
 import { ChannelBadge } from "@/components/domain/ChannelBadge";
 import { EmptyState } from "@/components/domain/EmptyState";
 import { EncryptionChip } from "@/components/domain/EncryptionChip";
+import { LabelBadge } from "@/components/domain/LabelBadge";
 import { MacAddress } from "@/components/domain/MacAddress";
 import { RelativeTime } from "@/components/domain/RelativeTime";
 import { SignalBars } from "@/components/domain/SignalBars";
 import { SsidLabel } from "@/components/domain/SsidLabel";
+import type { components } from "@/services/api/openapi";
+import type { ApType } from "@/lib/labels";
+
+type AnomalyContribution = components["schemas"]["AnomalyContribution"];
 import { latestRssi } from "@/lib/signal-helpers";
+import { resolveVendor } from "@/lib/vendor";
 import { useAccessPointsList, type AccessPoint } from "@/services/api/queries";
 import { AccessPointDetail } from "./AccessPointDetail";
 
@@ -25,12 +34,9 @@ const columns: ColumnDef<AccessPoint, unknown>[] = [
     accessorKey: "bssid",
     header: "BSSID",
     cell: (ctx) => (
-      <MacAddress
-        value={ctx.getValue<string>()}
-        vendor={ctx.row.original.vendor_oui ?? undefined}
-      />
+      <MacAddress value={ctx.getValue<string>()} vendor={resolveVendor(ctx.row.original)} />
     ),
-    size: 200,
+    size: 240,
   },
   {
     accessorKey: "channel",
@@ -45,6 +51,19 @@ const columns: ColumnDef<AccessPoint, unknown>[] = [
       );
     },
     size: 140,
+  },
+  {
+    id: "label",
+    header: "Type",
+    accessorFn: (row) => (row as AccessPoint & { label?: ApType | null }).label ?? "unknown",
+    cell: (ctx) => {
+      const row = ctx.row.original as AccessPoint & {
+        label?: ApType | null;
+        label_confidence?: number;
+      };
+      return <LabelBadge kind="ap" label={row.label} confidence={row.label_confidence} />;
+    },
+    size: 120,
   },
   {
     id: "encryption",
@@ -63,6 +82,21 @@ const columns: ColumnDef<AccessPoint, unknown>[] = [
       return dbm !== null ? <SignalBars dbm={dbm} /> : <span className="text-fg-40">—</span>;
     },
     size: 140,
+  },
+  {
+    id: "anomaly",
+    header: "Anomaly",
+    accessorFn: (row) => (row as AccessPoint & { anomaly_score?: number }).anomaly_score ?? 0,
+    cell: (ctx) => {
+      const row = ctx.row.original as AccessPoint & {
+        anomaly_score?: number;
+        anomaly_reasons?: AnomalyContribution[];
+      };
+      return (
+        <AnomalyBadge score={row.anomaly_score ?? 0} reasons={row.anomaly_reasons} hideScore />
+      );
+    },
+    size: 130,
   },
   {
     accessorKey: "last_seen",
@@ -114,7 +148,14 @@ export function NetworksView(): JSX.Element {
           onChange: setSearchTerm,
           placeholder: "Filter by SSID, BSSID, vendor…",
         }}
-      />
+      >
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/networks/evil-twins" data-testid="evil-twin-link">
+            <ShieldAlert className="size-3.5" aria-hidden="true" />
+            Evil-twin candidates
+          </Link>
+        </Button>
+      </PageHeader>
 
       <DataTable<AccessPoint>
         data={items}

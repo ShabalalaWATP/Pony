@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/domain/EmptyState";
 import { MacAddress } from "@/components/domain/MacAddress";
 import { RelativeTime } from "@/components/domain/RelativeTime";
+import { PcapSection } from "@/components/pcap/PcapSection";
 import {
   type AllowedTarget,
   type Engagement,
@@ -149,6 +150,8 @@ export function EngagementDetailView({ engagementId }: EngagementDetailViewProps
       <DetailSection label="Lifecycle">
         {active ? <EndAction engagement={engagement} /> : <ResumeAction engagement={engagement} />}
       </DetailSection>
+
+      <PcapSection engagementId={engagement.id} />
     </div>
   );
 }

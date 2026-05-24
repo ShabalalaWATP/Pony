@@ -6,11 +6,21 @@ import { cn } from "@/lib/cn";
 interface MacAddressProps {
   /** The MAC or BSSID (colon-separated, hex octets). */
   value: string;
-  /** OUI vendor name to show in the tooltip and copy-flash. */
+  /**
+   * OUI vendor name, shown inline next to the address (small + muted)
+   * AND in the hover tooltip. Pass the backend's `vendor_resolved`
+   * preferentially via `resolveVendor(item)` from `lib/vendor.ts`.
+   */
   vendor?: string | null;
   className?: string;
   /** Render a shorter form (`a4:c3…:0a`) — useful in dense tables. */
   truncate?: boolean;
+  /**
+   * Suppress the inline vendor label even when `vendor` is supplied.
+   * Use when the surrounding layout already has a dedicated vendor
+   * column or chip and the duplication would be noisy.
+   */
+  hideInlineVendor?: boolean;
 }
 
 function shorten(mac: string): string {
@@ -30,6 +40,7 @@ export function MacAddress({
   vendor,
   className,
   truncate = false,
+  hideInlineVendor = false,
 }: MacAddressProps): JSX.Element {
   const [flashed, setFlashed] = useState(false);
 
@@ -45,6 +56,7 @@ export function MacAddress({
   }, [value]);
 
   const tooltipBody = vendor ? `${value} · ${vendor}` : value;
+  const showInlineVendor = Boolean(vendor) && !hideInlineVendor;
 
   return (
     <Tooltip content={tooltipBody}>
@@ -60,6 +72,14 @@ export function MacAddress({
         aria-label={`Copy ${value}`}
       >
         <span className="tabular-nums">{truncate ? shorten(value) : value}</span>
+        {showInlineVendor && (
+          <span
+            data-testid="mac-vendor"
+            className="font-sans text-2xs text-fg-60 normal-case tracking-normal"
+          >
+            · {vendor}
+          </span>
+        )}
         <Copy
           aria-hidden="true"
           className="size-3 text-fg-40 opacity-0 transition-opacity group-hover:opacity-100"

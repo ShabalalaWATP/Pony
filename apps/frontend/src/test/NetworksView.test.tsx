@@ -243,4 +243,35 @@ describe("NetworksView", () => {
     expect(screen.queryByText("Alpha")).toBeNull();
     expect(screen.getByText("Bravo")).toBeInTheDocument();
   });
+
+  it("prefers vendor_resolved over vendor_oui in the BSSID cell", async () => {
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({
+          items: [
+            {
+              bssid: "aa:bb:cc:dd:ee:01",
+              ssid: "Alpha",
+              channel: 6,
+              band: "2.4",
+              encryption: ["WPA2"],
+              signal_history: [],
+              vendor_oui: "Synthetic",
+              vendor_resolved: "Samsung Electronics Co., Ltd",
+            },
+          ],
+          total: 1,
+          limit: 500,
+          offset: 0,
+        }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<NetworksView />);
+    render(node);
+    await screen.findByText("Alpha");
+    const vendorEls = screen.getAllByTestId("mac-vendor");
+    expect(vendorEls.length).toBeGreaterThan(0);
+    expect(vendorEls[0]).toHaveTextContent("Samsung Electronics");
+    expect(screen.queryByText(/Synthetic/)).toBeNull();
+  });
 });

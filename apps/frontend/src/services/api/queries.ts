@@ -114,6 +114,30 @@ export function useAccessPointsList(pagination: Pagination = {}) {
 }
 
 /**
+ * Evil-twin candidate list (backend PR #59). Same-SSID APs whose
+ * vendor OUIs disagree — a strong "this might be a Pineapple-class
+ * device" signal. Authenticated-operator gated (no admin needed) per
+ * backend ADR — visibility of mismatches is a defensive concern.
+ */
+type EvilTwinCandidate = components["schemas"]["EvilTwinCandidate"];
+
+export function useEvilTwinCandidates(pagination: Pagination = {}) {
+  const { limit = 100, offset = 0 } = pagination;
+  return useQuery<Page<EvilTwinCandidate>, ApiError>({
+    queryKey: ["evil_twin_candidates", { limit, offset }],
+    queryFn: () =>
+      apiClient.get<Page<EvilTwinCandidate>>(
+        withQuery("/access_points/evil-twin-candidates", { limit, offset }),
+      ),
+    staleTime: PAGE_STALE_TIME,
+    retry: (count, error) => {
+      if (error.status === 401 || error.status === 403) return false;
+      return count < 1;
+    },
+  });
+}
+
+/**
  * Single access point by BSSID. Backend route:
  * `GET /api/v1/access_points/{bssid}`.
  *

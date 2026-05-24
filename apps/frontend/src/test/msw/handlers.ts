@@ -96,6 +96,50 @@ export const fixtures = {
     acknowledgement_on_file: false,
     is_admin_2fa: false,
     ready: false,
+    checks: [
+      {
+        id: "lab_mode_env",
+        label: "LAB_MODE=true in backend env",
+        status: "missing",
+        fix_hint: "Set LAB_MODE=true and restart the backend.",
+        fix_route: null,
+      },
+      {
+        id: "admin_role",
+        label: "Caller has admin role",
+        status: "missing",
+        fix_hint: "An existing admin must grant your role.",
+        fix_route: "/settings/users",
+      },
+      {
+        id: "totp_recent",
+        label: "Recent TOTP verification",
+        status: "missing",
+        fix_hint: "Re-verify in Settings → Account.",
+        fix_route: "/settings/account",
+      },
+      {
+        id: "engagement_active",
+        label: "An engagement is active",
+        status: "missing",
+        fix_hint: "Create an engagement in Engagements.",
+        fix_route: "/engagements",
+      },
+      {
+        id: "authorized_operator",
+        label: "Authorized-operator acknowledgement on file",
+        status: "missing",
+        fix_hint: "Accept the statement in Settings → System.",
+        fix_route: "/settings/system",
+      },
+      {
+        id: "allow_list_nonempty",
+        label: "Active engagement has ≥1 target",
+        status: "not_applicable",
+        fix_hint: "Add targets under the engagement detail.",
+        fix_route: null,
+      },
+    ],
   } satisfies LabStatusResponse,
   allowedTarget: {
     kind: "bssid",
@@ -196,6 +240,61 @@ export const authHandlers = [
   // that don't bother to override them.
   http.get("/api/v1/access_points", () =>
     HttpResponse.json({ items: [fixtures.accessPoint], total: 1, limit: 100, offset: 0 }),
+  ),
+  // Evil-twin candidates default to empty so tests that don't care
+  // about this surface don't need an explicit handler. Cases that do
+  // care override with `server.use(...)`.
+  http.get("/api/v1/access_points/evil-twin-candidates", () =>
+    HttpResponse.json({ items: [], total: 0, limit: 100, offset: 0 }),
+  ),
+  // PCAP surfaces — empty list by default so unrelated engagement
+  // detail tests don't need explicit overrides.
+  http.get("/api/v1/engagements/:eid/pcaps", () =>
+    HttpResponse.json({ items: [], total: 0, limit: 100, offset: 0 }),
+  ),
+  http.delete("/api/v1/engagements/:eid/pcaps/:pid", () => new HttpResponse(null, { status: 204 })),
+  http.post("/api/v1/engagements/:eid/pcaps/:pid/analyze", () =>
+    HttpResponse.json({ analysis_id: "analysis-test" }, { status: 202 }),
+  ),
+  http.get("/api/v1/engagements/:eid/pcaps/:pid/analysis", () =>
+    HttpResponse.json({ analysis: null, finding_counts: {} }),
+  ),
+  http.get("/api/v1/engagements/:eid/pcaps/:pid/findings", () =>
+    HttpResponse.json({ items: [], total: 0, limit: 100, offset: 0 }),
+  ),
+  // LLM insight surfaces (PRs #66-70). Default to 503 "disabled" so
+  // every list page renders the graceful unavailable state without
+  // tests needing per-case overrides. Cases that want a populated
+  // insight override with `server.use(...)`.
+  http.get("/api/v1/insights/alert/:id", () =>
+    HttpResponse.json({ detail: "llm_unavailable", reason: "disabled" }, { status: 503 }),
+  ),
+  http.get("/api/v1/insights/engagement/:id", () =>
+    HttpResponse.json({ detail: "llm_unavailable", reason: "disabled" }, { status: 503 }),
+  ),
+  http.get("/api/v1/insights/ap/:id", () =>
+    HttpResponse.json({ detail: "llm_unavailable", reason: "disabled" }, { status: 503 }),
+  ),
+  http.get("/api/v1/insights/pcap-finding/:id", () =>
+    HttpResponse.json({ detail: "llm_unavailable", reason: "disabled" }, { status: 503 }),
+  ),
+  http.post("/api/v1/insights/:kind/:id/refresh", () =>
+    HttpResponse.json({ detail: "llm_unavailable", reason: "disabled" }, { status: 503 }),
+  ),
+  http.get("/api/v1/insights/usage", () =>
+    HttpResponse.json({
+      budget_micro_cents: 2_000_000,
+      budget_remaining_micro_cents: 1_500_000,
+      budget_remaining_usd: "15.00",
+      current_month: "2026-05",
+      current_month_spend_micro_cents: 500_000,
+      current_month_spend_usd: "5.00",
+      last_30_days: [],
+      recent_audit_entries: [],
+    }),
+  ),
+  http.post("/api/v1/insights/kill-switch", () =>
+    HttpResponse.json({ effective_enabled: false, env_enabled: true, runtime_disabled: true }),
   ),
   http.get("/api/v1/access_points/:bssid", ({ params }) => {
     if (

@@ -24,9 +24,11 @@ import { Route as ShellDevicesIndexRouteImport } from "./routes/_shell.devices.i
 import { Route as ShellAlertsIndexRouteImport } from "./routes/_shell.alerts.index";
 import { Route as ShellSettingsUsersRouteImport } from "./routes/_shell.settings.users";
 import { Route as ShellSettingsSystemRouteImport } from "./routes/_shell.settings.system";
+import { Route as ShellSettingsInsightsRouteImport } from "./routes/_shell.settings.insights";
 import { Route as ShellSettingsAccountRouteImport } from "./routes/_shell.settings.account";
 import { Route as ShellSettingsAboutRouteImport } from "./routes/_shell.settings.about";
 import { Route as ShellSensorsSensorIdRouteImport } from "./routes/_shell.sensors.$sensorId";
+import { Route as ShellNetworksEvilTwinsRouteImport } from "./routes/_shell.networks.evil-twins";
 import { Route as ShellNetworksBssidRouteImport } from "./routes/_shell.networks.$bssid";
 import { Route as ShellLabRogueApRouteImport } from "./routes/_shell.lab.rogue-ap";
 import { Route as ShellLabMitmRouteImport } from "./routes/_shell.lab.mitm";
@@ -36,6 +38,7 @@ import { Route as ShellLabCaptivePortalRouteImport } from "./routes/_shell.lab.c
 import { Route as ShellEngagementsIdRouteImport } from "./routes/_shell.engagements.$id";
 import { Route as ShellDevicesMacRouteImport } from "./routes/_shell.devices.$mac";
 import { Route as ShellAlertsRulesRouteImport } from "./routes/_shell.alerts.rules";
+import { Route as ShellEngagementsEngagementIdPcapsPcapIdRouteImport } from "./routes/_shell.engagements.$engagementId.pcaps.$pcapId";
 
 const LoginRoute = LoginRouteImport.update({
   id: "/login",
@@ -111,6 +114,11 @@ const ShellSettingsSystemRoute = ShellSettingsSystemRouteImport.update({
   path: "/settings/system",
   getParentRoute: () => ShellRoute,
 } as any);
+const ShellSettingsInsightsRoute = ShellSettingsInsightsRouteImport.update({
+  id: "/settings/insights",
+  path: "/settings/insights",
+  getParentRoute: () => ShellRoute,
+} as any);
 const ShellSettingsAccountRoute = ShellSettingsAccountRouteImport.update({
   id: "/settings/account",
   path: "/settings/account",
@@ -124,6 +132,11 @@ const ShellSettingsAboutRoute = ShellSettingsAboutRouteImport.update({
 const ShellSensorsSensorIdRoute = ShellSensorsSensorIdRouteImport.update({
   id: "/sensors/$sensorId",
   path: "/sensors/$sensorId",
+  getParentRoute: () => ShellRoute,
+} as any);
+const ShellNetworksEvilTwinsRoute = ShellNetworksEvilTwinsRouteImport.update({
+  id: "/networks/evil-twins",
+  path: "/networks/evil-twins",
   getParentRoute: () => ShellRoute,
 } as any);
 const ShellNetworksBssidRoute = ShellNetworksBssidRouteImport.update({
@@ -171,6 +184,12 @@ const ShellAlertsRulesRoute = ShellAlertsRulesRouteImport.update({
   path: "/alerts/rules",
   getParentRoute: () => ShellRoute,
 } as any);
+const ShellEngagementsEngagementIdPcapsPcapIdRoute =
+  ShellEngagementsEngagementIdPcapsPcapIdRouteImport.update({
+    id: "/engagements/$engagementId/pcaps/$pcapId",
+    path: "/engagements/$engagementId/pcaps/$pcapId",
+    getParentRoute: () => ShellRoute,
+  } as any);
 
 export interface FileRoutesByFullPath {
   "/": typeof ShellIndexRoute;
@@ -188,9 +207,11 @@ export interface FileRoutesByFullPath {
   "/lab/mitm": typeof ShellLabMitmRoute;
   "/lab/rogue-ap": typeof ShellLabRogueApRoute;
   "/networks/$bssid": typeof ShellNetworksBssidRoute;
+  "/networks/evil-twins": typeof ShellNetworksEvilTwinsRoute;
   "/sensors/$sensorId": typeof ShellSensorsSensorIdRoute;
   "/settings/about": typeof ShellSettingsAboutRoute;
   "/settings/account": typeof ShellSettingsAccountRoute;
+  "/settings/insights": typeof ShellSettingsInsightsRoute;
   "/settings/system": typeof ShellSettingsSystemRoute;
   "/settings/users": typeof ShellSettingsUsersRoute;
   "/alerts/": typeof ShellAlertsIndexRoute;
@@ -199,6 +220,7 @@ export interface FileRoutesByFullPath {
   "/lab/": typeof ShellLabIndexRoute;
   "/networks/": typeof ShellNetworksIndexRoute;
   "/sensors/": typeof ShellSensorsIndexRoute;
+  "/engagements/$engagementId/pcaps/$pcapId": typeof ShellEngagementsEngagementIdPcapsPcapIdRoute;
 }
 export interface FileRoutesByTo {
   "/login": typeof LoginRoute;
@@ -216,9 +238,11 @@ export interface FileRoutesByTo {
   "/lab/mitm": typeof ShellLabMitmRoute;
   "/lab/rogue-ap": typeof ShellLabRogueApRoute;
   "/networks/$bssid": typeof ShellNetworksBssidRoute;
+  "/networks/evil-twins": typeof ShellNetworksEvilTwinsRoute;
   "/sensors/$sensorId": typeof ShellSensorsSensorIdRoute;
   "/settings/about": typeof ShellSettingsAboutRoute;
   "/settings/account": typeof ShellSettingsAccountRoute;
+  "/settings/insights": typeof ShellSettingsInsightsRoute;
   "/settings/system": typeof ShellSettingsSystemRoute;
   "/settings/users": typeof ShellSettingsUsersRoute;
   "/alerts": typeof ShellAlertsIndexRoute;
@@ -227,6 +251,7 @@ export interface FileRoutesByTo {
   "/lab": typeof ShellLabIndexRoute;
   "/networks": typeof ShellNetworksIndexRoute;
   "/sensors": typeof ShellSensorsIndexRoute;
+  "/engagements/$engagementId/pcaps/$pcapId": typeof ShellEngagementsEngagementIdPcapsPcapIdRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -246,9 +271,11 @@ export interface FileRoutesById {
   "/_shell/lab/mitm": typeof ShellLabMitmRoute;
   "/_shell/lab/rogue-ap": typeof ShellLabRogueApRoute;
   "/_shell/networks/$bssid": typeof ShellNetworksBssidRoute;
+  "/_shell/networks/evil-twins": typeof ShellNetworksEvilTwinsRoute;
   "/_shell/sensors/$sensorId": typeof ShellSensorsSensorIdRoute;
   "/_shell/settings/about": typeof ShellSettingsAboutRoute;
   "/_shell/settings/account": typeof ShellSettingsAccountRoute;
+  "/_shell/settings/insights": typeof ShellSettingsInsightsRoute;
   "/_shell/settings/system": typeof ShellSettingsSystemRoute;
   "/_shell/settings/users": typeof ShellSettingsUsersRoute;
   "/_shell/alerts/": typeof ShellAlertsIndexRoute;
@@ -257,6 +284,7 @@ export interface FileRoutesById {
   "/_shell/lab/": typeof ShellLabIndexRoute;
   "/_shell/networks/": typeof ShellNetworksIndexRoute;
   "/_shell/sensors/": typeof ShellSensorsIndexRoute;
+  "/_shell/engagements/$engagementId/pcaps/$pcapId": typeof ShellEngagementsEngagementIdPcapsPcapIdRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
@@ -276,9 +304,11 @@ export interface FileRouteTypes {
     | "/lab/mitm"
     | "/lab/rogue-ap"
     | "/networks/$bssid"
+    | "/networks/evil-twins"
     | "/sensors/$sensorId"
     | "/settings/about"
     | "/settings/account"
+    | "/settings/insights"
     | "/settings/system"
     | "/settings/users"
     | "/alerts/"
@@ -286,7 +316,8 @@ export interface FileRouteTypes {
     | "/engagements/"
     | "/lab/"
     | "/networks/"
-    | "/sensors/";
+    | "/sensors/"
+    | "/engagements/$engagementId/pcaps/$pcapId";
   fileRoutesByTo: FileRoutesByTo;
   to:
     | "/login"
@@ -304,9 +335,11 @@ export interface FileRouteTypes {
     | "/lab/mitm"
     | "/lab/rogue-ap"
     | "/networks/$bssid"
+    | "/networks/evil-twins"
     | "/sensors/$sensorId"
     | "/settings/about"
     | "/settings/account"
+    | "/settings/insights"
     | "/settings/system"
     | "/settings/users"
     | "/alerts"
@@ -314,7 +347,8 @@ export interface FileRouteTypes {
     | "/engagements"
     | "/lab"
     | "/networks"
-    | "/sensors";
+    | "/sensors"
+    | "/engagements/$engagementId/pcaps/$pcapId";
   id:
     | "__root__"
     | "/_shell"
@@ -333,9 +367,11 @@ export interface FileRouteTypes {
     | "/_shell/lab/mitm"
     | "/_shell/lab/rogue-ap"
     | "/_shell/networks/$bssid"
+    | "/_shell/networks/evil-twins"
     | "/_shell/sensors/$sensorId"
     | "/_shell/settings/about"
     | "/_shell/settings/account"
+    | "/_shell/settings/insights"
     | "/_shell/settings/system"
     | "/_shell/settings/users"
     | "/_shell/alerts/"
@@ -343,7 +379,8 @@ export interface FileRouteTypes {
     | "/_shell/engagements/"
     | "/_shell/lab/"
     | "/_shell/networks/"
-    | "/_shell/sensors/";
+    | "/_shell/sensors/"
+    | "/_shell/engagements/$engagementId/pcaps/$pcapId";
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -458,6 +495,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ShellSettingsSystemRouteImport;
       parentRoute: typeof ShellRoute;
     };
+    "/_shell/settings/insights": {
+      id: "/_shell/settings/insights";
+      path: "/settings/insights";
+      fullPath: "/settings/insights";
+      preLoaderRoute: typeof ShellSettingsInsightsRouteImport;
+      parentRoute: typeof ShellRoute;
+    };
     "/_shell/settings/account": {
       id: "/_shell/settings/account";
       path: "/settings/account";
@@ -477,6 +521,13 @@ declare module "@tanstack/react-router" {
       path: "/sensors/$sensorId";
       fullPath: "/sensors/$sensorId";
       preLoaderRoute: typeof ShellSensorsSensorIdRouteImport;
+      parentRoute: typeof ShellRoute;
+    };
+    "/_shell/networks/evil-twins": {
+      id: "/_shell/networks/evil-twins";
+      path: "/networks/evil-twins";
+      fullPath: "/networks/evil-twins";
+      preLoaderRoute: typeof ShellNetworksEvilTwinsRouteImport;
       parentRoute: typeof ShellRoute;
     };
     "/_shell/networks/$bssid": {
@@ -542,6 +593,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ShellAlertsRulesRouteImport;
       parentRoute: typeof ShellRoute;
     };
+    "/_shell/engagements/$engagementId/pcaps/$pcapId": {
+      id: "/_shell/engagements/$engagementId/pcaps/$pcapId";
+      path: "/engagements/$engagementId/pcaps/$pcapId";
+      fullPath: "/engagements/$engagementId/pcaps/$pcapId";
+      preLoaderRoute: typeof ShellEngagementsEngagementIdPcapsPcapIdRouteImport;
+      parentRoute: typeof ShellRoute;
+    };
   }
 }
 
@@ -560,9 +618,11 @@ interface ShellRouteChildren {
   ShellLabMitmRoute: typeof ShellLabMitmRoute;
   ShellLabRogueApRoute: typeof ShellLabRogueApRoute;
   ShellNetworksBssidRoute: typeof ShellNetworksBssidRoute;
+  ShellNetworksEvilTwinsRoute: typeof ShellNetworksEvilTwinsRoute;
   ShellSensorsSensorIdRoute: typeof ShellSensorsSensorIdRoute;
   ShellSettingsAboutRoute: typeof ShellSettingsAboutRoute;
   ShellSettingsAccountRoute: typeof ShellSettingsAccountRoute;
+  ShellSettingsInsightsRoute: typeof ShellSettingsInsightsRoute;
   ShellSettingsSystemRoute: typeof ShellSettingsSystemRoute;
   ShellSettingsUsersRoute: typeof ShellSettingsUsersRoute;
   ShellAlertsIndexRoute: typeof ShellAlertsIndexRoute;
@@ -571,6 +631,7 @@ interface ShellRouteChildren {
   ShellLabIndexRoute: typeof ShellLabIndexRoute;
   ShellNetworksIndexRoute: typeof ShellNetworksIndexRoute;
   ShellSensorsIndexRoute: typeof ShellSensorsIndexRoute;
+  ShellEngagementsEngagementIdPcapsPcapIdRoute: typeof ShellEngagementsEngagementIdPcapsPcapIdRoute;
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
@@ -588,9 +649,11 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellLabMitmRoute: ShellLabMitmRoute,
   ShellLabRogueApRoute: ShellLabRogueApRoute,
   ShellNetworksBssidRoute: ShellNetworksBssidRoute,
+  ShellNetworksEvilTwinsRoute: ShellNetworksEvilTwinsRoute,
   ShellSensorsSensorIdRoute: ShellSensorsSensorIdRoute,
   ShellSettingsAboutRoute: ShellSettingsAboutRoute,
   ShellSettingsAccountRoute: ShellSettingsAccountRoute,
+  ShellSettingsInsightsRoute: ShellSettingsInsightsRoute,
   ShellSettingsSystemRoute: ShellSettingsSystemRoute,
   ShellSettingsUsersRoute: ShellSettingsUsersRoute,
   ShellAlertsIndexRoute: ShellAlertsIndexRoute,
@@ -599,6 +662,8 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellLabIndexRoute: ShellLabIndexRoute,
   ShellNetworksIndexRoute: ShellNetworksIndexRoute,
   ShellSensorsIndexRoute: ShellSensorsIndexRoute,
+  ShellEngagementsEngagementIdPcapsPcapIdRoute:
+    ShellEngagementsEngagementIdPcapsPcapIdRoute,
 };
 
 const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren);
