@@ -36,3 +36,24 @@ async def get_alert_context_insight(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={"detail": "llm_unavailable", "reason": exc.reason},
         )
+
+
+@router.get("/engagement/{engagement_id}", response_model=Insight)
+async def get_engagement_summary_insight(
+    engagement_id: str,
+    user: Annotated[UserRecord, Depends(current_user)],
+    service: Annotated[LlmInsightService, Depends(get_llm_insight_service)],
+) -> Insight | JSONResponse:
+    """Return LLM-generated summary for an engagement."""
+
+    try:
+        return await service.engagement_summary(engagement_id, actor_id=user.id)
+    except LlmEntityNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="engagement_not_found"
+        ) from exc
+    except LlmInsightUnavailableError as exc:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"detail": "llm_unavailable", "reason": exc.reason},
+        )

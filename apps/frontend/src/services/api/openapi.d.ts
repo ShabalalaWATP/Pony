@@ -690,11 +690,14 @@ export interface paths {
          *
          *     Args:
          *         engagement_id: Engagement identifier.
+         *         background_tasks: Background task collector.
          *         user: Current admin with verified TOTP.
          *         store: Application store.
          *         audit: Audit logger.
          *         command_broker: Sensor command broker.
          *         operator_broker: Operator broker.
+         *         settings: Runtime settings.
+         *         llm_context: LLM worker context for summary generation.
          */
         post: operations["end_engagement_api_v1_engagements__engagement_id__end_post"];
         delete?: never;
@@ -1033,6 +1036,26 @@ export interface paths {
          * @description Return LLM-generated context for an alert.
          */
         get: operations["get_alert_context_insight_api_v1_insights_alert__alert_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/engagement/{engagement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Engagement Summary Insight
+         * @description Return LLM-generated summary for an engagement.
+         */
+        get: operations["get_engagement_summary_insight_api_v1_insights_engagement__engagement_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2398,9 +2421,9 @@ export interface components {
             generated_at: string;
             /**
              * Kind
-             * @constant
+             * @enum {string}
              */
-            kind: "alert_context";
+            kind: "alert_context" | "engagement_summary";
             /** Model */
             model: string;
             /** Summary */
@@ -4195,6 +4218,37 @@ export interface operations {
             header?: never;
             path: {
                 alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Insight"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_engagement_summary_insight_api_v1_insights_engagement__engagement_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                engagement_id: string;
             };
             cookie?: never;
         };

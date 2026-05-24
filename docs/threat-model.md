@@ -172,9 +172,10 @@ Method: STRIDE per major component.
 - Spoofing: insight reads require an authenticated operator session and accept
   only entity ids for named insight kinds. There is no free-form prompt route.
 - Tampering: prompt contexts are built server-side from validated persisted
-  records, templates are versioned files in the repository, and every model
-  response is parsed through a per-insight Pydantic schema before it can reach an
-  operator.
+  records, including engagement metadata, aggregate event counts, alert severity
+  summaries, and completed PCAP finding counts for engagement summaries.
+  Templates are versioned files in the repository, and every model response is
+  parsed through a per-insight Pydantic schema before it can reach an operator.
 - Repudiation: every insight route call and worker generation path writes an
   audit entry with actor, target, template version, hashes, token counts, cost,
   latency, and outcome. Raw prompts and raw responses are never stored in audit.
@@ -185,7 +186,8 @@ Method: STRIDE per major component.
 - Denial of service: `LLM_ENABLED=false` short-circuits all calls, request
   timeouts and retry caps bound provider interaction, cache hits avoid repeat
   dispatch, and the monthly usage ledger refuses calls that would exceed the
-  configured budget.
+  configured budget. Engagement summaries cache for one hour and engagement-end
+  replays do not enqueue duplicate summary tasks.
 - Elevation of privilege: insights are read-only GET routes and cannot mutate
   state. The LLM informs operators but does not execute actions or influence lab
   gate decisions.

@@ -3,16 +3,18 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 
+from cheeky_pony_backend.api.v1.engagement_end import cancel_lab_records, persist_engagement_end
+from cheeky_pony_backend.config import Settings, get_settings
 from cheeky_pony_backend.dependencies import (
     current_user,
     get_audit_logger,
+    get_llm_task_context,
     get_operator_broker,
     get_sensor_command_broker,
     get_store,
@@ -23,12 +25,12 @@ from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.infra.operator_broker import OperatorBroker
 from cheeky_pony_backend.infra.sensor_command_broker import SensorCommandBroker
+from cheeky_pony_backend.llm.dispatch import dispatch_engagement_summary
+from cheeky_pony_backend.llm.task_context import LlmTaskContext
 from cheeky_pony_shared import (
     AllowedTarget,
     ApiPage,
-    CommandKind,
     Engagement,
-    SensorCommand,
     TargetKind,
 )
 
@@ -286,63 +288,41 @@ async def resume_engagement(
 @router.post("/{engagement_id}/end", status_code=status.HTTP_204_NO_CONTENT)
 async def end_engagement(
     engagement_id: str,
+    background_tasks: BackgroundTasks,
     user: Annotated[UserRecord, Depends(require_admin_2fa)],
     store: Annotated[Store, Depends(get_store)],
     audit: Annotated[AuditLogger, Depends(get_audit_logger)],
     command_broker: Annotated[SensorCommandBroker, Depends(get_sensor_command_broker)],
     operator_broker: Annotated[OperatorBroker, Depends(get_operator_broker)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    llm_context: Annotated[LlmTaskContext, Depends(get_llm_task_context)],
 ) -> None:
     """End an engagement and cancel scoped lab commands.
 
     Args:
         engagement_id: Engagement identifier.
+        background_tasks: Background task collector.
         user: Current admin with verified TOTP.
         store: Application store.
         audit: Audit logger.
         command_broker: Sensor command broker.
         operator_broker: Operator broker.
+        settings: Runtime settings.
+        llm_context: LLM worker context for summary generation.
     """
 
     engagement = await _get_engagement_or_audit_404(
         store, audit, user, engagement_id, "engagement.end", {}
     )
-    ended_at = datetime.now(tz=UTC)
-    await store.update_engagement(engagement.model_copy(update={"ended_at": ended_at}))
+    should_dispatch_summary = engagement.ended_at is None
+    persisted_ended_at = await persist_engagement_end(store, engagement, should_dispatch_summary)
     records = await command_broker.stop_lab_commands_for_engagement(engagement_id)
-    for record in records:
-        audit_entry = await audit.record(
-            user.id,
-            f"lab.{record.module}.stop",
-            {"engagement_id": engagement_id, "command_id": record.command_id},
-            {"reason": "engagement_ended"},
-            "cancelled",
-            started_at=record.started_at,
-            finished_at=ended_at,
-        )
-        await command_broker.send(
-            record.sensor_id, _stop_module_command(record.command_id, record.module)
-        )
-        await operator_broker.broadcast(
-            {
-                "kind": "lab.stopped",
-                "command_id": record.command_id,
-                "module": record.module,
-                "sensor_id": record.sensor_id,
-                "outcome": "cancelled",
-                "finished_at": ended_at.isoformat(),
-                "audit_id": audit_entry.id,
-            }
-        )
-    await audit.record(user.id, "engagement.end", {"engagement_id": engagement_id}, {}, "ok")
-
-
-def _stop_module_command(command_id: str, module: str) -> SensorCommand:
-    return SensorCommand(
-        id=command_id,
-        kind=CommandKind.STOP_MODULE,
-        parameters={"module": module.replace("-", "_")},
-        lab_mode=True,
+    await cancel_lab_records(
+        records, user, engagement_id, persisted_ended_at, audit, command_broker, operator_broker
     )
+    await audit.record(user.id, "engagement.end", {"engagement_id": engagement_id}, {}, "ok")
+    if should_dispatch_summary:
+        await dispatch_engagement_summary(background_tasks, settings, llm_context, engagement_id)
 
 
 async def _get_engagement_or_404(store: Store, engagement_id: str) -> Engagement:

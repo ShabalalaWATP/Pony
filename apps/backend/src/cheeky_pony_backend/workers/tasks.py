@@ -109,6 +109,23 @@ async def generate_alert_context_insight(ctx: dict[str, Any], alert_id: str) -> 
         return False
 
 
+async def generate_engagement_summary_insight(
+    ctx: dict[str, Any],
+    engagement_id: str,
+) -> bool:
+    """Generate engagement-summary insight from worker context when LLM is enabled."""
+
+    service = _llm_service_from_context(ctx)
+    settings = _settings_from_context(ctx)
+    if service is None or settings is None or not settings.llm_enabled:
+        return False
+    try:
+        await service.engagement_summary(engagement_id, actor_id="system:engagement_end")
+        return True
+    except (LlmEntityNotFoundError, LlmInsightUnavailableError):
+        return False
+
+
 async def generate_report(ctx: dict[str, Any], report_id: str) -> bool:
     """Generate one engagement report artifact.
 
@@ -269,6 +286,8 @@ def _llm_service_from_context(ctx: dict[str, Any]) -> LlmInsightService | None:
         audit=AuditLogger(cast(Store, store)),
         settings=cast(Settings, settings),
         store=cast(Store, store),
+        pcap_store=_pcap_store_from_context(ctx),
+        pcap_analysis_store=_pcap_analysis_store_from_context(ctx),
     )
 
 

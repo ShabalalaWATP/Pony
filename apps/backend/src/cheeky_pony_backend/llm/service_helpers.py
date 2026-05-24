@@ -4,19 +4,32 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from typing import Protocol
 
 from pydantic import ValidationError
 
 from cheeky_pony_backend.config import Settings
+from cheeky_pony_backend.domain.audit import AuditLogger
+from cheeky_pony_backend.llm.audit import sha256_text
 from cheeky_pony_backend.llm.cache import InsightCache, cache_key, cache_record
 from cheeky_pony_backend.llm.errors import LlmOutputValidationError
 from cheeky_pony_backend.llm.insights.alert_context import AlertContextResponse
+from cheeky_pony_backend.llm.insights.engagement_summary import EngagementSummaryResponse
 from cheeky_pony_backend.llm.pricing import (
     estimate_completion_cost_micro_cents,
     estimate_tokens,
 )
-from cheeky_pony_backend.llm.types import Insight, LlmCompletion
+from cheeky_pony_backend.llm.service_audit import audit_generated
+from cheeky_pony_backend.llm.types import Insight, InsightConfidence, InsightKind, LlmCompletion
+
+
+class InsightResponse(Protocol):
+    """Common validated response shape returned by insight-specific schemas."""
+
+    summary: str
+    bullet_points: list[str]
+    confidence: InsightConfidence
 
 
 def parse_alert_response(content: str) -> AlertContextResponse:
@@ -29,17 +42,28 @@ def parse_alert_response(content: str) -> AlertContextResponse:
         raise LlmOutputValidationError() from exc
 
 
-def alert_insight(
-    alert_id: str,
-    response: AlertContextResponse,
+def parse_engagement_response(content: str) -> EngagementSummaryResponse:
+    """Parse and validate an engagement-summary model response."""
+
+    try:
+        parsed = json.loads(content)
+        return EngagementSummaryResponse.model_validate(parsed)
+    except (json.JSONDecodeError, ValidationError) as exc:
+        raise LlmOutputValidationError() from exc
+
+
+def public_insight(
+    kind: InsightKind,
+    entity_id: str,
+    response: InsightResponse,
     completion: LlmCompletion,
     template_version: str,
 ) -> Insight:
-    """Build the public insight model for a validated alert response."""
+    """Build the public insight model for a validated response."""
 
     return Insight(
-        kind="alert_context",
-        entity_id=alert_id,
+        kind=kind,
+        entity_id=entity_id,
         summary=response.summary,
         bullet_points=response.bullet_points,
         confidence=response.confidence,
@@ -50,32 +74,86 @@ def alert_insight(
     )
 
 
-async def cache_alert_context(
+async def cache_insight(
     cache: InsightCache,
     *,
-    alert_id: str,
+    kind: InsightKind,
+    entity_id: str,
     prompt_hash: str,
     template_version: str,
     insight: Insight,
+    expires_at: datetime | None,
 ) -> None:
-    """Persist an alert-context insight cache record."""
+    """Persist an insight cache record."""
 
     await cache.set(
         cache_record(
             key=cache_key(
-                kind="alert_context",
-                entity_id=alert_id,
+                kind=kind,
+                entity_id=entity_id,
                 prompt_hash=prompt_hash,
                 template_version=template_version,
             ),
-            kind="alert_context",
-            entity_id=alert_id,
+            kind=kind,
+            entity_id=entity_id,
             prompt_hash=prompt_hash,
             template_version=template_version,
             insight=insight,
-            expires_at=None,
+            expires_at=expires_at,
         )
     )
+
+
+async def cache_and_audit_generated(
+    cache: InsightCache,
+    audit: AuditLogger,
+    *,
+    kind: InsightKind,
+    entity_id: str,
+    response: InsightResponse,
+    completion: LlmCompletion,
+    actor_id: str,
+    target: dict[str, object],
+    prompt_hash: str,
+    template_version: str,
+    expires_at: datetime | None,
+    cost_micro_cents: int,
+    start: float,
+    started_at: datetime,
+) -> Insight:
+    """Persist and audit a freshly generated insight."""
+
+    insight = public_insight(kind, entity_id, response, completion, template_version)
+    await cache_insight(
+        cache,
+        kind=kind,
+        entity_id=entity_id,
+        prompt_hash=prompt_hash,
+        template_version=template_version,
+        insight=insight,
+        expires_at=expires_at,
+    )
+    await audit_generated(
+        audit,
+        actor_id=actor_id,
+        target=target,
+        prompt_hash=prompt_hash,
+        response_hash=sha256_text(completion.content),
+        model=completion.model,
+        template_version=template_version,
+        tokens_input=completion.tokens_input,
+        tokens_output=completion.tokens_output,
+        cost_micro_cents=cost_micro_cents,
+        start=start,
+        started_at=started_at,
+    )
+    return insight
+
+
+def engagement_cache_expiry() -> datetime:
+    """Return the conservative engagement-summary cache expiry."""
+
+    return datetime.now(tz=UTC) + timedelta(hours=1)
 
 
 def actual_cost(

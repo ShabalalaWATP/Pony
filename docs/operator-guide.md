@@ -108,15 +108,26 @@ AI-assisted insights are disabled by default. Set
 `CHEEKY_PONY_LLM_API_KEY`. HTTP local endpoints can omit the key; HTTPS
 endpoints require one at startup.
 
-Slice 3A exposes alert context at:
+Alert context is available at:
 
 ```shell
 curl http://localhost:8000/api/v1/insights/alert/<alert-id>
 ```
 
-The route is read-only and requires an authenticated operator session. The
-backend does not expose a free-form prompt endpoint. Each insight kind uses a
-versioned prompt template in the repository, a Pydantic response schema, and a
+Engagement summaries are available at:
+
+```shell
+curl http://localhost:8000/api/v1/insights/engagement/<engagement-id>
+```
+
+The engagement summary uses engagement metadata, event counts, top alert
+severity buckets, and completed PCAP finding counts. Ending an engagement queues
+summary generation once, and the read endpoint generates on demand if no cached
+summary exists. The route is read-only and requires an authenticated operator
+session.
+
+The backend does not expose a free-form prompt endpoint. Each insight kind uses
+a versioned prompt template in the repository, a Pydantic response schema, and a
 cache key that includes the template version and redacted prompt hash.
 
 Privacy controls apply before every dispatch. MAC and BSSID values become
