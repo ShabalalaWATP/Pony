@@ -12,6 +12,7 @@ import {
   usePcapAnalysis,
   usePcapFindings,
 } from "@/services/api/pcapQueries";
+import { OnDemandInsight } from "@/components/insights/OnDemandInsight";
 import { FindingEvidence } from "./FindingEvidence";
 
 interface PcapDetailViewProps {
@@ -133,6 +134,13 @@ function FindingCard({ finding }: { finding: Finding }): JSX.Element {
         </span>
       </header>
       <FindingEvidence kind={finding.kind} evidence={finding.evidence} />
+      <div className="mt-3 border-t border-fg-20 pt-3">
+        <OnDemandInsight
+          kind="pcap_finding"
+          entityId={finding.id}
+          buttonLabel="Explain this finding"
+        />
+      </div>
     </li>
   );
 }

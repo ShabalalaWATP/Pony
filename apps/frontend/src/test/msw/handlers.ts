@@ -262,6 +262,25 @@ export const authHandlers = [
   http.get("/api/v1/engagements/:eid/pcaps/:pid/findings", () =>
     HttpResponse.json({ items: [], total: 0, limit: 100, offset: 0 }),
   ),
+  // LLM insight surfaces (PRs #66-70). Default to 503 "disabled" so
+  // every list page renders the graceful unavailable state without
+  // tests needing per-case overrides. Cases that want a populated
+  // insight override with `server.use(...)`.
+  http.get("/api/v1/insights/alert/:id", () =>
+    HttpResponse.json({ detail: "llm_unavailable", reason: "disabled" }, { status: 503 }),
+  ),
+  http.get("/api/v1/insights/engagement/:id", () =>
+    HttpResponse.json({ detail: "llm_unavailable", reason: "disabled" }, { status: 503 }),
+  ),
+  http.get("/api/v1/insights/ap/:id", () =>
+    HttpResponse.json({ detail: "llm_unavailable", reason: "disabled" }, { status: 503 }),
+  ),
+  http.get("/api/v1/insights/pcap-finding/:id", () =>
+    HttpResponse.json({ detail: "llm_unavailable", reason: "disabled" }, { status: 503 }),
+  ),
+  http.post("/api/v1/insights/:kind/:id/refresh", () =>
+    HttpResponse.json({ detail: "llm_unavailable", reason: "disabled" }, { status: 503 }),
+  ),
   http.get("/api/v1/access_points/:bssid", ({ params }) => {
     if (
       typeof params.bssid === "string" &&

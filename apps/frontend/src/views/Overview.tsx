@@ -1,3 +1,4 @@
+import { OverviewEngagementInsight } from "@/components/overview/OverviewEngagementInsight";
 import { OverviewEventStream } from "@/components/overview/OverviewEventStream";
 import { OverviewKPIs } from "@/components/overview/OverviewKPIs";
 import { OverviewRecentAlerts } from "@/components/overview/OverviewRecentAlerts";
@@ -16,6 +17,8 @@ export function Overview(): JSX.Element {
       </header>
 
       <OverviewKPIs />
+
+      <OverviewEngagementInsight />
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <div className="lg:col-span-2">
