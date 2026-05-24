@@ -12,6 +12,7 @@ import { AlertSeverityChip } from "@/components/domain/AlertSeverityChip";
 import { EmptyState } from "@/components/domain/EmptyState";
 import { LiveDot } from "@/components/domain/LiveDot";
 import { RelativeTime } from "@/components/domain/RelativeTime";
+import { InsightCard } from "@/components/insights/InsightCard";
 import { type Alert, type AlertSeverity, useAckAlert, useAlertsList } from "@/services/api/queries";
 import { useLiveTopic, useOperatorConnection } from "@/services/ws/hooks";
 
@@ -395,6 +396,8 @@ function AlertDetail({ alert, onAck, acking }: AlertDetailProps): JSX.Element {
           </Button>
         )}
       </DetailSection>
+
+      <InsightCard kind="alert_context" entityId={alert.id} />
     </div>
   );
 }

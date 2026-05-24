@@ -7,6 +7,7 @@ import { MacAddress } from "@/components/domain/MacAddress";
 import { RelativeTime } from "@/components/domain/RelativeTime";
 import { SignalBars } from "@/components/domain/SignalBars";
 import { SignalSparkline } from "@/components/domain/SignalSparkline";
+import { OnDemandInsight } from "@/components/insights/OnDemandInsight";
 import { latestRssi, rssiSeries } from "@/lib/signal-helpers";
 import { resolveVendor } from "@/lib/vendor";
 import {
@@ -175,6 +176,8 @@ export function AccessPointDetail({ bssid, seed }: AccessPointDetailProps): JSX.
       </DetailSection>
 
       <AssociatedClients bssid={ap.bssid} />
+
+      <OnDemandInsight kind="ap_description" entityId={ap.bssid} buttonLabel="Explain this AP" />
     </div>
   );
 }
