@@ -7,10 +7,12 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { ChannelBadge } from "@/components/domain/ChannelBadge";
 import { EmptyState } from "@/components/domain/EmptyState";
 import { EncryptionChip } from "@/components/domain/EncryptionChip";
+import { LabelBadge } from "@/components/domain/LabelBadge";
 import { MacAddress } from "@/components/domain/MacAddress";
 import { RelativeTime } from "@/components/domain/RelativeTime";
 import { SignalBars } from "@/components/domain/SignalBars";
 import { SsidLabel } from "@/components/domain/SsidLabel";
+import type { ApType } from "@/lib/labels";
 import { latestRssi } from "@/lib/signal-helpers";
 import { resolveVendor } from "@/lib/vendor";
 import { useAccessPointsList, type AccessPoint } from "@/services/api/queries";
@@ -43,6 +45,19 @@ const columns: ColumnDef<AccessPoint, unknown>[] = [
       );
     },
     size: 140,
+  },
+  {
+    id: "label",
+    header: "Type",
+    accessorFn: (row) => (row as AccessPoint & { label?: ApType | null }).label ?? "unknown",
+    cell: (ctx) => {
+      const row = ctx.row.original as AccessPoint & {
+        label?: ApType | null;
+        label_confidence?: number;
+      };
+      return <LabelBadge kind="ap" label={row.label} confidence={row.label_confidence} />;
+    },
+    size: 120,
   },
   {
     id: "encryption",
