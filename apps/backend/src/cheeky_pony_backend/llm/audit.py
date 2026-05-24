@@ -9,6 +9,7 @@ from datetime import datetime
 from cheeky_pony_backend.domain.audit import AuditLogger
 
 _TARGET_ACTIONS = {
+    "access_point": "llm.insight.ap_description",
     "alert": "llm.insight.alert_context",
     "engagement": "llm.insight.engagement_summary",
 }

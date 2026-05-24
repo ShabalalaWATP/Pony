@@ -2290,7 +2290,8 @@
       "kind": {
         "enum": [
           "alert_context",
-          "engagement_summary"
+          "engagement_summary",
+          "ap_description"
         ],
         "title": "Kind",
         "type": "string"

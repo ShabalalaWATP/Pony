@@ -2292,7 +2292,8 @@
           "kind": {
             "enum": [
               "alert_context",
-              "engagement_summary"
+              "engagement_summary",
+              "ap_description"
             ],
             "title": "Kind",
             "type": "string"
@@ -5474,6 +5475,49 @@
           }
         },
         "summary": "Get Alert Context Insight",
+        "tags": [
+          "insights"
+        ]
+      }
+    },
+    "/api/v1/insights/ap/{bssid}": {
+      "get": {
+        "description": "Return LLM-generated description for an access point.",
+        "operationId": "get_ap_description_insight_api_v1_insights_ap__bssid__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "bssid",
+            "required": true,
+            "schema": {
+              "title": "Bssid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Insight"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Ap Description Insight",
         "tags": [
           "insights"
         ]

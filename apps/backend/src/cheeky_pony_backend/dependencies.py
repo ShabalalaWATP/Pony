@@ -149,9 +149,20 @@ def get_prompt_redactor(request: Request) -> PromptRedactor:
     return cast(PromptRedactor, request.app.state.prompt_redactor)
 
 
+def get_oui_service() -> OuiService:
+    """Return the OUI vendor lookup service.
+
+    Returns:
+        OUI lookup service singleton.
+    """
+
+    return OUI_SERVICE
+
+
 def get_llm_insight_service(
     settings: Annotated[Settings, Depends(get_settings)],
     store: Annotated[Store, Depends(get_store)],
+    oui: Annotated[OuiService, Depends(get_oui_service)],
     client: Annotated[LlmClient, Depends(get_llm_client)],
     cache: Annotated[InsightCache, Depends(get_insight_cache)],
     ledger: Annotated[UsageLedger, Depends(get_usage_ledger)],
@@ -174,6 +185,7 @@ def get_llm_insight_service(
         store=store,
         pcap_store=pcap_store,
         pcap_analysis_store=pcap_analysis_store,
+        oui=oui,
     )
 
 
@@ -231,16 +243,6 @@ def get_csrf_service() -> CsrfService:
     """
 
     return CSRF_SERVICE
-
-
-def get_oui_service() -> OuiService:
-    """Return the OUI vendor lookup service.
-
-    Returns:
-        OUI lookup service singleton.
-    """
-
-    return OUI_SERVICE
 
 
 def get_token_service(settings: Annotated[Settings, Depends(get_settings)]) -> TokenService:

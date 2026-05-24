@@ -1044,6 +1044,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/insights/ap/{bssid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Ap Description Insight
+         * @description Return LLM-generated description for an access point.
+         */
+        get: operations["get_ap_description_insight_api_v1_insights_ap__bssid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/insights/engagement/{engagement_id}": {
         parameters: {
             query?: never;
@@ -2423,7 +2443,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "alert_context" | "engagement_summary";
+            kind: "alert_context" | "engagement_summary" | "ap_description";
             /** Model */
             model: string;
             /** Summary */
@@ -4218,6 +4238,37 @@ export interface operations {
             header?: never;
             path: {
                 alert_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Insight"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_ap_description_insight_api_v1_insights_ap__bssid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bssid: string;
             };
             cookie?: never;
         };

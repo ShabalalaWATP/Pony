@@ -126,6 +126,18 @@ summary generation once, and the read endpoint generates on demand if no cached
 summary exists. The route is read-only and requires an authenticated operator
 session.
 
+AP descriptions are available on demand at:
+
+```shell
+curl http://localhost:8000/api/v1/insights/ap/<bssid>
+```
+
+The AP description uses the AP's SSID, channel, band, encryption, local label,
+anomaly score, signal summary, and aggregate associated-client mix. It excludes
+raw BSSIDs, client MACs, probe histories, and raw packet evidence from the
+prompt context. Results cache for 24 hours because AP metadata is comparatively
+stable.
+
 The backend does not expose a free-form prompt endpoint. Each insight kind uses
 a versioned prompt template in the repository, a Pydantic response schema, and a
 cache key that includes the template version and redacted prompt hash.
