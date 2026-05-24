@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/domain/EmptyState";
 import { LiveDot } from "@/components/domain/LiveDot";
 import { RelativeTime } from "@/components/domain/RelativeTime";
+import { sensorStatus } from "@/lib/sensorStatus";
 import { useSensorsList, type Sensor } from "@/services/api/queries";
 import { RegisterSensorDrawer } from "./RegisterSensorDrawer";
 import { RevokeSensorAction } from "./RevokeSensorAction";
@@ -18,21 +19,6 @@ import { SensorCommands } from "./SensorCommands";
 
 function hasGeo(sensor: Sensor): boolean {
   return (sensor.capabilities ?? []).includes("geo");
-}
-
-/**
- * Derive a sensor's live/stale/offline status from its last-seen
- * timestamp. Thresholds match the live-data UX rules in the design spec
- * (§9): <30s = live, <5m = stale, otherwise offline. Revoked sensors
- * are always offline.
- */
-function sensorStatus(s: Sensor): "live" | "stale" | "offline" {
-  if (s.revoked) return "offline";
-  if (!s.last_seen) return "offline";
-  const age = Date.now() - new Date(s.last_seen).getTime();
-  if (age < 30_000) return "live";
-  if (age < 5 * 60_000) return "stale";
-  return "offline";
 }
 
 const columns: ColumnDef<Sensor, unknown>[] = [

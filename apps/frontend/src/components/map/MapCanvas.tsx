@@ -6,6 +6,35 @@ import maplibregl, {
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef } from "react";
 import { type MapPin } from "@/stores/useMapPinsStore";
+import type { SensorStatus } from "@/lib/sensorStatus";
+
+/**
+ * Renderable sensor marker. MapView builds these from the sensors API
+ * + the shared `sensorStatus` helper; MapCanvas is purely a renderer
+ * and stays unaware of the API shape, matching the AP marker
+ * contract (`MapPin`).
+ */
+export interface SensorMarker {
+  /** Stable sensor id — used as the marker map key for diff updates. */
+  id: string;
+  /** Operator-facing sensor name, surfaced via the marker's aria-label. */
+  name: string;
+  lat: number;
+  lng: number;
+  /** Drives the marker's border colour. */
+  status: SensorStatus;
+}
+
+/**
+ * Border colour per status, using CSS custom properties so the colour
+ * tokens stay swappable from `globals.css` without touching marker
+ * code.
+ */
+const SENSOR_STATUS_COLOUR: Record<SensorStatus, string> = {
+  live: "hsl(var(--accent-green))",
+  stale: "hsl(var(--accent-amber))",
+  offline: "hsl(var(--fg-40))",
+};
 
 interface MapCanvasProps {
   pins: Record<string, MapPin>;
@@ -32,8 +61,19 @@ interface MapCanvasProps {
    * immediately instead of being left at world-zoom.
    */
   flyTo?: { center: [number, number]; zoom: number } | null;
+  /**
+   * Sensors to render alongside the AP pins. Distinct visual shape
+   * (rotated square / diamond) and colour-coded by status. Pass an
+   * empty object to disable the sensor layer entirely.
+   */
+  sensorMarkers?: Record<string, SensorMarker>;
   onMapClick: (lngLat: { lng: number; lat: number }) => void;
   onPinClick: (bssid: string) => void;
+  /**
+   * Fired when the operator clicks a sensor marker. MapView wires
+   * this to a router navigation to `/sensors?id={id}`.
+   */
+  onSensorClick?: (sensorId: string) => void;
 }
 
 /**
@@ -50,16 +90,19 @@ export function MapCanvas({
   style,
   pending,
   flyTo,
+  sensorMarkers,
   onMapClick,
   onPinClick,
+  onSensorClick,
 }: MapCanvasProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<Map<string, Marker>>(new Map());
+  const sensorMarkersRef = useRef<Map<string, Marker>>(new Map());
   // Stash the callbacks in refs so the (expensive) map effect doesn't
   // re-create the map on every re-render.
-  const callbacksRef = useRef({ onMapClick, onPinClick });
-  callbacksRef.current = { onMapClick, onPinClick };
+  const callbacksRef = useRef({ onMapClick, onPinClick, onSensorClick });
+  callbacksRef.current = { onMapClick, onPinClick, onSensorClick };
 
   // Hold the initial style in a ref so the map-create effect can read
   // it without forcing a re-create when the operator later switches
@@ -80,10 +123,12 @@ export function MapCanvas({
       callbacksRef.current.onMapClick({ lng: e.lngLat.lng, lat: e.lngLat.lat });
     });
     const markers = markersRef.current;
+    const sensorMarkers = sensorMarkersRef.current;
     return () => {
       map.remove();
       mapRef.current = null;
       markers.clear();
+      sensorMarkers.clear();
     };
   }, []);
 
@@ -138,6 +183,58 @@ export function MapCanvas({
       markersRef.current.set(bssid, marker);
     }
   }, [pins]);
+
+  // Sync sensor markers with the supplied set. Mirrors the AP marker
+  // effect above but uses a separate ref + a distinct shape (rotated
+  // square / diamond) so the operator can tell sensors from APs at a
+  // glance. Border colour reflects health (`SENSOR_STATUS_COLOUR`).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const current = sensorMarkers ?? {};
+
+    // Remove sensors no longer in the prop.
+    for (const [sid, marker] of sensorMarkersRef.current) {
+      if (!(sid in current)) {
+        marker.remove();
+        sensorMarkersRef.current.delete(sid);
+      }
+    }
+    // Add / move / restyle current sensors.
+    for (const [sid, sensor] of Object.entries(current)) {
+      const existing = sensorMarkersRef.current.get(sid);
+      if (existing) {
+        existing.setLngLat([sensor.lng, sensor.lat]);
+        // Border colour may have flipped (live → stale, etc.) — restyle.
+        const el = existing.getElement();
+        el.style.borderColor = SENSOR_STATUS_COLOUR[sensor.status];
+        el.setAttribute("data-sensor-status", sensor.status);
+        continue;
+      }
+      const el = document.createElement("button");
+      el.type = "button";
+      el.setAttribute("aria-label", `Sensor ${sensor.name}`);
+      el.setAttribute("data-testid", `sensor-marker-${sid}`);
+      el.setAttribute("data-sensor-status", sensor.status);
+      el.style.cssText = [
+        "width:14px",
+        "height:14px",
+        "border-radius:2px",
+        `border:2px solid ${SENSOR_STATUS_COLOUR[sensor.status]}`,
+        "background:hsl(var(--bg-2))",
+        "cursor:pointer",
+        "transform:rotate(45deg)",
+      ].join(";");
+      el.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        callbacksRef.current.onSensorClick?.(sid);
+      });
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([sensor.lng, sensor.lat])
+        .addTo(map);
+      sensorMarkersRef.current.set(sid, marker);
+    }
+  }, [sensorMarkers]);
 
   // Visual hint when the operator is mid-placement.
   useEffect(() => {

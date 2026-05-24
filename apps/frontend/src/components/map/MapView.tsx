@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { Info, MapPin as MapPinIcon, Sparkles, X } from "lucide-react";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
@@ -7,11 +8,15 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/domain/EmptyState";
 import { MacAddress } from "@/components/domain/MacAddress";
-import { useAccessPointsList, type AccessPoint } from "@/services/api/queries";
+import { SsidLabel } from "@/components/domain/SsidLabel";
+import { sensorStatus } from "@/lib/sensorStatus";
+import { useAccessPointsList, useSensorsList, type AccessPoint } from "@/services/api/queries";
 import { type MapPin, useMapPinsStore } from "@/stores/useMapPinsStore";
 import { useMapStyleStore } from "@/stores/useMapStyleStore";
 import { MapStyleSwitcher } from "./MapStyleSwitcher";
 import { styleDefFor } from "./mapStyles";
+import type { SensorMarker } from "./MapCanvas";
+import { SCATTER_CENTER, scatterFor } from "./scatter";
 
 const MapCanvas = lazy(() => import("./MapCanvas").then((m) => ({ default: m.MapCanvas })));
 
@@ -23,42 +28,6 @@ interface Pending {
 interface FlyTo {
   center: [number, number];
   zoom: number;
-}
-
-/**
- * Demo "Scatter" center. Picked as a recognisable mid-latitude
- * spot rather than (0,0) (which is in the Atlantic and looks empty).
- * Manual pins land in a ~30 km radius around this point. Once the
- * backend seeder populates synthetic AP coords the operator can clear
- * these and rely on the server-side layer.
- */
-const SCATTER_CENTER: [number, number] = [-0.1278, 51.5074]; // [lng, lat] — central London.
-const SCATTER_RADIUS_DEGREES = 0.3; // ≈ 30 km of jitter on each axis.
-
-/**
- * Stable 32-bit hash of an arbitrary string. Used to spread the demo
- * scatter deterministically so the same BSSID always lands at the
- * same demo coords — the operator can click "Scatter demo pins"
- * multiple times without the markers jumping around.
- */
-function hashString(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i += 1) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-/**
- * Deterministic demo coords for a given BSSID, jittered around
- * `SCATTER_CENTER`. Output stays inside roughly ±SCATTER_RADIUS_DEGREES.
- */
-function scatterFor(bssid: string): MapPin {
-  const h = hashString(bssid);
-  const dx = ((h & 0xffff) / 0xffff - 0.5) * 2 * SCATTER_RADIUS_DEGREES;
-  const dy = (((h >>> 16) & 0xffff) / 0xffff - 0.5) * 2 * SCATTER_RADIUS_DEGREES;
-  return { lat: SCATTER_CENTER[1] + dy, lng: SCATTER_CENTER[0] + dx };
 }
 
 /**
@@ -85,6 +54,12 @@ function scatterFor(bssid: string): MapPin {
  */
 export function MapView(): JSX.Element {
   const query = useAccessPointsList({ limit: 500 });
+  // Sensors render alongside APs when they carry coords (PR #56). The
+  // hook is admin-gated server-side; a 403 just means the operator
+  // can't see the sensor layer, so we degrade silently — APs still
+  // render. Limit matches the Sensors view list cap.
+  const sensorsQuery = useSensorsList({ limit: 500 });
+  const navigate = useNavigate();
   const manualPins = useMapPinsStore((s) => s.pins);
   const setPin = useMapPinsStore((s) => s.setPin);
   const removePin = useMapPinsStore((s) => s.removePin);
@@ -95,6 +70,29 @@ export function MapView(): JSX.Element {
   const [filter, setFilter] = useState("");
   const [pending, setPending] = useState<Pending | null>(null);
   const [flyTo, setFlyTo] = useState<FlyTo | null>(null);
+
+  // Build the renderable sensor-marker set — only sensors with both
+  // lat AND lng become markers. `sensorStatus` is the shared helper
+  // used by SensorsView so the live/stale/offline classification stays
+  // consistent across the dashboard.
+  const sensorMarkers = useMemo<Record<string, SensorMarker>>(() => {
+    const out: Record<string, SensorMarker> = {};
+    for (const s of sensorsQuery.data?.items ?? []) {
+      if (s.latitude == null || s.longitude == null) continue;
+      out[s.id] = {
+        id: s.id,
+        name: s.name,
+        lat: s.latitude,
+        lng: s.longitude,
+        status: sensorStatus(s),
+      };
+    }
+    return out;
+  }, [sensorsQuery.data?.items]);
+
+  const onSensorClick = (sensorId: string): void => {
+    void navigate({ to: "/sensors", search: { id: sensorId } });
+  };
 
   const items = useMemo(() => query.data?.items ?? [], [query.data?.items]);
   const filtered = useMemo(() => {
@@ -155,16 +153,26 @@ export function MapView(): JSX.Element {
   const manualCount = Object.keys(manualPins).length;
   const serverCount = serverPlaced.size;
   const pinCount = Object.keys(mergedPins).length;
+  const sensorCount = Object.keys(sensorMarkers).length;
   // Show the no-geo hint only when (a) APs exist, (b) none have server
   // coords, and (c) the operator hasn't already started placing pins
   // manually. Once they've started, the hint stops adding value.
   const showNoGeoHint =
     items.length > 0 && serverCount === 0 && manualCount === 0 && !query.isLoading;
+  // Map should render the canvas when EITHER APs or sensors give us
+  // something to display. Empty state is only correct when both sets
+  // are empty (and we're not still loading).
+  const canvasHasContent = items.length > 0 || sensorCount > 0;
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title="Map" total={pinCount}>
         <div className="flex items-center gap-2">
+          {sensorCount > 0 && (
+            <Badge tone="green" outline data-testid="map-sensor-count">
+              {sensorCount} sensor{sensorCount === 1 ? "" : "s"}
+            </Badge>
+          )}
           {serverCount > 0 && (
             <Badge tone="accent" outline>
               <MapPinIcon className="size-3" aria-hidden="true" />
@@ -236,10 +244,10 @@ export function MapView(): JSX.Element {
         <div className="relative h-[560px] overflow-hidden rounded-md border border-fg-20 bg-bg-2">
           {query.isLoading ? (
             <Skeleton className="h-full w-full" />
-          ) : items.length === 0 ? (
+          ) : !canvasHasContent ? (
             <EmptyState
-              title="No access points to place yet"
-              description="Bring a sensor online; APs appear here as soon as the first capture lands."
+              title="No access points or sensors to show yet"
+              description="Bring a sensor online; APs and sensor positions appear here as soon as the first capture lands."
             />
           ) : (
             <Suspense fallback={<Skeleton className="h-full w-full" />}>
@@ -248,8 +256,10 @@ export function MapView(): JSX.Element {
                 style={styleSpec}
                 pending={pending}
                 flyTo={flyTo}
+                sensorMarkers={sensorMarkers}
                 onMapClick={onMapClick}
                 onPinClick={onPinClick}
+                onSensorClick={onSensorClick}
               />
             </Suspense>
           )}
@@ -340,9 +350,7 @@ function ApRow({ ap, placed, fromSensor, onPlace }: ApRowProps): JSX.Element {
         aria-label={`Place pin for ${ap.ssid ?? ap.bssid}`}
         className="flex items-center justify-between gap-2 rounded-sm text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-mode"
       >
-        <span className="truncate text-sm text-fg-100">
-          {ap.ssid ?? <span className="italic text-fg-40">&lt;hidden&gt;</span>}
-        </span>
+        <SsidLabel ssid={ap.ssid} truncate className="text-sm" />
         {placed && (
           <Badge tone={fromSensor ? "accent" : "neutral"} outline>
             <MapPinIcon className="size-3" aria-hidden="true" />

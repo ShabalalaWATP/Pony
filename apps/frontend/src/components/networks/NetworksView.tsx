@@ -10,6 +10,7 @@ import { EncryptionChip } from "@/components/domain/EncryptionChip";
 import { MacAddress } from "@/components/domain/MacAddress";
 import { RelativeTime } from "@/components/domain/RelativeTime";
 import { SignalBars } from "@/components/domain/SignalBars";
+import { SsidLabel } from "@/components/domain/SsidLabel";
 import { latestRssi } from "@/lib/signal-helpers";
 import { useAccessPointsList, type AccessPoint } from "@/services/api/queries";
 import { AccessPointDetail } from "./AccessPointDetail";
@@ -18,14 +19,7 @@ const columns: ColumnDef<AccessPoint, unknown>[] = [
   {
     accessorKey: "ssid",
     header: "SSID",
-    cell: (ctx) => {
-      const ssid = ctx.getValue<string | null>();
-      return ssid ? (
-        <span className="truncate text-fg-100">{ssid}</span>
-      ) : (
-        <span className="italic text-fg-40">&lt;hidden&gt;</span>
-      );
-    },
+    cell: (ctx) => <SsidLabel ssid={ctx.getValue<string | null>()} truncate />,
   },
   {
     accessorKey: "bssid",
@@ -143,7 +137,7 @@ export function NetworksView(): JSX.Element {
         onClose={close}
         title={
           <div className="flex items-center gap-3 truncate">
-            <span className="truncate font-mono">{seed?.ssid ?? "<hidden>"}</span>
+            <SsidLabel ssid={seed?.ssid} truncate className="font-mono" />
             <MacAddress value={seed?.bssid ?? search.bssid ?? ""} truncate />
           </div>
         }
