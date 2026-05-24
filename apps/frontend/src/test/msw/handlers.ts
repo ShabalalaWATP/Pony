@@ -256,6 +256,12 @@ export const authHandlers = [
   http.post("/api/v1/engagements/:eid/pcaps/:pid/analyze", () =>
     HttpResponse.json({ analysis_id: "analysis-test" }, { status: 202 }),
   ),
+  http.get("/api/v1/engagements/:eid/pcaps/:pid/analysis", () =>
+    HttpResponse.json({ analysis: null, finding_counts: {} }),
+  ),
+  http.get("/api/v1/engagements/:eid/pcaps/:pid/findings", () =>
+    HttpResponse.json({ items: [], total: 0, limit: 100, offset: 0 }),
+  ),
   http.get("/api/v1/access_points/:bssid", ({ params }) => {
     if (
       typeof params.bssid === "string" &&
