@@ -10,11 +10,18 @@ import { server } from "./msw/server";
 
 // `MapCanvas` is dynamically imported and pulls in MapLibre. It expects
 // a real WebGL context and DOM measurements that jsdom doesn't supply,
-// so we stub the lazy-loaded module wholesale for tests.
+// so we stub the lazy-loaded module wholesale for tests. The stub
+// re-exports any data needed by integration assertions (style, pins,
+// sensor markers, click callback).
+interface MapCanvasStubProps {
+  pins: Record<string, unknown>;
+  style: unknown;
+  sensorMarkers?: Record<string, { id: string; status: string }>;
+  onSensorClick?: (id: string) => void;
+}
+
 vi.mock("@/components/map/MapCanvas", () => ({
-  MapCanvas: ({ pins, style }: { pins: Record<string, unknown>; style: unknown }) => {
-    // Surface the style descriptor through the stub so integration
-    // tests can assert which base-layer descriptor MapView resolved.
+  MapCanvas: ({ pins, style, sensorMarkers, onSensorClick }: MapCanvasStubProps) => {
     const styleId =
       typeof style === "string"
         ? "street"
@@ -25,9 +32,25 @@ vi.mock("@/components/map/MapCanvas", () => ({
             ? "hybrid"
             : "satellite"
           : "unknown";
+    const sensors = sensorMarkers ?? {};
     return (
-      <div data-testid="map-canvas-stub" data-style-id={styleId}>
+      <div
+        data-testid="map-canvas-stub"
+        data-style-id={styleId}
+        data-sensor-count={Object.keys(sensors).length}
+      >
         {Object.keys(pins).length} pins
+        {Object.entries(sensors).map(([id, sm]) => (
+          <button
+            key={id}
+            type="button"
+            data-testid={`canvas-sensor-${id}`}
+            data-sensor-status={sm.status}
+            onClick={() => onSensorClick?.(id)}
+          >
+            {id}
+          </button>
+        ))}
       </div>
     );
   },
@@ -90,16 +113,19 @@ describe("MapView", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders an empty state when no APs exist", async () => {
+  it("renders an empty state when neither APs nor sensors exist", async () => {
     useMapPinsStore.setState({ pins: {} });
     server.use(
       http.get("/api/v1/access_points", () =>
         HttpResponse.json({ items: [], total: 0, limit: 500, offset: 0 }),
       ),
+      // Sensors API is admin-gated and returns 403 by default; that
+      // path means "no sensor layer" without erroring the view, so
+      // the empty state still wins when APs are also empty.
     );
     const { node } = withQueryAndRouter(<MapView />);
     render(node);
-    expect(await screen.findByText(/no access points to place yet/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no access points or sensors to show yet/i)).toBeInTheDocument();
   });
 
   it("badges APs that already have a pin", async () => {
@@ -319,5 +345,145 @@ describe("MapView", () => {
     await waitFor(() => {
       expect(screen.getByTestId("map-canvas-stub")).toHaveAttribute("data-style-id", "hybrid");
     });
+  });
+
+  it("renders only sensors with both lat AND lng as canvas markers", async () => {
+    useMapPinsStore.setState({ pins: {} });
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({ items: sampleAps, total: 2, limit: 500, offset: 0 }),
+      ),
+      http.get("/api/v1/sensors", () =>
+        HttpResponse.json({
+          items: [
+            {
+              id: "sensor-uk-1",
+              name: "synth-pi-0",
+              tailnet_ip: "100.64.0.10",
+              version: "0.1.0",
+              capabilities: ["passive_capture"],
+              last_seen: new Date(Date.now() - 5_000).toISOString(),
+              revoked: false,
+              latitude: 51.5,
+              longitude: -0.1,
+            },
+            {
+              id: "sensor-no-coords",
+              name: "synth-pi-nogeo",
+              tailnet_ip: "100.64.0.11",
+              version: "0.1.0",
+              capabilities: ["passive_capture"],
+              last_seen: new Date(Date.now() - 5_000).toISOString(),
+              revoked: false,
+              latitude: null,
+              longitude: null,
+            },
+          ],
+          total: 2,
+          limit: 500,
+          offset: 0,
+        }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<MapView />);
+    render(node);
+    const canvas = await screen.findByTestId("map-canvas-stub");
+    await waitFor(() => {
+      expect(canvas).toHaveAttribute("data-sensor-count", "1");
+    });
+    expect(screen.getByTestId("canvas-sensor-sensor-uk-1")).toBeInTheDocument();
+    expect(screen.queryByTestId("canvas-sensor-sensor-no-coords")).toBeNull();
+  });
+
+  it("classifies sensor markers via sensorStatus (live in this fixture)", async () => {
+    useMapPinsStore.setState({ pins: {} });
+    server.use(
+      http.get("/api/v1/sensors", () =>
+        HttpResponse.json({
+          items: [
+            {
+              id: "sensor-live",
+              name: "live-pi",
+              tailnet_ip: "100.64.0.10",
+              version: "0.1.0",
+              capabilities: ["passive_capture"],
+              last_seen: new Date(Date.now() - 5_000).toISOString(),
+              revoked: false,
+              latitude: 51.5,
+              longitude: -0.1,
+            },
+          ],
+          total: 1,
+          limit: 500,
+          offset: 0,
+        }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<MapView />);
+    render(node);
+    const marker = await screen.findByTestId("canvas-sensor-sensor-live");
+    expect(marker).toHaveAttribute("data-sensor-status", "live");
+  });
+
+  it("renders the sensor-count badge in the header", async () => {
+    useMapPinsStore.setState({ pins: {} });
+    server.use(
+      http.get("/api/v1/sensors", () =>
+        HttpResponse.json({
+          items: [
+            {
+              id: "s-1",
+              name: "n",
+              tailnet_ip: "1.1.1.1",
+              version: "0",
+              capabilities: [],
+              last_seen: new Date().toISOString(),
+              revoked: false,
+              latitude: 51,
+              longitude: -0.1,
+            },
+          ],
+          total: 1,
+          limit: 500,
+          offset: 0,
+        }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<MapView />);
+    render(node);
+    expect(await screen.findByTestId("map-sensor-count")).toHaveTextContent(/1 sensor/i);
+  });
+
+  it("renders the canvas even when only sensors (no APs) are present", async () => {
+    useMapPinsStore.setState({ pins: {} });
+    server.use(
+      http.get("/api/v1/access_points", () =>
+        HttpResponse.json({ items: [], total: 0, limit: 500, offset: 0 }),
+      ),
+      http.get("/api/v1/sensors", () =>
+        HttpResponse.json({
+          items: [
+            {
+              id: "lone-sensor",
+              name: "n",
+              tailnet_ip: "1.1.1.1",
+              version: "0",
+              capabilities: [],
+              last_seen: new Date().toISOString(),
+              revoked: false,
+              latitude: 51,
+              longitude: -0.1,
+            },
+          ],
+          total: 1,
+          limit: 500,
+          offset: 0,
+        }),
+      ),
+    );
+    const { node } = withQueryAndRouter(<MapView />);
+    render(node);
+    expect(await screen.findByTestId("map-canvas-stub")).toBeInTheDocument();
+    expect(screen.queryByText(/no access points or sensors to show yet/i)).toBeNull();
   });
 });
