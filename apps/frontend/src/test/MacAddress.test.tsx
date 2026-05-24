@@ -40,4 +40,24 @@ describe("MacAddress", () => {
     await userEvent.click(screen.getByRole("button"));
     expect(screen.getByText("a4:c3:f0:1d:88:0a")).toBeInTheDocument();
   });
+
+  it("renders the vendor inline next to the MAC when supplied", () => {
+    render(<MacAddress value="a4:c3:f0:1d:88:0a" vendor="Apple, Inc." />);
+    const vendorEl = screen.getByTestId("mac-vendor");
+    expect(vendorEl).toHaveTextContent("· Apple, Inc.");
+  });
+
+  it("does not render the vendor span when vendor is null / undefined / empty", () => {
+    const { rerender } = render(<MacAddress value="a4:c3:f0:1d:88:0a" vendor={null} />);
+    expect(screen.queryByTestId("mac-vendor")).toBeNull();
+    rerender(<MacAddress value="a4:c3:f0:1d:88:0a" />);
+    expect(screen.queryByTestId("mac-vendor")).toBeNull();
+    rerender(<MacAddress value="a4:c3:f0:1d:88:0a" vendor="" />);
+    expect(screen.queryByTestId("mac-vendor")).toBeNull();
+  });
+
+  it("suppresses the inline vendor when hideInlineVendor is set", () => {
+    render(<MacAddress value="a4:c3:f0:1d:88:0a" vendor="Apple" hideInlineVendor />);
+    expect(screen.queryByTestId("mac-vendor")).toBeNull();
+  });
 });
