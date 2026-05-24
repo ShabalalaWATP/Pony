@@ -26,6 +26,7 @@ from cheeky_pony_backend.llm.client import LlmClient
 from cheeky_pony_backend.llm.errors import LlmEntityNotFoundError, LlmInsightUnavailableError
 from cheeky_pony_backend.llm.prompts import PromptTemplates
 from cheeky_pony_backend.llm.redactor import PromptRedactor
+from cheeky_pony_backend.llm.runtime_flags import LlmRuntimeFlags, llm_effectively_enabled
 from cheeky_pony_backend.llm.service import LlmInsightService
 from cheeky_pony_backend.pcap.analyzer import PcapAnalyzer
 from cheeky_pony_backend.pcap.findings import AnalysisRun, AnalysisRunStatus, Finding
@@ -100,7 +101,9 @@ async def generate_alert_context_insight(ctx: dict[str, Any], alert_id: str) -> 
 
     service = _llm_service_from_context(ctx)
     settings = _settings_from_context(ctx)
-    if service is None or settings is None or not settings.llm_enabled:
+    if service is None or settings is None:
+        return False
+    if not await llm_effectively_enabled(settings, _runtime_flags_from_context(ctx)):
         return False
     try:
         await service.alert_context(alert_id, actor_id="system:alert_engine")
@@ -117,7 +120,9 @@ async def generate_engagement_summary_insight(
 
     service = _llm_service_from_context(ctx)
     settings = _settings_from_context(ctx)
-    if service is None or settings is None or not settings.llm_enabled:
+    if service is None or settings is None:
+        return False
+    if not await llm_effectively_enabled(settings, _runtime_flags_from_context(ctx)):
         return False
     try:
         await service.engagement_summary(engagement_id, actor_id="system:engagement_end")
@@ -267,6 +272,13 @@ def _oui_service_from_context(ctx: dict[str, Any]) -> OuiService | None:
     return cast(OuiService, oui)
 
 
+def _runtime_flags_from_context(ctx: dict[str, Any]) -> LlmRuntimeFlags | None:
+    runtime_flags = ctx.get("runtime_flags")
+    if runtime_flags is None:
+        return None
+    return cast(LlmRuntimeFlags, runtime_flags)
+
+
 def _llm_service_from_context(ctx: dict[str, Any]) -> LlmInsightService | None:
     store = _store_from_context(ctx)
     settings = _settings_from_context(ctx)
@@ -286,6 +298,7 @@ def _llm_service_from_context(ctx: dict[str, Any]) -> LlmInsightService | None:
         audit=AuditLogger(cast(Store, store)),
         settings=cast(Settings, settings),
         store=cast(Store, store),
+        runtime_flags=_runtime_flags_from_context(ctx),
         pcap_store=_pcap_store_from_context(ctx),
         pcap_analysis_store=_pcap_analysis_store_from_context(ctx),
     )

@@ -5,6 +5,14 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Backend Phase 3E — LLM admin controls and hardening (#70)
+
+- Added admin-only LLM usage telemetry, admin/TOTP/CSRF-protected insight
+  refresh, and a typed-confirm runtime kill switch that can disable LLM dispatch
+  without overriding the hard `LLM_ENABLED=false` opt-in.
+- Added demo seeder integration that pre-generates a few alert-context insights
+  in dev only when LLM insights are explicitly enabled.
+
 ### Backend Phase 3D — LLM PCAP finding (#69)
 
 - Added authenticated, on-demand PCAP-finding insight reads with immutable

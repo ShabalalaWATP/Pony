@@ -2328,6 +2328,55 @@
     "title": "Insight",
     "type": "object"
   },
+  "KillSwitchRequest": {
+    "additionalProperties": false,
+    "description": "Typed-confirm body for runtime LLM kill-switch changes.",
+    "properties": {
+      "confirm": {
+        "enum": [
+          "ENABLE",
+          "DISABLE"
+        ],
+        "title": "Confirm",
+        "type": "string"
+      },
+      "enable": {
+        "title": "Enable",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "enable",
+      "confirm"
+    ],
+    "title": "KillSwitchRequest",
+    "type": "object"
+  },
+  "KillSwitchResponse": {
+    "additionalProperties": false,
+    "description": "Runtime LLM kill-switch state.",
+    "properties": {
+      "effective_enabled": {
+        "title": "Effective Enabled",
+        "type": "boolean"
+      },
+      "env_enabled": {
+        "title": "Env Enabled",
+        "type": "boolean"
+      },
+      "runtime_disabled": {
+        "title": "Runtime Disabled",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "env_enabled",
+      "effective_enabled",
+      "runtime_disabled"
+    ],
+    "title": "KillSwitchResponse",
+    "type": "object"
+  },
   "LabActiveCommand": {
     "description": "Active lab command dashboard item.",
     "properties": {
@@ -2486,6 +2535,227 @@
       "value"
     ],
     "title": "LabTarget",
+    "type": "object"
+  },
+  "LlmAuditSummary": {
+    "additionalProperties": false,
+    "description": "Prompt-safe LLM audit summary.",
+    "properties": {
+      "action": {
+        "title": "Action",
+        "type": "string"
+      },
+      "cost_micro_cents": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Cost Micro Cents"
+      },
+      "model": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Model"
+      },
+      "occurred_at": {
+        "format": "date-time",
+        "title": "Occurred At",
+        "type": "string"
+      },
+      "outcome": {
+        "title": "Outcome",
+        "type": "string"
+      },
+      "prompt_hash": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Prompt Hash"
+      },
+      "response_hash": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Response Hash"
+      },
+      "target_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Target Id"
+      },
+      "target_kind": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Target Kind"
+      },
+      "tokens_input": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Tokens Input"
+      },
+      "tokens_output": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Tokens Output"
+      }
+    },
+    "required": [
+      "action",
+      "cost_micro_cents",
+      "model",
+      "occurred_at",
+      "outcome",
+      "prompt_hash",
+      "response_hash",
+      "target_id",
+      "target_kind",
+      "tokens_input",
+      "tokens_output"
+    ],
+    "title": "LlmAuditSummary",
+    "type": "object"
+  },
+  "LlmKindUsage": {
+    "additionalProperties": false,
+    "description": "Generation/cache counts for one insight kind.",
+    "properties": {
+      "cached": {
+        "minimum": 0.0,
+        "title": "Cached",
+        "type": "integer"
+      },
+      "generated": {
+        "minimum": 0.0,
+        "title": "Generated",
+        "type": "integer"
+      },
+      "kind": {
+        "maxLength": 64,
+        "minLength": 1,
+        "title": "Kind",
+        "type": "string"
+      }
+    },
+    "required": [
+      "cached",
+      "generated",
+      "kind"
+    ],
+    "title": "LlmKindUsage",
+    "type": "object"
+  },
+  "LlmUsageResponse": {
+    "additionalProperties": false,
+    "description": "Admin-facing LLM usage telemetry.",
+    "properties": {
+      "budget_micro_cents": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Budget Micro Cents"
+      },
+      "budget_remaining_micro_cents": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Budget Remaining Micro Cents"
+      },
+      "budget_remaining_usd": {
+        "title": "Budget Remaining Usd",
+        "type": "string"
+      },
+      "current_month": {
+        "title": "Current Month",
+        "type": "string"
+      },
+      "current_month_spend_micro_cents": {
+        "title": "Current Month Spend Micro Cents",
+        "type": "integer"
+      },
+      "current_month_spend_usd": {
+        "title": "Current Month Spend Usd",
+        "type": "string"
+      },
+      "last_30_days": {
+        "items": {
+          "$ref": "#/components/schemas/LlmKindUsage"
+        },
+        "title": "Last 30 Days",
+        "type": "array"
+      },
+      "recent_audit_entries": {
+        "items": {
+          "$ref": "#/components/schemas/LlmAuditSummary"
+        },
+        "title": "Recent Audit Entries",
+        "type": "array"
+      }
+    },
+    "required": [
+      "budget_micro_cents",
+      "budget_remaining_micro_cents",
+      "budget_remaining_usd",
+      "current_month",
+      "current_month_spend_micro_cents",
+      "current_month_spend_usd",
+      "last_30_days",
+      "recent_audit_entries"
+    ],
+    "title": "LlmUsageResponse",
     "type": "object"
   },
   "LoginRequest": {

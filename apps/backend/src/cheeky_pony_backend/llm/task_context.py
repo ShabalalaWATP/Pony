@@ -14,6 +14,7 @@ from cheeky_pony_backend.llm.cache import InsightCache
 from cheeky_pony_backend.llm.client import LlmClient
 from cheeky_pony_backend.llm.prompts import PromptTemplates
 from cheeky_pony_backend.llm.redactor import PromptRedactor
+from cheeky_pony_backend.llm.runtime_flags import LlmRuntimeFlags
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,7 @@ class LlmTaskContext:
     ledger: UsageLedger
     redactor: PromptRedactor
     templates: PromptTemplates
+    runtime_flags: LlmRuntimeFlags | None = None
 
     def as_worker_context(self) -> dict[str, object]:
         """Return the arq-compatible context dictionary used by task functions."""
@@ -43,4 +45,5 @@ class LlmTaskContext:
             "usage_ledger": self.ledger,
             "prompt_redactor": self.redactor,
             "prompt_templates": self.templates,
+            "runtime_flags": self.runtime_flags,
         }

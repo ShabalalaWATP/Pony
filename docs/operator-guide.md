@@ -166,6 +166,44 @@ means unlimited and is intended for local/private models where per-call billing
 does not apply. `CHEEKY_PONY_LLM_ENABLED=false` is the kill switch and returns
 `llm_unavailable` without dispatching.
 
+Admins can inspect usage telemetry at:
+
+```shell
+curl http://localhost:8000/api/v1/insights/usage
+```
+
+The response contains monthly spend, remaining budget, per-kind generated/cache
+counts, and recent audit summaries. It never includes raw prompts or raw model
+responses.
+
+Admins with recent TOTP can force-refresh a cached insight with CSRF protection:
+
+```shell
+curl -X POST \
+  -H "X-CSRF-Token: <csrf-token>" \
+  http://localhost:8000/api/v1/insights/<kind>/<entity-id>/refresh
+```
+
+`<kind>` is one of `alert_context`, `engagement_summary`, `ap_description`, or
+`pcap_finding`. Refresh bypasses the cache but uses the same redaction, budget,
+validation, and audit path as a normal read.
+
+For emergency stop workflows, admins with recent TOTP can set the runtime kill
+switch:
+
+```shell
+curl -X POST \
+  -H "X-CSRF-Token: <csrf-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"enable": false, "confirm": "DISABLE"}' \
+  http://localhost:8000/api/v1/insights/kill-switch
+```
+
+Use `{"enable": true, "confirm": "ENABLE"}` to clear the runtime switch. The
+runtime switch cannot override `CHEEKY_PONY_LLM_ENABLED=false`; the environment
+setting remains the hard opt-in. In dev, `make seed-demo` pre-generates a few
+alert-context insights only when LLM insights are enabled.
+
 ## First admin
 
 Set `CHEEKY_PONY_BOOTSTRAP_TOKEN` to a random value for first deploy. The first

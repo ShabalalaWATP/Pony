@@ -38,13 +38,14 @@ async def record_llm_audit(
     latency_ms: int,
     started_at: datetime,
     finished_at: datetime,
+    action: str | None = None,
 ) -> None:
     """Record one LLM action without prompt or response content."""
 
     audit_outcome = "ok" if outcome in {"cached", "generated"} else "denied"
     await audit.record(
         actor_id,
-        _TARGET_ACTIONS.get(str(target.get("kind")), "llm.insight.alert_context"),
+        action or _TARGET_ACTIONS.get(str(target.get("kind")), "llm.insight.alert_context"),
         target,
         {
             "prompt_hash": prompt_hash,

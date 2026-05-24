@@ -15,6 +15,14 @@ from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.infra.demo_dataset import DemoDataset, build_demo_dataset
 from cheeky_pony_backend.infra.demo_pcaps import clean_demo_pcaps, seed_demo_pcaps
 from cheeky_pony_backend.infra.mongo_store import SYNTHETIC_COUNT_COLLECTIONS, MongoStore
+from cheeky_pony_backend.llm.budget import MongoUsageLedger, UsageLedger
+from cheeky_pony_backend.llm.cache import InsightCache, MongoInsightCache
+from cheeky_pony_backend.llm.client import LlmClient, OpenAICompatibleClient
+from cheeky_pony_backend.llm.errors import LlmEntityNotFoundError, LlmInsightUnavailableError
+from cheeky_pony_backend.llm.prompts import PromptTemplates
+from cheeky_pony_backend.llm.redactor import PromptRedactor
+from cheeky_pony_backend.llm.runtime_flags import LlmRuntimeFlags, MongoLlmRuntimeFlags
+from cheeky_pony_backend.llm.service import LlmInsightService
 from cheeky_pony_backend.pcap.tshark import TsharkRunner
 from cheeky_pony_shared import (
     AccessPoint,
@@ -75,12 +83,25 @@ async def _seed(
     options: SeedOptions,
     settings: Settings | None = None,
     runtime: TsharkRunner | None = None,
+    llm_client: LlmClient | None = None,
+    insight_cache: InsightCache | None = None,
+    usage_ledger: UsageLedger | None = None,
+    runtime_flags: LlmRuntimeFlags | None = None,
 ) -> dict[str, int]:
+    active_settings = settings or get_settings()
     dataset = build_demo_dataset(datetime.now(tz=UTC), options.with_active)
     await _upsert_dataset(store, dataset)
     counts = _seed_counts(dataset)
-    counts.update(
-        await seed_demo_pcaps(store, settings or get_settings(), options.actor_id, runtime)
+    counts.update(await seed_demo_pcaps(store, active_settings, options.actor_id, runtime))
+    counts["llm_insights"] = await _seed_demo_insights(
+        store,
+        active_settings,
+        options.actor_id,
+        [alert.id for alert in dataset.alerts[:3]],
+        llm_client,
+        insight_cache,
+        usage_ledger,
+        runtime_flags,
     )
     await AuditLogger(store).record(
         options.actor_id,
@@ -90,6 +111,66 @@ async def _seed(
         "ok",
     )
     return counts
+
+
+async def _seed_demo_insights(
+    store: MongoStore,
+    settings: Settings,
+    actor_id: str,
+    alert_ids: list[str],
+    llm_client: LlmClient | None,
+    insight_cache: InsightCache | None,
+    usage_ledger: UsageLedger | None,
+    runtime_flags: LlmRuntimeFlags | None,
+) -> int:
+    if settings.env.lower() != "dev" or not settings.llm_enabled:
+        return 0
+    service = await _demo_llm_service(
+        store,
+        settings,
+        llm_client,
+        insight_cache,
+        usage_ledger,
+        runtime_flags,
+    )
+    generated = 0
+    for alert_id in alert_ids:
+        try:
+            insight = await service.alert_context(alert_id, actor_id=actor_id)
+            generated += 0 if insight.cached else 1
+        except (LlmEntityNotFoundError, LlmInsightUnavailableError):
+            LOGGER.warning("demo alert insight unavailable for %s", alert_id)
+    return generated
+
+
+async def _demo_llm_service(
+    store: MongoStore,
+    settings: Settings,
+    llm_client: LlmClient | None,
+    insight_cache: InsightCache | None,
+    usage_ledger: UsageLedger | None,
+    runtime_flags: LlmRuntimeFlags | None,
+) -> LlmInsightService:
+    cache = insight_cache or MongoInsightCache(store.db)
+    ledger = usage_ledger or MongoUsageLedger(store.db)
+    flags = runtime_flags or MongoLlmRuntimeFlags(store.db)
+    await cache.ensure_indexes()
+    await ledger.ensure_indexes()
+    await flags.ensure_indexes()
+    return LlmInsightService(
+        client=llm_client or OpenAICompatibleClient(settings),
+        cache=cache,
+        ledger=ledger,
+        redactor=PromptRedactor(
+            redact_ssid=settings.llm_redact_ssid,
+            redact_vendor=settings.llm_redact_vendor,
+        ),
+        templates=PromptTemplates.load(),
+        audit=AuditLogger(store),
+        settings=settings,
+        store=store,
+        runtime_flags=flags,
+    )
 
 
 async def _clean(store: MongoStore, actor_id: str) -> dict[str, int]:

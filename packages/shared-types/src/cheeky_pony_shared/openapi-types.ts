@@ -61,12 +61,17 @@ export interface components {
     "FindingSeverity": unknown;
     "HTTPValidationError": unknown;
     "Insight": unknown;
+    "KillSwitchRequest": unknown;
+    "KillSwitchResponse": unknown;
     "LabActiveCommand": unknown;
     "LabModule": unknown;
     "LabModuleStartRequest": unknown;
     "LabModuleStartResponse": unknown;
     "LabStatusResponse": unknown;
     "LabTarget": unknown;
+    "LlmAuditSummary": unknown;
+    "LlmKindUsage": unknown;
+    "LlmUsageResponse": unknown;
     "LoginRequest": unknown;
     "LoginResponse": unknown;
     "OuiLookupResponse": unknown;
@@ -141,7 +146,10 @@ export interface paths {
   "/api/v1/insights/alert/{alert_id}": Record<string, unknown>;
   "/api/v1/insights/ap/{bssid}": Record<string, unknown>;
   "/api/v1/insights/engagement/{engagement_id}": Record<string, unknown>;
+  "/api/v1/insights/kill-switch": Record<string, unknown>;
   "/api/v1/insights/pcap-finding/{finding_id}": Record<string, unknown>;
+  "/api/v1/insights/usage": Record<string, unknown>;
+  "/api/v1/insights/{kind}/{entity_id}/refresh": Record<string, unknown>;
   "/api/v1/lab/active": Record<string, unknown>;
   "/api/v1/lab/status": Record<string, unknown>;
   "/api/v1/lab/{module}/start": Record<string, unknown>;
