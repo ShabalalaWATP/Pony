@@ -24,6 +24,7 @@ from cheeky_pony_backend.llm.insights.ap_description import (
     normalize_bssid,
 )
 from cheeky_pony_backend.llm.insights.engagement_summary import build_engagement_summary_context
+from cheeky_pony_backend.llm.insights.pcap_finding import build_pcap_finding_context
 from cheeky_pony_backend.llm.prompts import PromptTemplates
 from cheeky_pony_backend.llm.redactor import PromptRedactor
 from cheeky_pony_backend.llm.service_audit import audit_unavailable
@@ -34,6 +35,7 @@ from cheeky_pony_backend.llm.service_helpers import (
     parse_alert_response,
     parse_ap_description_response,
     parse_engagement_response,
+    parse_pcap_finding_response,
 )
 from cheeky_pony_backend.llm.service_runtime import (
     InsightGenerationRequest,
@@ -137,6 +139,28 @@ class LlmInsightService:
             load_context=load_context,
             expires_at=ap_cache_expiry(),
             parse_response=parse_ap_description_response,
+        )
+
+    async def pcap_finding(self, finding_id: str, *, actor_id: str) -> Insight:
+        """Generate or return cached explanation for one PCAP finding."""
+
+        async def load_context() -> object | None:
+            if self._pcap_analysis_store is None:
+                return None
+            return await build_pcap_finding_context(
+                self._store,
+                self._pcap_analysis_store,
+                finding_id,
+            )
+
+        return await self._insight_from_loader(
+            actor_id=actor_id,
+            entity_id=finding_id,
+            kind="pcap_finding",
+            target={"kind": "pcap_finding", "id": finding_id},
+            load_context=load_context,
+            expires_at=None,
+            parse_response=parse_pcap_finding_response,
         )
 
     async def _insight_from_loader(

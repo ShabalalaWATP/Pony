@@ -76,6 +76,7 @@ async def _assert_analysis_store_contract(factory: StoreFactory) -> None:
     latest = await store.latest_run("eng-1", "pcap-1")
     listed, total = await store.list_findings("eng-1", "pcap-1", 10, 0)
     loaded = await store.get_finding("eng-1", "pcap-1", "finding-1")
+    loaded_by_id = await store.get_finding_by_id("finding-1")
     wrong_scope = await store.get_finding("eng-2", "pcap-1", "finding-1")
     counts = await store.finding_counts("eng-1", "pcap-1")
 
@@ -85,6 +86,8 @@ async def _assert_analysis_store_contract(factory: StoreFactory) -> None:
     assert loaded is not None
     assert loaded.id == finding.id
     assert loaded.evidence == finding.evidence
+    assert loaded_by_id is not None
+    assert loaded_by_id.id == finding.id
     assert wrong_scope is None
     assert counts == {FindingKind.PROTOCOL_HIERARCHY: 1}
 

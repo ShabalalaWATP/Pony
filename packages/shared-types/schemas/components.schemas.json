@@ -2291,7 +2291,8 @@
         "enum": [
           "alert_context",
           "engagement_summary",
-          "ap_description"
+          "ap_description",
+          "pcap_finding"
         ],
         "title": "Kind",
         "type": "string"

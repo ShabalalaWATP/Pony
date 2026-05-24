@@ -138,6 +138,18 @@ raw BSSIDs, client MACs, probe histories, and raw packet evidence from the
 prompt context. Results cache for 24 hours because AP metadata is comparatively
 stable.
 
+PCAP finding explanations are available on demand at:
+
+```shell
+curl http://localhost:8000/api/v1/insights/pcap-finding/<finding-id>
+```
+
+The PCAP finding explanation uses the structured finding severity, summary,
+safe evidence, and related engagement scope size. It never sends raw `tshark`
+output, raw EAPOL bytes, or PMKID material to the model, even when LAB_MODE
+allows those fields in the PCAP findings API. Results cache indefinitely because
+analysis findings are immutable.
+
 The backend does not expose a free-form prompt endpoint. Each insight kind uses
 a versioned prompt template in the repository, a Pydantic response schema, and a
 cache key that includes the template version and redacted prompt hash.

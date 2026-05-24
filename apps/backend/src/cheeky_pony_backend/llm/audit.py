@@ -12,6 +12,7 @@ _TARGET_ACTIONS = {
     "access_point": "llm.insight.ap_description",
     "alert": "llm.insight.alert_context",
     "engagement": "llm.insight.engagement_summary",
+    "pcap_finding": "llm.insight.pcap_finding",
 }
 
 

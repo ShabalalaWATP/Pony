@@ -174,22 +174,27 @@ Method: STRIDE per major component.
 - Tampering: prompt contexts are built server-side from validated persisted
   records, including engagement metadata, aggregate event counts, alert severity
   summaries, completed PCAP finding counts for engagement summaries, and local
-  AP metadata/classification/anomaly summaries for AP descriptions. Templates
-  are versioned files in the repository, and every model response is parsed
-  through a per-insight Pydantic schema before it can reach an operator.
+  AP metadata/classification/anomaly summaries for AP descriptions. PCAP
+  finding explanations use only structured finding metadata and safe evidence.
+  Templates are versioned files in the repository, and every model response is
+  parsed through a per-insight Pydantic schema before it can reach an operator.
 - Repudiation: every insight route call and worker generation path writes an
   audit entry with actor, target, template version, hashes, token counts, cost,
   latency, and outcome. Raw prompts and raw responses are never stored in audit.
 - Information disclosure: all prompts cross the prompt redactor first. MAC and
   BSSID values become prompt-scoped opaque tokens, sensitive keys are dropped,
   optional settings redact SSID/vendor names, and `LLM_API_KEY` is a secret
-  setting that is never returned by settings dumps or audit logs.
+  setting that is never returned by settings dumps or audit logs. Raw `tshark`
+  output, raw EAPOL bytes, and PMKID material are excluded from LLM PCAP-finding
+  prompt contexts even when LAB_MODE permits those fields in the PCAP findings
+  API.
 - Denial of service: `LLM_ENABLED=false` short-circuits all calls, request
   timeouts and retry caps bound provider interaction, cache hits avoid repeat
   dispatch, and the monthly usage ledger refuses calls that would exceed the
   configured budget. Engagement summaries cache for one hour and engagement-end
   replays do not enqueue duplicate summary tasks. AP descriptions are on-demand
-  only and cache for 24 hours.
+  only and cache for 24 hours. PCAP finding explanations are on-demand only and
+  cache indefinitely because findings are immutable.
 - Elevation of privilege: insights are read-only GET routes and cannot mutate
   state. The LLM informs operators but does not execute actions or influence lab
   gate decisions.
