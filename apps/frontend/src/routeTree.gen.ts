@@ -37,6 +37,7 @@ import { Route as ShellLabCaptivePortalRouteImport } from "./routes/_shell.lab.c
 import { Route as ShellEngagementsIdRouteImport } from "./routes/_shell.engagements.$id";
 import { Route as ShellDevicesMacRouteImport } from "./routes/_shell.devices.$mac";
 import { Route as ShellAlertsRulesRouteImport } from "./routes/_shell.alerts.rules";
+import { Route as ShellEngagementsEngagementIdPcapsPcapIdRouteImport } from "./routes/_shell.engagements.$engagementId.pcaps.$pcapId";
 
 const LoginRoute = LoginRouteImport.update({
   id: "/login",
@@ -177,6 +178,12 @@ const ShellAlertsRulesRoute = ShellAlertsRulesRouteImport.update({
   path: "/alerts/rules",
   getParentRoute: () => ShellRoute,
 } as any);
+const ShellEngagementsEngagementIdPcapsPcapIdRoute =
+  ShellEngagementsEngagementIdPcapsPcapIdRouteImport.update({
+    id: "/engagements/$engagementId/pcaps/$pcapId",
+    path: "/engagements/$engagementId/pcaps/$pcapId",
+    getParentRoute: () => ShellRoute,
+  } as any);
 
 export interface FileRoutesByFullPath {
   "/": typeof ShellIndexRoute;
@@ -206,6 +213,7 @@ export interface FileRoutesByFullPath {
   "/lab/": typeof ShellLabIndexRoute;
   "/networks/": typeof ShellNetworksIndexRoute;
   "/sensors/": typeof ShellSensorsIndexRoute;
+  "/engagements/$engagementId/pcaps/$pcapId": typeof ShellEngagementsEngagementIdPcapsPcapIdRoute;
 }
 export interface FileRoutesByTo {
   "/login": typeof LoginRoute;
@@ -235,6 +243,7 @@ export interface FileRoutesByTo {
   "/lab": typeof ShellLabIndexRoute;
   "/networks": typeof ShellNetworksIndexRoute;
   "/sensors": typeof ShellSensorsIndexRoute;
+  "/engagements/$engagementId/pcaps/$pcapId": typeof ShellEngagementsEngagementIdPcapsPcapIdRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
@@ -266,6 +275,7 @@ export interface FileRoutesById {
   "/_shell/lab/": typeof ShellLabIndexRoute;
   "/_shell/networks/": typeof ShellNetworksIndexRoute;
   "/_shell/sensors/": typeof ShellSensorsIndexRoute;
+  "/_shell/engagements/$engagementId/pcaps/$pcapId": typeof ShellEngagementsEngagementIdPcapsPcapIdRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
@@ -296,7 +306,8 @@ export interface FileRouteTypes {
     | "/engagements/"
     | "/lab/"
     | "/networks/"
-    | "/sensors/";
+    | "/sensors/"
+    | "/engagements/$engagementId/pcaps/$pcapId";
   fileRoutesByTo: FileRoutesByTo;
   to:
     | "/login"
@@ -325,7 +336,8 @@ export interface FileRouteTypes {
     | "/engagements"
     | "/lab"
     | "/networks"
-    | "/sensors";
+    | "/sensors"
+    | "/engagements/$engagementId/pcaps/$pcapId";
   id:
     | "__root__"
     | "/_shell"
@@ -355,7 +367,8 @@ export interface FileRouteTypes {
     | "/_shell/engagements/"
     | "/_shell/lab/"
     | "/_shell/networks/"
-    | "/_shell/sensors/";
+    | "/_shell/sensors/"
+    | "/_shell/engagements/$engagementId/pcaps/$pcapId";
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
@@ -561,6 +574,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof ShellAlertsRulesRouteImport;
       parentRoute: typeof ShellRoute;
     };
+    "/_shell/engagements/$engagementId/pcaps/$pcapId": {
+      id: "/_shell/engagements/$engagementId/pcaps/$pcapId";
+      path: "/engagements/$engagementId/pcaps/$pcapId";
+      fullPath: "/engagements/$engagementId/pcaps/$pcapId";
+      preLoaderRoute: typeof ShellEngagementsEngagementIdPcapsPcapIdRouteImport;
+      parentRoute: typeof ShellRoute;
+    };
   }
 }
 
@@ -591,6 +611,7 @@ interface ShellRouteChildren {
   ShellLabIndexRoute: typeof ShellLabIndexRoute;
   ShellNetworksIndexRoute: typeof ShellNetworksIndexRoute;
   ShellSensorsIndexRoute: typeof ShellSensorsIndexRoute;
+  ShellEngagementsEngagementIdPcapsPcapIdRoute: typeof ShellEngagementsEngagementIdPcapsPcapIdRoute;
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
@@ -620,6 +641,8 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellLabIndexRoute: ShellLabIndexRoute,
   ShellNetworksIndexRoute: ShellNetworksIndexRoute,
   ShellSensorsIndexRoute: ShellSensorsIndexRoute,
+  ShellEngagementsEngagementIdPcapsPcapIdRoute:
+    ShellEngagementsEngagementIdPcapsPcapIdRoute,
 };
 
 const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren);

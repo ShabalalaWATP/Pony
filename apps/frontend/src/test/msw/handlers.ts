@@ -247,6 +247,15 @@ export const authHandlers = [
   http.get("/api/v1/access_points/evil-twin-candidates", () =>
     HttpResponse.json({ items: [], total: 0, limit: 100, offset: 0 }),
   ),
+  // PCAP surfaces — empty list by default so unrelated engagement
+  // detail tests don't need explicit overrides.
+  http.get("/api/v1/engagements/:eid/pcaps", () =>
+    HttpResponse.json({ items: [], total: 0, limit: 100, offset: 0 }),
+  ),
+  http.delete("/api/v1/engagements/:eid/pcaps/:pid", () => new HttpResponse(null, { status: 204 })),
+  http.post("/api/v1/engagements/:eid/pcaps/:pid/analyze", () =>
+    HttpResponse.json({ analysis_id: "analysis-test" }, { status: 202 }),
+  ),
   http.get("/api/v1/access_points/:bssid", ({ params }) => {
     if (
       typeof params.bssid === "string" &&
