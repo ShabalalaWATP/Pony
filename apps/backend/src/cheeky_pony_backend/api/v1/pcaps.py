@@ -244,5 +244,5 @@ def _sanitize_filename(filename: str | None) -> str:
 
 def _validation_status(exc: PcapValidationError) -> int:
     if exc.reason == "size_limit_exceeded":
-        return status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+        return status.HTTP_413_CONTENT_TOO_LARGE
     return status.HTTP_415_UNSUPPORTED_MEDIA_TYPE

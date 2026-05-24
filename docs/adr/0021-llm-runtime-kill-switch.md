@@ -14,6 +14,10 @@ is disabled, the LLM service refuses every insight generation path before cache,
 budget, or provider dispatch. The flag is checked by HTTP routes, worker tasks,
 and demo seeding through the same service dependency.
 
+Production arq worker startup creates the same Mongo runtime-flag adapter and
+stores it in worker context. If any LLM path is missing a runtime-flag adapter,
+the effective-enabled check fails closed rather than assuming dispatch is safe.
+
 The runtime flag only layers an emergency disable over the environment opt-in:
 `CHEEKY_PONY_LLM_ENABLED=false` still wins and cannot be overridden from the API.
 Clearing the runtime flag re-enables dispatch only when the environment setting

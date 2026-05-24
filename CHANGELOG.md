@@ -5,6 +5,15 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Security hardening — PCAP uploads and LLM worker kill switch
+
+- Added a pre-body PCAP upload guard so unauthenticated, unauthorized, CSRF-less,
+  inactive-engagement, or over-limit multipart uploads are rejected before temp
+  file spooling.
+- Wired Mongo LLM runtime flags into production arq workers and made missing
+  runtime-flag context fail closed so the runtime kill switch applies to
+  background insight generation.
+
 ### Backend Phase 3E — LLM admin controls and hardening (#70)
 
 - Added admin-only LLM usage telemetry, admin/TOTP/CSRF-protected insight
