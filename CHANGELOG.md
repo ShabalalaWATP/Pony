@@ -5,6 +5,24 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Documentation — Hermes Pi onboarding state
+
+- New runbook `docs/runbooks/pi-hermes-onboarding.md` captures the OS-layer
+  setup of the first physical Cheeky Pony sensor (Hermes): aircrack-ng
+  RTL8812AU DKMS driver, channel-hopper systemd service, Kismet from upstream
+  repo, bettercap from apt, Tailscale auth, NetworkManager wlan1 isolation.
+  Reproducible end-to-end with shell snippets.
+- New ADR-0022 records the driver / hopper / capture-tool choices and the
+  Trixie-specific Kismet apt-repo decision.
+- `docs/operator-guide.md` cross-links the new runbook before the "Registering
+  a new Pi" section so first-time operators do the OS layer before they touch
+  the dashboard's sensor registration flow.
+- Master-plan status: M0-M8 + Phase 1-3 are complete. M9 (hardening) is
+  Codex's active queue. The remaining M1-completion gap is deploying the
+  sensor-agent to Hermes — code, install script, and systemd unit all exist,
+  but no cert pair has been issued for this Pi yet. Tracked in the runbook's
+  "What's next" section.
+
 ### Security hardening — PCAP uploads and LLM worker kill switch
 
 - Added a pre-body PCAP upload guard so unauthenticated, unauthorized, CSRF-less,
