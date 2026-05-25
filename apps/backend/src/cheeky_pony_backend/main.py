@@ -285,6 +285,8 @@ def _install_security_middleware(app: FastAPI, settings: Settings) -> None:
 
 async def _csrf_failure_response(request: Request, settings: Settings) -> Response | None:
     unsafe = request.method in {"POST", "PUT", "PATCH", "DELETE"}
+    if request.url.path == "/api/v1/auth/logout":
+        return await _logout_csrf_failure_response(request, settings)
     exempt = request.url.path in {
         "/api/v1/auth/login",
         "/api/v1/auth/register",
@@ -305,6 +307,25 @@ async def _csrf_failure_response(request: Request, settings: Settings) -> Respon
         await _audit_csrf_refusal(request, str(claims.get("sub", "system:csrf")), "invalid_csrf")
         return Response(status_code=status.HTTP_403_FORBIDDEN)
     return None
+
+
+async def _logout_csrf_failure_response(request: Request, settings: Settings) -> Response | None:
+    csrf_header = request.headers.get("x-csrf-token")
+    token = _bearer_token(request) or request.cookies.get("access_token")
+    expected = request.cookies.get("csrf_token")
+    actor_id = "system:csrf"
+    if token:
+        try:
+            claims = TokenService(settings).verify(token, "access")
+        except Exception:
+            expected = request.cookies.get("csrf_token")
+        else:
+            expected = str(claims.get("csrf"))
+            actor_id = str(claims.get("sub", "system:csrf"))
+    if CsrfService().verify(expected, csrf_header):
+        return None
+    await _audit_csrf_refusal(request, actor_id, "invalid_csrf")
+    return Response(status_code=status.HTTP_403_FORBIDDEN)
 
 
 async def _audit_csrf_refusal(request: Request, actor_id: str, reason: str) -> None:
@@ -331,6 +352,8 @@ def _csrf_action(request: Request) -> str | None:
         return "pcap.analyze.start"
     if request.method == "POST" and path.startswith("/api/v1/engagements/"):
         return "pcap.upload" if path.endswith("/pcaps") else None
+    if request.method == "POST" and path == "/api/v1/auth/logout":
+        return "logout"
     if request.method == "DELETE" and path.startswith("/api/v1/engagements/"):
         return "pcap.delete" if "/pcaps/" in path else None
     if request.method == "POST" and path == "/api/v1/insights/kill-switch":

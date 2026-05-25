@@ -512,6 +512,53 @@ async def test_logout_clears_session_cookies_and_audits(
     assert denied.status_code == 401
 
 
+async def test_logout_with_expired_access_still_revokes_refresh_and_clears_cookies(
+    backend_client: BackendClient,
+) -> None:
+    """Logout still clears cookies and revokes refresh when access token is expired."""
+
+    csrf = await create_verified_admin(backend_client)
+    old_refresh = backend_client.client.cookies.get("refresh_token")
+    backend_client.client.cookies.set("access_token", "expired")
+
+    response = await backend_client.client.post(
+        "/api/v1/auth/logout",
+        headers={"x-csrf-token": csrf},
+    )
+    set_cookies = response.headers.get_list("set-cookie")
+    backend_client.client.cookies.set("refresh_token", str(old_refresh))
+    refreshed = await backend_client.client.post("/api/v1/auth/refresh")
+
+    assert response.status_code == 204
+    assert _clears_cookie(set_cookies, "access_token")
+    assert _clears_cookie(set_cookies, "refresh_token")
+    assert _clears_cookie(set_cookies, "csrf_token")
+    assert refreshed.status_code == 401
+    assert backend_client.store.audit_logs[-2].action == "logout"
+    assert backend_client.store.audit_logs[-1].action == "auth.refresh"
+
+
+async def test_logout_with_expired_access_requires_csrf_before_revoking_refresh(
+    backend_client: BackendClient,
+) -> None:
+    """Expired access does not make logout a CSRF-free refresh revocation endpoint."""
+
+    await create_verified_admin(backend_client)
+    old_refresh = backend_client.client.cookies.get("refresh_token")
+    backend_client.client.cookies.set("access_token", "expired")
+
+    response = await backend_client.client.post("/api/v1/auth/logout")
+    backend_client.client.cookies.set("refresh_token", str(old_refresh))
+    refreshed = await backend_client.client.post("/api/v1/auth/refresh")
+
+    assert response.status_code == 403
+    assert refreshed.status_code == 200
+    assert backend_client.store.audit_logs[-2].action == "logout.refused"
+    assert backend_client.store.audit_logs[-2].outcome == "denied:invalid_csrf"
+    assert backend_client.store.audit_logs[-1].action == "auth.refresh"
+    assert backend_client.store.audit_logs[-1].outcome == "ok"
+
+
 def _clears_cookie(set_cookies: list[str], name: str) -> bool:
     return any(cookie.startswith(f"{name}=") and "Max-Age=0" in cookie for cookie in set_cookies)
 

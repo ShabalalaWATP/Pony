@@ -395,9 +395,9 @@ export interface paths {
          *
          *     Args:
          *         response: FastAPI response.
-         *         user: Current authenticated user.
          *         audit: Audit logger.
          *         store: Application store.
+         *         tokens: Token service.
          *         settings: Runtime settings.
          */
         post: operations["logout_api_v1_auth_logout_post"];
