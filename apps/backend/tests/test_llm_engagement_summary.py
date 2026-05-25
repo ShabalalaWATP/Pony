@@ -10,7 +10,7 @@ from conftest import BackendClient
 from fastapi import BackgroundTasks
 from helpers import create_verified_admin
 
-from cheeky_pony_backend.api.v1.engagement_end import cancel_lab_records
+from cheeky_pony_backend.api.v1.engagement_end import request_lab_record_stops
 from cheeky_pony_backend.config import Settings
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.pcap_models import Pcap, PcapStatus
@@ -190,27 +190,29 @@ async def test_dispatch_engagement_summary_queues_arq_job(
     assert redis.closed is True
 
 
-async def test_cancel_lab_records_audits_and_broadcasts(backend_client: BackendClient) -> None:
-    """Engagement-end helper stops lab records and publishes operator payloads."""
+async def test_request_lab_record_stops_audits_and_broadcasts(
+    backend_client: BackendClient,
+) -> None:
+    """Engagement-end helper requests stops without terminal stopped payloads."""
 
     broker = SensorCommandBroker()
     operator = OperatorBroker()
     websocket = FakeWebSocket()
     await operator.connect(websocket)
     started = datetime(2026, 5, 20, tzinfo=UTC)
+    record = LabCommandRecord(
+        command_id="cmd-1",
+        module="deauth",
+        sensor_id="sensor-1",
+        engagement_id="eng-1",
+        target={"kind": "bssid", "value": "AA:BB:CC:DD:EE:FF"},
+        started_at=started,
+        parameters={},
+    )
+    await broker.start_lab_command(record)
 
-    await cancel_lab_records(
-        [
-            LabCommandRecord(
-                command_id="cmd-1",
-                module="deauth",
-                sensor_id="sensor-1",
-                engagement_id="eng-1",
-                target={"kind": "bssid", "value": "AA:BB:CC:DD:EE:FF"},
-                started_at=started,
-                parameters={},
-            )
-        ],
+    await request_lab_record_stops(
+        [record],
         _user(),
         "eng-1",
         started + timedelta(minutes=5),
@@ -220,8 +222,10 @@ async def test_cancel_lab_records_audits_and_broadcasts(backend_client: BackendC
     )
 
     assert backend_client.store.audit_logs[-1].action == "lab.deauth.stop"
-    assert websocket.sent[0]["kind"] == "lab.stopped"
+    assert backend_client.store.audit_logs[-1].outcome == "stop_requested"
+    assert websocket.sent[0]["kind"] == "lab.progress"
     assert websocket.sent[0]["command_id"] == "cmd-1"
+    assert await broker.get_lab_command("cmd-1") is not None
 
 
 async def _seed_engagement_inputs(

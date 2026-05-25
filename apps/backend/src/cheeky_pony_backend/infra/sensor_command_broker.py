@@ -165,25 +165,39 @@ class SensorCommandBroker:
         async with self._lock:
             return list(self._active_lab.values())
 
-    async def stop_lab_commands_for_engagement(self, engagement_id: str) -> list[LabCommandRecord]:
-        """Remove active lab commands for an engagement.
+    async def list_lab_commands_for_engagement(self, engagement_id: str) -> list[LabCommandRecord]:
+        """Return active lab commands for an engagement.
 
         Args:
             engagement_id: Engagement identifier.
 
         Returns:
-            Removed lab command records.
+            Matching active lab command records.
         """
 
         async with self._lock:
-            records = [
+            return [
                 record
                 for record in self._active_lab.values()
                 if record.engagement_id == engagement_id
             ]
-            for record in records:
-                self._active_lab.pop(record.command_id, None)
-            return records
+
+    async def list_lab_commands_for_target(
+        self,
+        engagement_id: str,
+        target_kind: str,
+        target_value: str,
+    ) -> list[LabCommandRecord]:
+        """Return active lab commands for one scoped target."""
+
+        async with self._lock:
+            return [
+                record
+                for record in self._active_lab.values()
+                if record.engagement_id == engagement_id
+                and record.target.get("kind") == target_kind
+                and record.target.get("value") == target_value
+            ]
 
     async def _queue_after_failed_send(
         self,

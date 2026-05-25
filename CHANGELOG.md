@@ -11,6 +11,10 @@ than by date because work lands as a fan-out of parallel PRs.
   redacted DHCP internal hostnames, and bounded post-tshark parser work.
 - Hardened lab-status refusal auditing, synthetic telemetry marker detection,
   anomaly payload scans, and frontend session/secret caches.
+- Restricted alert-rule predicates to admin+recent-TOTP reads, kept engagement
+  stop requests tracked until sensor acknowledgement, refused allow-list removal
+  while matching lab commands are active, and removed public map tile egress
+  from built-in basemaps.
 
 ### Security hardening — PCAP uploads and LLM worker kill switch
 

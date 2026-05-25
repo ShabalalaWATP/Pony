@@ -7,20 +7,13 @@
  * by `id` so swapping in a new style is a one-line append here.
  *
  * Design rules:
- * - **No third-party defaults.** The built-in `street` style is local
- *   JSON (no external fetches). Remote styles must be explicitly added
- *   and documented with the deployment privacy posture.
- * - **HTTPS only.** Each tile source uses `https://…` so the page
- *   stays mixed-content-clean.
- * - **Attribution baked in.** Esri's ToS requires "Source: Esri,
- *   Maxar, Earthstar Geographics" on imagery; MapLibre's style already
- *   carries its own. We pass `attribution` per source so MapLibre's
- *   default attribution control surfaces both.
+ * - **No third-party tile egress.** Built-in styles are local JSON only
+ *   with no remote sources. Deployments that need rich basemaps should
+ *   serve self-hosted tiles/styles and add them through a reviewed
+ *   configuration path, not a hard-coded public provider.
  * - **Open/closed.** Adding a 4th style means appending to
  *   `MAP_STYLES`. No other file in the app needs to change.
  *
- * Note on CSP: remote tile domains still require explicit `connect-src`
- * / `img-src` allow-listing where a deployment opts into them.
  */
 
 import type { StyleSpecification } from "maplibre-gl";
@@ -50,50 +43,27 @@ const localStreetStyle: StyleSpecification = {
   ],
 };
 
-const ESRI_IMAGERY_TILES =
-  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-const ESRI_REFERENCE_TILES =
-  "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}";
-
-const ESRI_ATTRIBUTION_IMAGERY =
-  "Imagery © Esri, Maxar, Earthstar Geographics, and the GIS community";
-const ESRI_ATTRIBUTION_REFERENCE = "Labels © Esri";
-
 const satelliteStyle: StyleSpecification = {
   version: 8,
-  sources: {
-    "esri-imagery": {
-      type: "raster",
-      tiles: [ESRI_IMAGERY_TILES],
-      tileSize: 256,
-      attribution: ESRI_ATTRIBUTION_IMAGERY,
-      maxzoom: 19,
+  sources: {},
+  layers: [
+    {
+      id: "satellite-background",
+      type: "background",
+      paint: { "background-color": "#111827" },
     },
-  },
-  layers: [{ id: "esri-imagery", type: "raster", source: "esri-imagery" }],
+  ],
 };
 
 const hybridStyle: StyleSpecification = {
   version: 8,
-  sources: {
-    "esri-imagery": {
-      type: "raster",
-      tiles: [ESRI_IMAGERY_TILES],
-      tileSize: 256,
-      attribution: ESRI_ATTRIBUTION_IMAGERY,
-      maxzoom: 19,
-    },
-    "esri-labels": {
-      type: "raster",
-      tiles: [ESRI_REFERENCE_TILES],
-      tileSize: 256,
-      attribution: ESRI_ATTRIBUTION_REFERENCE,
-      maxzoom: 19,
-    },
-  },
+  sources: {},
   layers: [
-    { id: "esri-imagery", type: "raster", source: "esri-imagery" },
-    { id: "esri-labels", type: "raster", source: "esri-labels" },
+    {
+      id: "hybrid-background",
+      type: "background",
+      paint: { "background-color": "#0b1220" },
+    },
   ],
 };
 
@@ -112,13 +82,13 @@ export const MAP_STYLES: readonly [MapStyleDef, MapStyleDef, MapStyleDef] = [
   {
     id: "satellite",
     label: "Satellite",
-    description: "Esri World Imagery raster basemap — overhead photography, no labels.",
+    description: "Local placeholder basemap — no external tile requests.",
     style: satelliteStyle,
   },
   {
     id: "hybrid",
     label: "Hybrid",
-    description: "Esri World Imagery + transparent Esri Reference labels.",
+    description: "Local placeholder basemap — no external tile requests.",
     style: hybridStyle,
   },
 ] as const;

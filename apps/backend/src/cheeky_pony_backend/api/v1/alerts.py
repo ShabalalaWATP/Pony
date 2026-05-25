@@ -92,7 +92,7 @@ async def list_alerts(
 
 @router.get("/rules", response_model=ApiPage[AlertRule])
 async def list_alert_rules(
-    _: Annotated[UserRecord, Depends(current_user)],
+    _: Annotated[UserRecord, Depends(require_admin_2fa)],
     store: Annotated[Store, Depends(get_store)],
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),

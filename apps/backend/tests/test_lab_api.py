@@ -238,6 +238,92 @@ def test_lab_start_stop_commands_flow_over_sensor_gateway() -> None:
     assert len([log for log in store.audit_logs if log.action.startswith("lab.deauth")]) == 3
 
 
+def test_engagement_end_keeps_lab_command_active_until_stop_ack() -> None:
+    """Ending an engagement queues STOP without hiding the active command first."""
+
+    settings, store, app = _lab_app()
+    _seed_lab_state(store)
+    token = TokenService(settings).create_access_token("user-1", "csrf")
+
+    with TestClient(app) as client:
+        client.cookies.set("access_token", token)
+        with client.websocket_connect(
+            "/ws/operator",
+            headers={"origin": OPERATOR_ORIGIN},
+        ) as operator:
+            assert operator.receive_json()["kind"] == "connected"
+            with client.websocket_connect(
+                "/ws/sensor-gateway?sensor_id=pi-1",
+                headers=_sensor_headers(),
+            ) as sensor:
+                started = client.post(
+                    "/api/v1/lab/deauth/start",
+                    headers={"x-csrf-token": "csrf"},
+                    json=_start_payload(),
+                )
+                command_id = started.json()["command_id"]
+                assert sensor.receive_json()["kind"] == "start_module"
+                assert operator.receive_json()["kind"] == "lab.started"
+
+                ended = client.post(
+                    "/api/v1/engagements/eng-1/end",
+                    headers={"x-csrf-token": "csrf"},
+                )
+                stop_command = sensor.receive_json()
+                stop_progress = operator.receive_json()
+                active_before_ack = client.get("/api/v1/lab/active")
+                sensor.send_json(_command_result(command_id))
+                stopped = operator.receive_json()
+                active_after_ack = client.get("/api/v1/lab/active")
+
+    assert started.status_code == 202
+    assert ended.status_code == 204
+    assert stop_command["kind"] == "stop_module"
+    assert stop_progress["kind"] == "lab.progress"
+    assert stop_progress["status"] == "stop_requested"
+    assert active_before_ack.json()["total"] == 1
+    assert stopped["kind"] == "lab.stopped"
+    assert active_after_ack.json()["total"] == 0
+    assert any(
+        log.action == "lab.deauth.stop" and log.outcome == "stop_requested"
+        for log in store.audit_logs
+    )
+
+
+@pytest.mark.asyncio
+async def test_allow_list_removal_refuses_active_lab_target() -> None:
+    """A target cannot be de-scoped while a lab command is active on it."""
+
+    bundle = await _prepared_lab_client()
+    started = await bundle.client.post(
+        "/api/v1/lab/deauth/start",
+        headers={"x-csrf-token": bundle.csrf},
+        json=_start_payload(),
+    )
+
+    removed = await bundle.client.request(
+        "DELETE",
+        "/api/v1/engagements/eng-1/allow-list",
+        json={"kind": "bssid", "value": "AA:BB:CC:DD:EE:FF"},
+        headers={"x-csrf-token": bundle.csrf},
+    )
+    active = await bundle.client.get("/api/v1/lab/active")
+
+    assert started.status_code == 202
+    assert removed.status_code == 409
+    assert removed.json()["detail"] == "active_lab_command_exists"
+    assert active.json()["total"] == 1
+    assert await bundle.store.target_allowed(
+        "eng-1",
+        TargetKind.BSSID,
+        "AA:BB:CC:DD:EE:FF",
+    )
+    assert bundle.store.audit_logs[-1].action == "engagement.allow_list.remove"
+    assert bundle.store.audit_logs[-1].outcome == "denied:active_lab_command_exists"
+
+    await bundle.client.aclose()
+
+
 class LabBundle:
     """Async lab test bundle."""
 
