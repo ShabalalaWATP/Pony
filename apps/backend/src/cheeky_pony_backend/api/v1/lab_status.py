@@ -9,7 +9,12 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from cheeky_pony_backend.config import Settings, get_settings
-from cheeky_pony_backend.dependencies import get_audit_logger, get_store, get_token_service
+from cheeky_pony_backend.dependencies import (
+    check_auth_rate_limit,
+    get_audit_logger,
+    get_store,
+    get_token_service,
+)
 from cheeky_pony_backend.domain.active_gates import AUTHORIZED_OPERATOR_KIND
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.lab import LabStatusResponse
@@ -71,6 +76,7 @@ async def _current_user_or_audit(
 ) -> UserRecord:
     token = _bearer_token(request) or request.cookies.get("access_token")
     if token is None:
+        check_auth_rate_limit(request)
         await _audit_lab_status_denial(audit, "system:anonymous", "authentication_required")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -79,6 +85,7 @@ async def _current_user_or_audit(
     try:
         claims = tokens.verify(token, "access")
     except jwt.InvalidTokenError as exc:
+        check_auth_rate_limit(request)
         await _audit_lab_status_denial(audit, "system:anonymous", "invalid_token")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -86,6 +93,7 @@ async def _current_user_or_audit(
         ) from exc
     user = await store.get_user(str(claims["sub"]))
     if user is None or user.disabled:
+        check_auth_rate_limit(request)
         await _audit_lab_status_denial(audit, str(claims["sub"]), "invalid_user")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_user")
     return user

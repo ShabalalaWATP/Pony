@@ -17,6 +17,8 @@ RECENT_DEAUTH_WINDOW = timedelta(minutes=5)
 ANOMALY_EVENT_SCAN_LIMIT = 500
 ANOMALY_CLIENT_SCAN_LIMIT = 500
 ANOMALY_AP_SCAN_LIMIT = 500
+PAYLOAD_SCAN_MAX_DEPTH = 16
+PAYLOAD_SCAN_MAX_NODES = 512
 
 
 @dataclass(frozen=True)
@@ -155,36 +157,31 @@ def _event_deauth_bssid(event: Event, cutoff: datetime) -> str | None:
 
 
 def _payload_mentions_deauth(value: object) -> bool:
-    if isinstance(value, str):
-        return "deauth" in value.lower()
-    if isinstance(value, dict):
-        return any(_payload_mentions_deauth(item) for item in value.values())
-    if isinstance(value, list):
-        return any(_payload_mentions_deauth(item) for item in value)
+    for item in _iter_payload_values(value):
+        if isinstance(item, str) and "deauth" in item.lower():
+            return True
     return False
 
 
 def _payload_bssid(value: object) -> str | None:
-    if isinstance(value, str) and BSSID_PATTERN.fullmatch(value):
-        return value
-    if isinstance(value, dict):
-        return _payload_mapping_bssid(value)
-    if isinstance(value, list):
-        return _payload_list_bssid(value)
+    for item in _iter_payload_values(value):
+        if isinstance(item, str) and BSSID_PATTERN.fullmatch(item):
+            return item
     return None
 
 
-def _payload_mapping_bssid(value: dict[object, object]) -> str | None:
-    for item in value.values():
-        bssid = _payload_bssid(item)
-        if bssid is not None:
-            return bssid
-    return None
-
-
-def _payload_list_bssid(value: list[object]) -> str | None:
-    for item in value:
-        bssid = _payload_bssid(item)
-        if bssid is not None:
-            return bssid
-    return None
+def _iter_payload_values(value: object) -> list[object]:
+    values: list[object] = []
+    stack: list[tuple[object, int]] = [(value, 0)]
+    visited = 0
+    while stack and visited < PAYLOAD_SCAN_MAX_NODES:
+        item, depth = stack.pop()
+        visited += 1
+        values.append(item)
+        if depth >= PAYLOAD_SCAN_MAX_DEPTH:
+            continue
+        if isinstance(item, dict):
+            stack.extend((child, depth + 1) for child in item.values())
+        elif isinstance(item, list):
+            stack.extend((child, depth + 1) for child in item)
+    return values

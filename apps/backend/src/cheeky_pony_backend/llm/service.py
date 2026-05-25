@@ -182,10 +182,11 @@ class LlmInsightService:
         """Generate or return cached explanation for one PCAP finding."""
 
         async def load_context() -> object | None:
-            if self._pcap_analysis_store is None:
+            if self._pcap_analysis_store is None or self._pcap_store is None:
                 return None
             return await build_pcap_finding_context(
                 self._store,
+                self._pcap_store,
                 self._pcap_analysis_store,
                 finding_id,
             )

@@ -270,7 +270,7 @@ def _tls_sni_finding(context: FilterParseContext, output: str) -> Finding:
 
 
 def _dhcp_finding(context: FilterParseContext, output: str) -> Finding:
-    evidence = dhcp.parse(output, context.clients, context.oui)
+    evidence = dhcp.parse(output, context.clients, context.oui, context.internal_hostname_suffixes)
     return DhcpHostnamesFinding(
         id=str(uuid4()),
         pcap_id=context.pcap.id,

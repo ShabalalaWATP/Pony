@@ -93,6 +93,21 @@ async def test_lab_status_audits_unauthenticated_refusal() -> None:
 
 
 @pytest.mark.asyncio
+async def test_lab_status_unauthenticated_audit_is_rate_limited() -> None:
+    """Unauthenticated lab-readiness refusals cannot flood persistent audit writes."""
+
+    bundle = await _lab_client(lab_mode=True)
+
+    responses = [await bundle.client.get("/api/v1/lab/status") for _ in range(11)]
+
+    assert [response.status_code for response in responses[:10]] == [401] * 10
+    assert responses[-1].status_code == 429
+    assert len([log for log in bundle.store.audit_logs if log.action == "lab.status.read"]) == 10
+
+    await bundle.client.aclose()
+
+
+@pytest.mark.asyncio
 async def test_lab_start_refuses_with_structured_reason_and_audit() -> None:
     """Disabled lab mode returns the frontend-friendly refusal shape and audits."""
 

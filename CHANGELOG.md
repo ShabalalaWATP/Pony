@@ -5,6 +5,13 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Security hardening — telemetry, PCAP findings, and session caches
+
+- Scoped PCAP-finding LLM insights back through their owning PCAP metadata,
+  redacted DHCP internal hostnames, and bounded post-tshark parser work.
+- Hardened lab-status refusal auditing, synthetic telemetry marker detection,
+  anomaly payload scans, and frontend session/secret caches.
+
 ### Security hardening — PCAP uploads and LLM worker kill switch
 
 - Added a pre-body PCAP upload guard so unauthenticated, unauthorized, CSRF-less,
