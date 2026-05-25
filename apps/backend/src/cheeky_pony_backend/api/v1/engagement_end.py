@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-"""Helpers for ending engagements and cancelling scoped lab commands."""
+"""Helpers for ending engagements and requesting scoped lab stops."""
 
 from __future__ import annotations
 
@@ -9,7 +9,11 @@ from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.users import UserRecord
 from cheeky_pony_backend.infra.operator_broker import OperatorBroker
-from cheeky_pony_backend.infra.sensor_command_broker import LabCommandRecord, SensorCommandBroker
+from cheeky_pony_backend.infra.sensor_command_broker import (
+    LabCommandRecord,
+    SensorCommandBroker,
+    SensorCommandMetadata,
+)
 from cheeky_pony_shared import CommandKind, Engagement, SensorCommand
 
 
@@ -28,7 +32,7 @@ async def persist_engagement_end(
     return persisted_ended_at
 
 
-async def cancel_lab_records(
+async def request_lab_record_stops(
     records: list[LabCommandRecord],
     user: UserRecord,
     engagement_id: str,
@@ -37,7 +41,7 @@ async def cancel_lab_records(
     command_broker: SensorCommandBroker,
     operator_broker: OperatorBroker,
 ) -> None:
-    """Cancel active lab command records for an ending engagement."""
+    """Request sensor stops without dropping active state before acknowledgement."""
 
     for record in records:
         audit_entry = await audit.record(
@@ -45,12 +49,32 @@ async def cancel_lab_records(
             f"lab.{record.module}.stop",
             {"engagement_id": engagement_id, "command_id": record.command_id},
             {"reason": "engagement_ended"},
-            "cancelled",
+            "stop_requested",
             started_at=record.started_at,
             finished_at=finished_at,
         )
+        await command_broker.remember(_stop_metadata(user, audit_entry.id, record))
         await command_broker.send(record.sensor_id, _stop_module_command(record))
-        await operator_broker.broadcast(_stopped_payload(record, finished_at, audit_entry.id))
+        await operator_broker.broadcast(_stop_requested_payload(record, audit_entry.id))
+
+
+def _stop_metadata(
+    user: UserRecord,
+    audit_id: str,
+    record: LabCommandRecord,
+) -> SensorCommandMetadata:
+    return SensorCommandMetadata(
+        command_id=record.command_id,
+        sensor_id=record.sensor_id,
+        command=CommandKind.STOP_MODULE,
+        actor_id=user.id,
+        parameters=record.parameters,
+        started_at=record.started_at,
+        audit_id=audit_id,
+        lab_module=record.module,
+        engagement_id=record.engagement_id,
+        target=record.target,
+    )
 
 
 def _stop_module_command(record: LabCommandRecord) -> SensorCommand:
@@ -62,17 +86,16 @@ def _stop_module_command(record: LabCommandRecord) -> SensorCommand:
     )
 
 
-def _stopped_payload(
+def _stop_requested_payload(
     record: LabCommandRecord,
-    finished_at: datetime,
     audit_id: str,
 ) -> dict[str, object]:
     return {
-        "kind": "lab.stopped",
+        "kind": "lab.progress",
         "command_id": record.command_id,
         "module": record.module,
         "sensor_id": record.sensor_id,
-        "outcome": "cancelled",
-        "finished_at": finished_at.isoformat(),
+        "status": "stop_requested",
+        "message": "Engagement ended; stop command queued.",
         "audit_id": audit_id,
     }

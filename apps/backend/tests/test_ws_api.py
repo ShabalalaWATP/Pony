@@ -186,6 +186,37 @@ def test_sensor_gateway_rejects_synthetic_marker_and_audits() -> None:
     assert store.audit_logs[-1].outcome == "denied:invalid_payload"
 
 
+@pytest.mark.parametrize("marker", [1, "true", "yes", "on"])
+def test_sensor_gateway_rejects_coercible_synthetic_markers(marker: object) -> None:
+    """Synthetic marker rejection mirrors Pydantic's bool coercion."""
+
+    store = InMemoryStore()
+    app = create_app(_settings(), store)
+    _run(store.create_sensor(_sensor()))
+
+    with TestClient(app) as client:
+        with client.websocket_connect(
+            "/ws/sensor-gateway?sensor_id=pi-1",
+            headers=_sensor_headers(),
+        ) as websocket:
+            websocket.send_json(
+                {
+                    "id": "evt-synthetic",
+                    "sensor_id": "pi-1",
+                    "kind": "access_point_seen",
+                    "payload": {
+                        "bssid": "AA:BB:CC:DD:EE:FF",
+                        "synthetic": marker,
+                    },
+                }
+            )
+            assert websocket.receive_json()["detail"] == "invalid_payload"
+
+    assert store.events == []
+    assert store.access_points == {}
+    assert store.audit_logs[-1].action == "sensor.rejected_synthetic_marker"
+
+
 def test_sensor_gateway_broadcasts_operator_topics_and_geo() -> None:
     """Sensor events emit the locked operator WebSocket message contract."""
 

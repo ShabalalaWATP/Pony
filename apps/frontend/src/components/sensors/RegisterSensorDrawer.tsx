@@ -1,5 +1,5 @@
 import { Check, Copy } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input } from "@/components/ui/Input";
@@ -45,7 +45,7 @@ export function RegisterSensorDrawer({
   onClose,
   onRegistered,
 }: RegisterSensorDrawerProps): JSX.Element {
-  const register = useRegisterSensor();
+  const register = useRegisterSensor(open);
   const [id, setId] = useState("");
   const [name, setName] = useState("");
   const [tailnetIp, setTailnetIp] = useState("");
@@ -57,7 +57,7 @@ export function RegisterSensorDrawer({
   // The cert payload lives only as long as the drawer is open. Closing
   // wipes it, so re-opening after a successful registration starts
   // fresh — there's no way to re-reveal a previous secret.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (open) return;
     setId("");
     setName("");

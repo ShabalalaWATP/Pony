@@ -63,7 +63,7 @@ describe("RegisterSensorDrawer", () => {
       }),
     );
     const onRegistered = vi.fn();
-    const { node } = withQuery(
+    const { node, qc } = withQuery(
       <RegisterSensorDrawer open onClose={vi.fn()} onRegistered={onRegistered} />,
     );
     render(node);
@@ -82,6 +82,11 @@ describe("RegisterSensorDrawer", () => {
     expect(screen.getByTestId("cert-ca")).toBeInTheDocument();
     expect(screen.getByTestId("cert-client")).toBeInTheDocument();
     expect(screen.getByTestId("cert-key")).toBeInTheDocument();
+    const mutationData = qc
+      .getMutationCache()
+      .getAll()
+      .map((mutation) => mutation.state.data);
+    expect(JSON.stringify(mutationData)).not.toContain("BEGIN PRIVATE KEY");
   });
 
   it("keeps the private key masked until Reveal is clicked", async () => {
@@ -125,6 +130,47 @@ describe("RegisterSensorDrawer", () => {
         <RegisterSensorDrawer open onClose={onClose} />
       </QueryWrap>,
     );
+    expect(screen.queryByTestId("cert-reveal")).toBeNull();
+    expect(screen.getByTestId("register-sensor-form")).toBeInTheDocument();
+  });
+
+  it("ignores an in-flight registration response after the drawer closes", async () => {
+    const pending: { release?: () => void } = {};
+    let responded = false;
+    server.use(
+      http.post("/api/v1/sensors", async () => {
+        await new Promise<void>((resolve) => {
+          pending.release = resolve;
+        });
+        responded = true;
+        return HttpResponse.json(fixtures.sensorRegister);
+      }),
+    );
+    const onRegistered = vi.fn();
+    const onClose = vi.fn();
+    const { node, qc } = withQuery(
+      <RegisterSensorDrawer open onClose={onClose} onRegistered={onRegistered} />,
+    );
+    const { rerender } = render(node);
+    await fillRequired();
+    await userEvent.click(screen.getByRole("button", { name: /^register sensor$/i }));
+    await waitFor(() => expect(pending.release).toBeDefined());
+
+    rerender(
+      <QueryWrap qc={qc}>
+        <RegisterSensorDrawer open={false} onClose={onClose} onRegistered={onRegistered} />
+      </QueryWrap>,
+    );
+    await waitFor(() => expect(screen.queryByTestId("register-sensor-form")).toBeNull());
+    pending.release?.();
+    await waitFor(() => expect(responded).toBe(true));
+    expect(onRegistered).not.toHaveBeenCalled();
+    rerender(
+      <QueryWrap qc={qc}>
+        <RegisterSensorDrawer open onClose={onClose} onRegistered={onRegistered} />
+      </QueryWrap>,
+    );
+
     expect(screen.queryByTestId("cert-reveal")).toBeNull();
     expect(screen.getByTestId("register-sensor-form")).toBeInTheDocument();
   });

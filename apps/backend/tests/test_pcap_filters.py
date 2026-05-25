@@ -41,6 +41,18 @@ def test_conversation_parser_keeps_top_talkers() -> None:
     assert evidence.conversations[0].bytes == 250
 
 
+def test_conversation_parser_bounds_rows_before_sorting() -> None:
+    """Conversation parser keeps top-N without retaining every row."""
+
+    rows = "\n".join(f"aa{index} <-> bb{index} 1 {index}" for index in range(10_050))
+
+    evidence = conversations.parse(rows, top_n=5)
+
+    assert len(evidence.conversations) == 5
+    assert evidence.conversations[0].bytes == 9_999
+    assert evidence.conversations[-1].bytes == 9_995
+
+
 def test_deauth_parser_detects_bursts() -> None:
     """Ten deauths in five minutes produce one burst."""
 
@@ -51,6 +63,18 @@ def test_deauth_parser_detects_bursts() -> None:
     assert len(evidence.bursts) == 1
     assert evidence.bursts[0].bssid == "aa:bb:cc:dd:ee:ff"
     assert evidence.bursts[0].count == 10
+
+
+def test_deauth_parser_bounds_rows() -> None:
+    """Deauth parser stops after the reviewed row cap."""
+
+    rows = "\n".join(
+        f"{1000 + index}\taa\tff\taa:bb:cc:dd:ee:{index % 255:02x}" for index in range(10_050)
+    )
+
+    evidence = deauth.parse(rows)
+
+    assert sum(burst.count for burst in evidence.bursts) <= 10_000
 
 
 def test_eapol_parser_groups_complete_handshake_and_lab_evidence() -> None:
@@ -166,6 +190,7 @@ def test_dhcp_parser_enriches_known_client_and_oui_vendor() -> None:
         rows,
         [Client(mac="38:C9:86:00:00:01", vendor_oui="Samsung Electronics")],
         oui,
+        [".corp"],
     )
 
     by_mac = {client.client_mac: client for client in evidence.clients}
@@ -173,6 +198,16 @@ def test_dhcp_parser_enriches_known_client_and_oui_vendor() -> None:
     assert by_mac["38:c9:86:00:00:01"].vendor == "Samsung Electronics"
     assert by_mac["b8:27:eb:00:00:02"].vendor_source == "oui_table"
     assert by_mac["02:00:00:00:00:03"].vendor_source == "unknown"
+
+
+def test_dhcp_parser_redacts_internal_hostnames() -> None:
+    """DHCP hostname findings use the same internal suffix redaction as DNS/TLS."""
+
+    rows = "38:c9:86:00:00:01\tworkstation.corp\tandroid-dhcp-13\t1,3,6"
+
+    evidence = dhcp.parse(rows, [], OuiService({}), [".corp"])
+
+    assert evidence.clients[0].hostname == INTERNAL_HOSTNAME_REDACTED
 
 
 @given(st.text(max_size=2000))
@@ -187,4 +222,4 @@ def test_parsers_never_raise_on_arbitrary_text(payload: str) -> None:
     probe_responses.parse(payload)
     dns.parse(payload, [".corp"])
     tls_sni.parse(payload, [".corp"])
-    dhcp.parse(payload, [], OuiService({}))
+    dhcp.parse(payload, [], OuiService({}), [".corp"])

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type ApiError, apiClient } from "./client";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ApiError, apiClient } from "./client";
 import type { components } from "./openapi";
 
 // Alerts + alert rules live in `./alertQueries` — re-exported here so
@@ -269,20 +270,68 @@ export function useSetSensorChannel() {
 
 const SENSORS_ROOT_KEY = ["sensors"] as const;
 
-/**
- * Register a new sensor. The backend mints a fresh client certificate +
- * private key pair and returns them in the response. The PEM material
- * is only available in this response — the drawer surfaces them once
- * and never persists them, so the operator must copy/save before closing.
- */
-export function useRegisterSensor() {
+interface RegisterSensorOptions {
+  onSuccess?: (response: SensorRegisterResponse) => void;
+}
+
+export function useRegisterSensor(isActive = true) {
   const qc = useQueryClient();
-  return useMutation<SensorRegisterResponse, ApiError, SensorRegisterRequest>({
-    mutationFn: (body) => apiClient.post<SensorRegisterResponse>("/sensors", body),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: SENSORS_ROOT_KEY });
+  const active = useRef(isActive);
+  const requestId = useRef(0);
+  const [data, setData] = useState<SensorRegisterResponse | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  active.current = isActive;
+
+  useEffect(
+    () => () => {
+      active.current = false;
+      requestId.current += 1;
     },
-  });
+    [],
+  );
+
+  const reset = useCallback(() => {
+    requestId.current += 1;
+    setData(null);
+    setError(null);
+    setIsPending(false);
+  }, []);
+
+  const mutate = useCallback(
+    (body: SensorRegisterRequest, options: RegisterSensorOptions = {}) => {
+      const activeRequest = requestId.current + 1;
+      requestId.current = activeRequest;
+      setIsPending(true);
+      setError(null);
+      void apiClient
+        .post<SensorRegisterResponse>("/sensors", body)
+        .then((response) => {
+          if (!active.current || requestId.current !== activeRequest) return;
+          setData(response);
+          options.onSuccess?.(response);
+          void qc.invalidateQueries({ queryKey: SENSORS_ROOT_KEY });
+        })
+        .catch((err: unknown) => {
+          if (!active.current || requestId.current !== activeRequest) return;
+          setError(
+            err instanceof ApiError
+              ? err
+              : new ApiError(
+                  0,
+                  err instanceof Error ? err.message : "Sensor registration failed",
+                  null,
+                ),
+          );
+        })
+        .finally(() => {
+          if (active.current && requestId.current === activeRequest) setIsPending(false);
+        });
+    },
+    [qc],
+  );
+
+  return { data, error, isPending, mutate, reset };
 }
 
 /**

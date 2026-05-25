@@ -9,6 +9,7 @@ from typing import Any
 import jwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 
+from cheeky_pony_backend.api.synthetic_marker import has_synthetic_marker
 from cheeky_pony_backend.config import Settings
 from cheeky_pony_backend.domain.alerts import AlertRuleEngine
 from cheeky_pony_backend.domain.audit import AuditLogger
@@ -68,7 +69,7 @@ async def sensor_gateway(websocket: WebSocket) -> None:
     try:
         while True:
             payload = await websocket.receive_json()
-            if _has_synthetic_marker(payload):
+            if has_synthetic_marker(payload):
                 await _reject_synthetic_marker(sensor_id, websocket, store)
                 await command_broker.disconnect(sensor_id, websocket)
                 return
@@ -140,16 +141,6 @@ async def _reject_synthetic_marker(sensor_id: str, websocket: WebSocket, store: 
     )
     await websocket.send_json({"status_code": 400, "detail": "invalid_payload"})
     await websocket.close(code=status.WS_1003_UNSUPPORTED_DATA, reason="invalid_payload")
-
-
-def _has_synthetic_marker(value: object) -> bool:
-    if isinstance(value, dict):
-        if value.get("synthetic") is True:
-            return True
-        return any(_has_synthetic_marker(item) for item in value.values())
-    if isinstance(value, list):
-        return any(_has_synthetic_marker(item) for item in value)
-    return False
 
 
 async def _persist_event(store: Store, broker: OperatorBroker, event: Event) -> None:

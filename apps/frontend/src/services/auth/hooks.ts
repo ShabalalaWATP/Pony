@@ -98,12 +98,9 @@ export function useLogout() {
       }
     },
     onSettled: () => {
+      qc.removeQueries();
+      qc.getMutationCache().clear();
       qc.setQueryData(AUTH_QUERY_KEY, null);
-      qc.removeQueries({ queryKey: ["sensors"] });
-      qc.removeQueries({ queryKey: ["devices"] });
-      qc.removeQueries({ queryKey: ["access_points"] });
-      qc.removeQueries({ queryKey: ["events"] });
-      qc.removeQueries({ queryKey: ["alerts"] });
     },
   });
 }
