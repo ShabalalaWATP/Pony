@@ -15,6 +15,8 @@ from cheeky_pony_backend.pcap.network_findings import (
     TlsSniSummaryEvidence,
 )
 
+JS_DATE_MAX_EPOCH_SECONDS = 8_640_000_000_000.0
+
 
 class AnalysisRunStatus(StrEnum):
     """Lifecycle states for a PCAP analysis run."""
@@ -127,8 +129,16 @@ class DeauthBurst(BaseModel):
 
     bssid: str = Field(min_length=1, max_length=32)
     count: int = Field(ge=0)
-    first_seen_epoch: float = Field(ge=0.0)
-    last_seen_epoch: float = Field(ge=0.0)
+    first_seen_epoch: float = Field(
+        ge=0.0,
+        le=JS_DATE_MAX_EPOCH_SECONDS,
+        allow_inf_nan=False,
+    )
+    last_seen_epoch: float = Field(
+        ge=0.0,
+        le=JS_DATE_MAX_EPOCH_SECONDS,
+        allow_inf_nan=False,
+    )
 
 
 class DeauthBurstsEvidence(BaseModel):

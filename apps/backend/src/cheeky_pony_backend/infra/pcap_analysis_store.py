@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pydantic import ValidationError
 
 from cheeky_pony_backend.pcap.findings import AnalysisRun, Finding, FindingKind
 
@@ -222,10 +223,17 @@ class MongoPcapAnalysisStore:
         """List findings for one PCAP."""
 
         query = {"engagement_id": engagement_id, "pcap_id": pcap_id}
-        total = await self._db.pcap_findings.count_documents(query)
         docs = self._db.pcap_findings.find(query, {"_id": False}).sort("generated_at", -1)
-        docs = docs.skip(offset).limit(limit)
-        return [Finding.model_validate(doc) async for doc in docs], total
+        findings: list[Finding] = []
+        total = 0
+        async for doc in docs:
+            finding = _validated_finding(doc)
+            if finding is None:
+                continue
+            if total >= offset and len(findings) < limit:
+                findings.append(finding)
+            total += 1
+        return findings, total
 
     async def get_finding(
         self,
@@ -239,13 +247,13 @@ class MongoPcapAnalysisStore:
             {"engagement_id": engagement_id, "pcap_id": pcap_id, "id": finding_id},
             {"_id": False},
         )
-        return Finding.model_validate(data) if data else None
+        return _validated_finding(data)
 
     async def get_finding_by_id(self, finding_id: str) -> Finding | None:
         """Return one finding by globally unique id."""
 
         data = await self._db.pcap_findings.find_one({"id": finding_id}, {"_id": False})
-        return Finding.model_validate(data) if data else None
+        return _validated_finding(data)
 
     async def finding_counts(self, engagement_id: str, pcap_id: str) -> dict[FindingKind, int]:
         """Return finding counts by kind."""
@@ -265,3 +273,12 @@ class MongoPcapAnalysisStore:
         query = {"engagement_id": engagement_id, "pcap_id": pcap_id}
         await self._db.pcap_analysis_runs.delete_many(query)
         await self._db.pcap_findings.delete_many(query)
+
+
+def _validated_finding(data: object | None) -> Finding | None:
+    if data is None:
+        return None
+    try:
+        return Finding.model_validate(data)
+    except ValidationError:
+        return None

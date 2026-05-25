@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Coroutine
 from datetime import UTC, datetime
 
 import pytest
@@ -133,6 +134,30 @@ def test_operator_gateway_rejects_disabled_user() -> None:
                 headers={"origin": OPERATOR_ORIGIN},
             ):
                 pass
+
+
+def test_logout_closes_user_operator_websockets() -> None:
+    """Logout terminates live operator sockets for the authenticated user."""
+
+    settings, app = _app_with_geo_sensor_and_user()
+    tokens = TokenService(settings)
+
+    with TestClient(app) as client:
+        client.cookies.set("access_token", tokens.create_access_token("user-1", "csrf"))
+        client.cookies.set("refresh_token", tokens.create_refresh_token("user-1", 0))
+        client.cookies.set("csrf_token", "csrf")
+        with client.websocket_connect(
+            "/ws/operator",
+            headers={"origin": OPERATOR_ORIGIN},
+        ) as websocket:
+            assert websocket.receive_json() == {"kind": "connected", "user_id": "user-1"}
+            response = client.post(
+                "/api/v1/auth/logout",
+                headers={"x-csrf-token": "csrf"},
+            )
+            assert response.status_code == 204
+            with pytest.raises(WebSocketDisconnect):
+                websocket.receive_text()
 
 
 def test_sensor_gateway_rejects_unsigned_certificate_headers() -> None:
@@ -437,7 +462,7 @@ def _sensor_headers(sensor_id: str = "pi-1") -> dict[str, str]:
     )
 
 
-def _run(awaitable):  # type: ignore[no-untyped-def]
+def _run[T](awaitable: Coroutine[object, object, T]) -> T:
     import asyncio
 
     return asyncio.run(awaitable)

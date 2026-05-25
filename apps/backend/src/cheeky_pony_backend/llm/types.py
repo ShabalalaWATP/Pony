@@ -4,12 +4,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 InsightKind = Literal["alert_context", "engagement_summary", "ap_description", "pcap_finding"]
 InsightConfidence = Literal["low", "medium", "high"]
+InsightBullet = Annotated[str, Field(min_length=1, max_length=160, pattern=r"\S")]
 MessageRole = Literal["system", "user", "assistant"]
 
 
@@ -41,7 +42,7 @@ class Insight(BaseModel):
     kind: InsightKind
     entity_id: str = Field(min_length=1, max_length=128)
     summary: str = Field(min_length=1, max_length=600)
-    bullet_points: list[str] = Field(default_factory=list, max_length=5)
+    bullet_points: list[InsightBullet] = Field(default_factory=list, max_length=5)
     confidence: InsightConfidence
     generated_at: datetime
     model: str = Field(min_length=1, max_length=128)

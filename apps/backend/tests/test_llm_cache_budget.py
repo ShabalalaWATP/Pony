@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
 import pytest
 
@@ -115,6 +116,33 @@ async def test_mongo_cache_adapter_round_trips_and_expires() -> None:
 
     assert await cache.get(key) is not None
     db.llm_insight_cache.docs[key]["expires_at"] = datetime.now(tz=UTC) - timedelta(seconds=1)
+    assert await cache.get(key) is None
+
+
+async def test_mongo_cache_treats_invalid_legacy_record_as_miss() -> None:
+    """Invalid historical cache records regenerate instead of failing reads."""
+
+    db = _FakeDb()
+    cache = MongoInsightCache(db)  # type: ignore[arg-type]
+    key = cache_key(
+        kind="alert_context",
+        entity_id="alert-1",
+        prompt_hash="sha256:" + "a" * 64,
+        template_version="v1",
+    )
+    record = cache_record(
+        key=key,
+        kind="alert_context",
+        entity_id="alert-1",
+        prompt_hash="sha256:" + "a" * 64,
+        template_version="v1",
+        insight=_insight("alert-1"),
+        expires_at=None,
+    ).model_dump(mode="json")
+    insight = cast(dict[str, object], record["insight"])
+    insight["bullet_points"] = [" "]
+    db.llm_insight_cache.docs[key] = record
+
     assert await cache.get(key) is None
 
 

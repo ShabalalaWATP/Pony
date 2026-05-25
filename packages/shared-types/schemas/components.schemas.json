@@ -1627,11 +1627,13 @@
         "type": "integer"
       },
       "first_seen_epoch": {
+        "maximum": 8640000000000.0,
         "minimum": 0.0,
         "title": "First Seen Epoch",
         "type": "number"
       },
       "last_seen_epoch": {
+        "maximum": 8640000000000.0,
         "minimum": 0.0,
         "title": "Last Seen Epoch",
         "type": "number"
@@ -2256,6 +2258,9 @@
     "properties": {
       "bullet_points": {
         "items": {
+          "maxLength": 160,
+          "minLength": 1,
+          "pattern": "\\S",
           "type": "string"
         },
         "maxItems": 5,

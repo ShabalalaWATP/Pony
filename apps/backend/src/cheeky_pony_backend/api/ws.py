@@ -115,7 +115,7 @@ async def operator_gateway(websocket: WebSocket) -> None:
         return
     broker: OperatorBroker = websocket.app.state.operator_broker
     await websocket.accept()
-    await broker.connect(websocket)
+    await broker.connect(websocket, user.id)
     await websocket.send_json({"kind": "connected", "user_id": user.id})
     try:
         while True:

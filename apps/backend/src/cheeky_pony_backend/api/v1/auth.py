@@ -26,6 +26,7 @@ from cheeky_pony_backend.dependencies import (
     current_user,
     get_audit_logger,
     get_csrf_service,
+    get_operator_broker,
     get_password_service,
     get_store,
     get_token_service,
@@ -35,6 +36,7 @@ from cheeky_pony_backend.dependencies import (
 from cheeky_pony_backend.domain.audit import AuditLogger
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.domain.users import UserRecord, public_user
+from cheeky_pony_backend.infra.operator_broker import OperatorBroker
 from cheeky_pony_backend.security import CsrfService, PasswordService, TokenService, TotpService
 from cheeky_pony_shared import UserPublic
 
@@ -284,6 +286,7 @@ async def logout(
     response: Response,
     audit: Annotated[AuditLogger, Depends(get_audit_logger)],
     store: Annotated[Store, Depends(get_store)],
+    operator_broker: Annotated[OperatorBroker, Depends(get_operator_broker)],
     tokens: Annotated[TokenService, Depends(get_token_service)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> None:
@@ -310,6 +313,7 @@ async def logout(
                     user = candidate
     if user is not None:
         await store.update_user(user.next_refresh_token_version())
+        await operator_broker.disconnect_user(user.id)
     clear_cookie(response, "access_token", settings, httponly=True)
     clear_cookie(response, "refresh_token", settings, httponly=True)
     clear_cookie(response, "csrf_token", settings, httponly=False)

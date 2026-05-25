@@ -97,24 +97,33 @@ class InsightGenerationRuntime:
         await self._reserve_budget(request, estimated)
         completion, response = await self._complete_insight(request, estimated)
         actual = self._actual_cost(completion, estimated)
+        try:
+            insight = await cache_and_audit_generated(
+                self._cache,
+                self._audit,
+                kind=request.kind,
+                entity_id=request.entity_id,
+                response=response,
+                completion=completion,
+                actor_id=request.actor_id,
+                target=request.target,
+                prompt_hash=request.prompt_hash,
+                template_version=request.template_version,
+                expires_at=request.expires_at,
+                cost_micro_cents=actual,
+                start=request.start,
+                started_at=request.started_at,
+                audit_action=request.audit_action,
+            )
+        except LlmOutputValidationError:
+            await self._audit_generation_failure(
+                request,
+                "validation_failed",
+                estimated,
+            )
+            raise
         await self._adjust_budget(estimated, actual)
-        return await cache_and_audit_generated(
-            self._cache,
-            self._audit,
-            kind=request.kind,
-            entity_id=request.entity_id,
-            response=response,
-            completion=completion,
-            actor_id=request.actor_id,
-            target=request.target,
-            prompt_hash=request.prompt_hash,
-            template_version=request.template_version,
-            expires_at=request.expires_at,
-            cost_micro_cents=actual,
-            start=request.start,
-            started_at=request.started_at,
-            audit_action=request.audit_action,
-        )
+        return insight
 
     async def _complete_insight(
         self,

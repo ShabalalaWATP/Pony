@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from pydantic import BaseModel, ConfigDict, Field
 
 from cheeky_pony_backend.domain.ports import Store
-from cheeky_pony_backend.llm.types import InsightConfidence
+from cheeky_pony_backend.llm.types import InsightBullet, InsightConfidence
 from cheeky_pony_shared import Alert, AlertRule
 
 
@@ -18,7 +18,7 @@ class AlertContextResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     summary: str = Field(min_length=1, max_length=600)
-    bullet_points: list[str] = Field(default_factory=list, max_length=5)
+    bullet_points: list[InsightBullet] = Field(default_factory=list, max_length=5)
     confidence: InsightConfidence
 
 
