@@ -3,12 +3,13 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from cheeky_pony_backend.dependencies import (
     get_audit_logger,
@@ -27,6 +28,8 @@ from cheeky_pony_backend.infra.sensor_command_broker import (
 from cheeky_pony_shared import ApiPage, CommandKind, Sensor, SensorCapability, SensorCommand
 
 router = APIRouter(prefix="/sensors", tags=["sensors"])
+WS_SCHEME = "ws" + "://"
+WSS_SCHEME = "wss" + "://"
 
 
 class SensorRegisterRequest(BaseModel):
@@ -39,6 +42,15 @@ class SensorRegisterRequest(BaseModel):
     tailnet_ip: str = Field(min_length=3, max_length=64)
     capabilities: list[SensorCapability] = Field(default_factory=list)
     version: str = Field(min_length=1, max_length=64)
+    backend_ws_url: str | None = Field(default=None, min_length=1, max_length=512)
+
+    @field_validator("backend_ws_url")
+    @classmethod
+    def validate_backend_ws_url(cls, value: str | None) -> str | None:
+        if value is not None and not value.startswith((WS_SCHEME, WSS_SCHEME)):
+            msg = f"backend_ws_url must start with {WS_SCHEME} or {WSS_SCHEME}"
+            raise ValueError(msg)
+        return value
 
 
 class SensorRegisterResponse(BaseModel):
@@ -48,6 +60,7 @@ class SensorRegisterResponse(BaseModel):
     client_certificate_pem: str
     client_private_key_pem: str
     ca_certificate_pem: str
+    sensor_toml: str
 
 
 class SensorCommandAcceptedResponse(BaseModel):
@@ -94,8 +107,9 @@ async def register_sensor(
         )
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="sensor_exists")
     bundle = issue_sensor_certificate(payload.id)
+    sensor_payload = payload.model_dump(exclude={"backend_ws_url"})
     sensor = Sensor(
-        **payload.model_dump(),
+        **sensor_payload,
         client_cert_fingerprint_sha256=bundle.fingerprint_sha256,
     )
     await store.create_sensor(sensor)
@@ -111,7 +125,32 @@ async def register_sensor(
         client_certificate_pem=bundle.certificate_pem,
         client_private_key_pem=bundle.private_key_pem,
         ca_certificate_pem=bundle.ca_certificate_pem,
+        sensor_toml=_sensor_toml(payload),
     )
+
+
+def _sensor_toml(payload: SensorRegisterRequest) -> str:
+    backend_line = (
+        f"backend_ws_url = {_toml_string(payload.backend_ws_url)}"
+        if payload.backend_ws_url
+        else '# backend_ws_url = "wss://<backend-tailnet-host>/ws/sensor-gateway"'
+    )
+    return "\n".join(
+        [
+            f"sensor_id = {_toml_string(payload.id)}",
+            f"sensor_name = {_toml_string(payload.name)}",
+            backend_line,
+            'client_cert_path = "/etc/cheeky-pony/client.crt"',
+            'client_key_path = "/etc/cheeky-pony/client.key"',
+            'ca_cert_path = "/etc/cheeky-pony/ca.crt"',
+            "manage_kismet = true",
+            "",
+        ]
+    )
+
+
+def _toml_string(value: str) -> str:
+    return json.dumps(value, ensure_ascii=False)
 
 
 @router.get("", response_model=ApiPage[Sensor])

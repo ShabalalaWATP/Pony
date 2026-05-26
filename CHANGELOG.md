@@ -5,6 +5,13 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
+### Hermes sensor onboarding
+
+- Added Kismet-owned `wlan1mon` source hopping for Hermes and documented
+  disabling the standalone channel hopper during normal sensor operation.
+- Added paste-ready `sensor_toml` output to sensor registration responses,
+  with optional backend WebSocket URL templating.
+
 ### Security hardening — telemetry, PCAP findings, and session caches
 
 - Scoped PCAP-finding LLM insights back through their owning PCAP metadata,

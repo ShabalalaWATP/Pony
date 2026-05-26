@@ -3378,6 +3378,19 @@
     "additionalProperties": false,
     "description": "Sensor registration payload.",
     "properties": {
+      "backend_ws_url": {
+        "anyOf": [
+          {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Backend Ws Url"
+      },
       "capabilities": {
         "items": {
           "$ref": "#/components/schemas/SensorCapability"
@@ -3436,13 +3449,18 @@
       },
       "sensor": {
         "$ref": "#/components/schemas/Sensor"
+      },
+      "sensor_toml": {
+        "title": "Sensor Toml",
+        "type": "string"
       }
     },
     "required": [
       "sensor",
       "client_certificate_pem",
       "client_private_key_pem",
-      "ca_certificate_pem"
+      "ca_certificate_pem",
+      "sensor_toml"
     ],
     "title": "SensorRegisterResponse",
     "type": "object"
