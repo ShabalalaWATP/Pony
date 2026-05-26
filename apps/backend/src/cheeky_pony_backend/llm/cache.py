@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from typing import Protocol
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pydantic import ValidationError
 
 from cheeky_pony_backend.llm.types import CachedInsight, Insight, InsightKind
 
@@ -65,7 +66,10 @@ class MongoInsightCache:
         doc = await self._db.llm_insight_cache.find_one({"key": key}, {"_id": False})
         if doc is None:
             return None
-        record = CachedInsight.model_validate(doc)
+        try:
+            record = CachedInsight.model_validate(doc)
+        except ValidationError:
+            return None
         return None if _is_expired(record) else record
 
     async def set(self, record: CachedInsight) -> None:

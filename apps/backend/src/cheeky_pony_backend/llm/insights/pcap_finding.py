@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.infra.pcap_analysis_store import PcapAnalysisStore
 from cheeky_pony_backend.infra.pcap_store import PcapStore
-from cheeky_pony_backend.llm.types import InsightConfidence
+from cheeky_pony_backend.llm.types import InsightBullet, InsightConfidence
 from cheeky_pony_backend.pcap.findings import Finding, redact_lab_gated_evidence
 
 type JsonValue = str | int | float | bool | None | list[JsonValue] | dict[str, JsonValue]
@@ -24,7 +24,7 @@ class PcapFindingResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     summary: str = Field(min_length=1, max_length=600)
-    bullet_points: list[str] = Field(default_factory=list, max_length=5)
+    bullet_points: list[InsightBullet] = Field(default_factory=list, max_length=5)
     confidence: InsightConfidence
 
 

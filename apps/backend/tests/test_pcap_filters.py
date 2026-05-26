@@ -18,6 +18,7 @@ from cheeky_pony_backend.pcap.filters import (
     protocol_hierarchy,
     tls_sni,
 )
+from cheeky_pony_backend.pcap.findings import JS_DATE_MAX_EPOCH_SECONDS
 from cheeky_pony_backend.pcap.hostname_redaction import INTERNAL_HOSTNAME_REDACTED
 from cheeky_pony_shared import AccessPoint, Client
 
@@ -75,6 +76,17 @@ def test_deauth_parser_bounds_rows() -> None:
     evidence = deauth.parse(rows)
 
     assert sum(burst.count for burst in evidence.bursts) <= 10_000
+
+
+def test_deauth_parser_drops_browser_out_of_range_epochs() -> None:
+    """Deauth timestamps must remain renderable by browser Date APIs."""
+
+    invalid_epoch = JS_DATE_MAX_EPOCH_SECONDS + 1
+    rows = "\n".join(f"{invalid_epoch}\taa\tff\taa:bb:cc:dd:ee:ff" for _ in range(10))
+
+    evidence = deauth.parse(rows)
+
+    assert evidence.bursts == []
 
 
 def test_eapol_parser_groups_complete_handshake_and_lab_evidence() -> None:

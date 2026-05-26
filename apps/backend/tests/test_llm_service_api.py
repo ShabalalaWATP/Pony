@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from conftest import BackendClient
 from helpers import create_verified_admin
@@ -88,6 +90,40 @@ async def test_service_rejects_invalid_output_without_cache() -> None:
     cache = InMemoryInsightCache()
     service = LlmInsightService(
         client=FakeLlmClient(default_response='{"summary": 123}'),
+        cache=cache,
+        ledger=InMemoryUsageLedger(),
+        redactor=PromptRedactor(),
+        templates=PromptTemplates.load(),
+        audit=AuditLogger(store),
+        settings=_settings(),
+        store=store,
+        runtime_flags=InMemoryLlmRuntimeFlags(),
+    )
+
+    with pytest.raises(LlmOutputValidationError):
+        await service.alert_context("alert-1", actor_id="user-1")
+
+    assert cache.records == {}
+    assert store.audit_logs[-1].parameters["outcome"] == "validation_failed"
+
+
+@pytest.mark.parametrize("bullet", ["", " " * 4, "x" * 161])
+async def test_service_rejects_invalid_bullets_without_cache(bullet: str) -> None:
+    """LLM bullet text constraints are enforced before public response creation."""
+
+    store = InMemoryStore()
+    await _seed_alert(store)
+    cache = InMemoryInsightCache()
+    service = LlmInsightService(
+        client=FakeLlmClient(
+            default_response=json.dumps(
+                {
+                    "summary": "Context generated.",
+                    "bullet_points": [bullet],
+                    "confidence": "medium",
+                }
+            )
+        ),
         cache=cache,
         ledger=InMemoryUsageLedger(),
         redactor=PromptRedactor(),

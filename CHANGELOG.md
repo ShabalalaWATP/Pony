@@ -16,6 +16,15 @@ than by date because work lands as a fan-out of parallel PRs.
   while matching lab commands are active, and removed public map tile egress
   from built-in basemaps.
 
+### Security hardening — CI gates and validation boundaries
+
+- Verified downloaded CI scanner binaries, restored repository-wide OSV
+  coverage, and made ZAP warning alerts fail the DAST gate again with only the
+  backend's intentional non-storable response rule ignored.
+- Closed live operator WebSockets on logout and normalized unsafe LLM response
+  validation failures and browser-out-of-range PCAP timestamps, while treating
+  incompatible historical cache/finding records as misses instead of 500s.
+
 ### Security hardening — PCAP uploads and LLM worker kill switch
 
 - Added a pre-body PCAP upload guard so unauthenticated, unauthorized, CSRF-less,

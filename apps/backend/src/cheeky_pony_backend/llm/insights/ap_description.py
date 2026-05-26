@@ -21,7 +21,7 @@ from cheeky_pony_backend.domain.labelling import (
 )
 from cheeky_pony_backend.domain.oui_lookup import OuiService
 from cheeky_pony_backend.domain.ports import Store
-from cheeky_pony_backend.llm.types import InsightConfidence
+from cheeky_pony_backend.llm.types import InsightBullet, InsightConfidence
 from cheeky_pony_shared import AccessPoint, Client, Event, SignalSample
 
 _BSSID_RE = re.compile(r"^[0-9a-f]{12}$")
@@ -37,7 +37,7 @@ class ApDescriptionResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     summary: str = Field(min_length=1, max_length=600)
-    bullet_points: list[str] = Field(default_factory=list, max_length=5)
+    bullet_points: list[InsightBullet] = Field(default_factory=list, max_length=5)
     confidence: InsightConfidence
 
 

@@ -8,6 +8,12 @@ permissions:
   contents: read
   security-events: write
 
+env:
+  OSV_SCANNER_VERSION: "v2.3.8"
+  OSV_SCANNER_SHA256: "bc98e15319ed0d515e3f9235287ba53cdc5535d576d24fd573978ecfe9ab92dc"
+  TRIVY_VERSION: "0.70.0"
+  TRIVY_SHA256: "8b4376d5d6befe5c24d503f10ff136d9e0c49f9127a4279fd110b727929a5aa9"
+
 jobs:
   sca:
     runs-on: ubuntu-latest
@@ -32,15 +38,13 @@ jobs:
           -r apps/sensor-agent/requirements.lock
       - name: Install OSV-Scanner
         run: |
-          curl -sSfL -o /tmp/osv-scanner https://github.com/google/osv-scanner/releases/download/v2.3.8/osv-scanner_linux_amd64
+          curl -sSfL -o /tmp/osv-scanner "https://github.com/google/osv-scanner/releases/download/${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SCANNER_SHA256}  /tmp/osv-scanner" | sha256sum -c -
           sudo install -m 0755 /tmp/osv-scanner /usr/local/bin/osv-scanner
       - name: Run OSV-Scanner
         run: |
-          mkdir -p /tmp/osv-input/backend /tmp/osv-input/sensor
-          cp apps/backend/requirements.lock /tmp/osv-input/backend/requirements.txt
-          cp apps/sensor-agent/requirements.lock /tmp/osv-input/sensor/requirements.txt
           for attempt in 1 2 3; do
-            if osv-scanner scan source --config osv-scanner.toml -r /tmp/osv-input; then
+            if osv-scanner scan source --config osv-scanner.toml -r .; then
               exit 0
             fi
             status=$?
@@ -52,7 +56,8 @@ jobs:
           done
       - name: Install Trivy
         run: |
-          curl -sSfL -o /tmp/trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.70.0/trivy_0.70.0_Linux-64bit.tar.gz
+          curl -sSfL -o /tmp/trivy.tar.gz "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  /tmp/trivy.tar.gz" | sha256sum -c -
           tar -xzf /tmp/trivy.tar.gz -C /tmp trivy
           sudo install -m 0755 /tmp/trivy /usr/local/bin/trivy
       - run: trivy fs --severity HIGH,CRITICAL --exit-code 1 --format sarif --output trivy-results.sarif .

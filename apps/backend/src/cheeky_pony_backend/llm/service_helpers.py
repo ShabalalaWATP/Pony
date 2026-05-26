@@ -83,17 +83,20 @@ def public_insight(
 ) -> Insight:
     """Build the public insight model for a validated response."""
 
-    return Insight(
-        kind=kind,
-        entity_id=entity_id,
-        summary=response.summary,
-        bullet_points=response.bullet_points,
-        confidence=response.confidence,
-        generated_at=datetime.now(tz=UTC),
-        model=completion.model,
-        template_version=template_version,
-        cached=False,
-    )
+    try:
+        return Insight(
+            kind=kind,
+            entity_id=entity_id,
+            summary=response.summary,
+            bullet_points=response.bullet_points,
+            confidence=response.confidence,
+            generated_at=datetime.now(tz=UTC),
+            model=completion.model,
+            template_version=template_version,
+            cached=False,
+        )
+    except ValidationError as exc:
+        raise LlmOutputValidationError() from exc
 
 
 async def cache_insight(

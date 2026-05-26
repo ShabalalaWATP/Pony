@@ -4,10 +4,11 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
 import pytest
 from conftest import BackendClient
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, WebSocket
 from helpers import create_verified_admin
 
 from cheeky_pony_backend.api.v1.engagement_end import request_lab_record_stops
@@ -198,7 +199,7 @@ async def test_request_lab_record_stops_audits_and_broadcasts(
     broker = SensorCommandBroker()
     operator = OperatorBroker()
     websocket = FakeWebSocket()
-    await operator.connect(websocket)
+    await operator.connect(cast(WebSocket, websocket), "user-1")
     started = datetime(2026, 5, 20, tzinfo=UTC)
     record = LabCommandRecord(
         command_id="cmd-1",

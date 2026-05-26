@@ -5,8 +5,13 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 from io import StringIO
+from math import isfinite
 
-from cheeky_pony_backend.pcap.findings import DeauthBurst, DeauthBurstsEvidence
+from cheeky_pony_backend.pcap.findings import (
+    JS_DATE_MAX_EPOCH_SECONDS,
+    DeauthBurst,
+    DeauthBurstsEvidence,
+)
 
 _WINDOW_SECONDS = 300
 _THRESHOLD = 10
@@ -65,6 +70,8 @@ def _parse_line(line: str) -> tuple[float, str] | None:
     try:
         timestamp = float(parts[0])
     except ValueError:
+        return None
+    if not isfinite(timestamp) or not 0.0 <= timestamp <= JS_DATE_MAX_EPOCH_SECONDS:
         return None
     bssid = (parts[3] or parts[1] or "unknown").strip().lower()
     return timestamp, bssid[:32]

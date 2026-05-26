@@ -4,9 +4,10 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import Protocol, cast
 
 import pytest
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from cheeky_pony_backend.infra.pcap_analysis_store import (
     InMemoryPcapAnalysisStore,
@@ -14,8 +15,12 @@ from cheeky_pony_backend.infra.pcap_analysis_store import (
     PcapAnalysisStore,
 )
 from cheeky_pony_backend.pcap.findings import (
+    JS_DATE_MAX_EPOCH_SECONDS,
     AnalysisRun,
     AnalysisRunStatus,
+    DeauthBurst,
+    DeauthBurstsEvidence,
+    DeauthBurstsFinding,
     FindingKind,
     FindingSeverity,
     ProtocolHierarchyEvidence,
@@ -54,6 +59,27 @@ async def test_mongo_analysis_store_round_trips_runs_and_findings() -> None:
         await _assert_analysis_store_contract(factory)
     finally:
         container.stop()
+
+
+async def test_mongo_analysis_store_ignores_invalid_legacy_findings() -> None:
+    """Invalid historical finding documents are skipped instead of crashing reads."""
+
+    valid = _finding("valid").model_dump(mode="json")
+    invalid = _deauth_finding("invalid").model_dump(mode="json")
+    evidence = cast(dict[str, object], invalid["evidence"])
+    bursts = cast(list[dict[str, object]], evidence["bursts"])
+    bursts[0]["first_seen_epoch"] = JS_DATE_MAX_EPOCH_SECONDS + 1.0
+    db = _FakePcapDb([invalid, valid])
+    store = MongoPcapAnalysisStore(db)  # type: ignore[arg-type]
+
+    listed, total = await store.list_findings("eng-1", "pcap-1", 10, 0)
+    loaded = await store.get_finding("eng-1", "pcap-1", "invalid")
+    loaded_by_id = await store.get_finding_by_id("invalid")
+
+    assert total == 1
+    assert [item.id for item in listed] == ["valid"]
+    assert loaded is None
+    assert loaded_by_id is None
 
 
 async def _assert_analysis_store_contract(factory: StoreFactory) -> None:
@@ -104,10 +130,8 @@ async def _in_memory_store() -> PcapAnalysisStore:
     return InMemoryPcapAnalysisStore()
 
 
-def _mongo_client(dsn: str):
-    from motor.motor_asyncio import AsyncIOMotorClient
-
-    return AsyncIOMotorClient(dsn)
+def _mongo_client(dsn: str) -> AsyncIOMotorClient[dict[str, object]]:
+    return AsyncIOMotorClient[dict[str, object]](dsn)
 
 
 def _run(run_id: str, status: AnalysisRunStatus) -> AnalysisRun:
@@ -132,3 +156,78 @@ def _finding(finding_id: str) -> ProtocolHierarchyFinding:
         evidence=ProtocolHierarchyEvidence(protocols=[]),
         generated_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
+
+
+def _deauth_finding(finding_id: str) -> DeauthBurstsFinding:
+    return DeauthBurstsFinding(
+        id=finding_id,
+        pcap_id="pcap-1",
+        engagement_id="eng-1",
+        analysis_id="run-1",
+        severity=FindingSeverity.MEDIUM,
+        summary="Deauthentication burst observed",
+        evidence=DeauthBurstsEvidence(
+            bursts=[
+                DeauthBurst(
+                    bssid="aa:bb:cc:dd:ee:ff",
+                    count=12,
+                    first_seen_epoch=1.0,
+                    last_seen_epoch=2.0,
+                )
+            ]
+        ),
+        generated_at=datetime(2026, 1, 1, tzinfo=UTC),
+    )
+
+
+class _FakePcapDb:
+    def __init__(self, docs: list[dict[str, object]]) -> None:
+        self.pcap_findings = _FakeFindingCollection(docs)
+
+
+class _FakeFindingCollection:
+    def __init__(self, docs: list[dict[str, object]]) -> None:
+        self.docs = docs
+
+    def find(
+        self,
+        query: dict[str, object],
+        projection: dict[str, bool],
+    ) -> _FakeFindingCursor:
+        del projection
+        return _FakeFindingCursor([doc for doc in self.docs if _matches_query(doc, query)])
+
+    async def find_one(
+        self,
+        query: dict[str, object],
+        projection: dict[str, bool],
+    ) -> dict[str, object] | None:
+        del projection
+        for doc in self.docs:
+            if _matches_query(doc, query):
+                return doc
+        return None
+
+
+class _FakeFindingCursor:
+    def __init__(self, docs: list[dict[str, object]]) -> None:
+        self.docs = docs
+        self.index = 0
+
+    def sort(self, key: str, direction: int) -> _FakeFindingCursor:
+        self.docs.sort(key=lambda item: str(item.get(key, "")), reverse=direction < 0)
+        return self
+
+    def __aiter__(self) -> _FakeFindingCursor:
+        return self
+
+    async def __anext__(self) -> dict[str, object]:
+        if self.index >= len(self.docs):
+            raise StopAsyncIteration
+        doc = self.docs[self.index]
+        self.index += 1
+        return doc
+
+
+def _matches_query(doc: dict[str, object], query: dict[str, object]) -> bool:
+    return all(doc.get(key) == value for key, value in query.items())
