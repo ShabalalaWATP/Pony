@@ -249,6 +249,14 @@ Sensors register through the backend, receive a client certificate, and connect 
 sensor id to the signed client-certificate headers and the stored certificate
 fingerprint.
 
+> **First time setting up a physical Pi?** Follow
+> [`docs/runbooks/pi-hermes-onboarding.md`](runbooks/pi-hermes-onboarding.md)
+> *before* you reach the registration step below. The runbook covers the
+> operating-system layer (driver, monitor mode, channel hopper, Kismet,
+> bettercap, Tailscale) — everything that has to be on the Pi before the
+> sensor-agent can boot. The reference deployment is "Hermes"; subsequent
+> Pis follow the same flow.
+
 ### Registering a new Pi
 
 1. On `/sensors`, click **New sensor** (or hit `/sensors?new=1`).
