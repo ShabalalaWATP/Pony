@@ -5,23 +5,16 @@ than by date because work lands as a fan-out of parallel PRs.
 
 ## Unreleased
 
-### Documentation — Hermes Pi onboarding state
+### Security hardening — telemetry, PCAP findings, and session caches
 
-- New runbook `docs/runbooks/pi-hermes-onboarding.md` captures the OS-layer
-  setup of the first physical Cheeky Pony sensor (Hermes): aircrack-ng
-  RTL8812AU DKMS driver, channel-hopper systemd service, Kismet from upstream
-  repo, bettercap from apt, Tailscale auth, NetworkManager wlan1 isolation.
-  Reproducible end-to-end with shell snippets.
-- New ADR-0022 records the driver / hopper / capture-tool choices and the
-  Trixie-specific Kismet apt-repo decision.
-- `docs/operator-guide.md` cross-links the new runbook before the "Registering
-  a new Pi" section so first-time operators do the OS layer before they touch
-  the dashboard's sensor registration flow.
-- Master-plan status: M0-M8 + Phase 1-3 are complete. M9 (hardening) is
-  Codex's active queue. The remaining M1-completion gap is deploying the
-  sensor-agent to Hermes — code, install script, and systemd unit all exist,
-  but no cert pair has been issued for this Pi yet. Tracked in the runbook's
-  "What's next" section.
+- Scoped PCAP-finding LLM insights back through their owning PCAP metadata,
+  redacted DHCP internal hostnames, and bounded post-tshark parser work.
+- Hardened lab-status refusal auditing, synthetic telemetry marker detection,
+  anomaly payload scans, and frontend session/secret caches.
+- Restricted alert-rule predicates to admin+recent-TOTP reads, kept engagement
+  stop requests tracked until sensor acknowledgement, refused allow-list removal
+  while matching lab commands are active, and removed public map tile egress
+  from built-in basemaps.
 
 ### Security hardening — PCAP uploads and LLM worker kill switch
 

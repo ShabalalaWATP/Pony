@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from cheeky_pony_backend.domain.ports import Store
 from cheeky_pony_backend.infra.pcap_analysis_store import PcapAnalysisStore
+from cheeky_pony_backend.infra.pcap_store import PcapStore
 from cheeky_pony_backend.llm.types import InsightConfidence
 from cheeky_pony_backend.pcap.findings import Finding, redact_lab_gated_evidence
 
@@ -61,6 +62,7 @@ class PcapFindingPromptContext(BaseModel):
 
 async def build_pcap_finding_context(
     store: Store,
+    pcap_store: PcapStore,
     analysis_store: PcapAnalysisStore,
     finding_id: str,
 ) -> PcapFindingPromptContext | None:
@@ -68,6 +70,12 @@ async def build_pcap_finding_context(
 
     finding = await analysis_store.get_finding_by_id(finding_id)
     if finding is None:
+        return None
+    pcap = await pcap_store.get_pcap(finding.engagement_id, finding.pcap_id)
+    if pcap is None:
+        return None
+    scoped = await analysis_store.get_finding(finding.engagement_id, finding.pcap_id, finding.id)
+    if scoped is None:
         return None
     engagement = await store.get_engagement(finding.engagement_id)
     if engagement is None:
@@ -79,7 +87,7 @@ async def build_pcap_finding_context(
             scope_rule_count=len(engagement.scope_rules),
             synthetic=engagement.synthetic,
         ),
-        finding=_finding_metadata(finding),
+        finding=_finding_metadata(scoped),
     )
 
 

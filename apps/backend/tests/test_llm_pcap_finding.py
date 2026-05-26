@@ -9,6 +9,7 @@ import pytest
 from conftest import BackendClient
 from helpers import create_verified_admin
 
+from cheeky_pony_backend.domain.pcap_models import Pcap, PcapStatus
 from cheeky_pony_backend.llm.insights.pcap_finding import build_pcap_finding_context
 from cheeky_pony_backend.pcap.findings import (
     EapolHandshake,
@@ -27,11 +28,14 @@ async def test_pcap_finding_context_drops_lab_gated_eapol_evidence(
     """Prompt context never carries PMKID or raw EAPOL bytes."""
 
     await _seed_engagement(backend_client, "eng-1")
+    await _seed_pcap(backend_client, "eng-1")
     await _seed_eapol_finding(backend_client, "finding-1", "eng-1")
 
     assert backend_client.pcap_analysis_store is not None
+    assert backend_client.pcap_store is not None
     context = await build_pcap_finding_context(
         backend_client.store,
+        backend_client.pcap_store,
         backend_client.pcap_analysis_store,
         "finding-1",
     )
@@ -53,6 +57,7 @@ async def test_pcap_finding_route_generates_then_uses_cache(
     await create_verified_admin(backend_client)
     backend_client.settings.llm_enabled = True
     await _seed_engagement(backend_client, "eng-1")
+    await _seed_pcap(backend_client, "eng-1")
     await _seed_eapol_finding(backend_client, "finding-1", "eng-1")
 
     first = await backend_client.client.get("/api/v1/insights/pcap-finding/finding-1")
@@ -104,6 +109,27 @@ async def test_pcap_finding_route_hides_orphaned_findings(
     assert backend_client.store.audit_logs[-1].parameters["outcome"] == "refused"
 
 
+async def test_pcap_finding_route_hides_deleted_pcap_findings(
+    backend_client: BackendClient,
+) -> None:
+    """Findings whose PCAP metadata is gone are refused as 404."""
+
+    await create_verified_admin(backend_client)
+    backend_client.settings.llm_enabled = True
+    await _seed_engagement(backend_client, "eng-1")
+    await _seed_pcap(backend_client, "eng-1")
+    await _seed_eapol_finding(backend_client, "finding-1", "eng-1")
+    assert backend_client.pcap_store is not None
+    await backend_client.pcap_store.delete_pcap("eng-1", "pcap-1")
+
+    response = await backend_client.client.get("/api/v1/insights/pcap-finding/finding-1")
+
+    assert response.status_code == 404
+    assert backend_client.store.audit_logs[-1].parameters["outcome"] == "refused"
+    assert backend_client.llm_client is not None
+    assert backend_client.llm_client.calls == []
+
+
 async def _seed_engagement(bundle: BackendClient, engagement_id: str) -> None:
     await bundle.store.create_engagement(
         Engagement(
@@ -113,6 +139,25 @@ async def _seed_engagement(bundle: BackendClient, engagement_id: str) -> None:
             started_at=datetime(2026, 5, 20, tzinfo=UTC),
         )
     )
+
+
+async def _seed_pcap(bundle: BackendClient, engagement_id: str) -> None:
+    assert bundle.pcap_store is not None
+    await bundle.pcap_store.create_pcap(
+        Pcap(
+            id="pcap-1",
+            engagement_id=engagement_id,
+            filename_sanitized="capture.pcapng",
+            size_bytes=128,
+            sha256="a" * 64,
+            magic="pcapng",
+            uploaded_by="user-1",
+            uploaded_at=datetime(2026, 5, 20, 11, 0, tzinfo=UTC),
+            status=PcapStatus.ANALYZED,
+            gridfs_id="gridfs-1",
+        )
+    )
+    bundle.pcap_store.files["gridfs-1"] = b"\x0a\x0d\x0d\x0a"
 
 
 async def _seed_eapol_finding(

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { MapStyleSwitcher } from "@/components/map/MapStyleSwitcher";
@@ -7,10 +7,10 @@ import { useMapStyleStore } from "@/stores/useMapStyleStore";
 
 describe("MapStyleSwitcher", () => {
   beforeEach(() => {
-    useMapStyleStore.setState({ styleId: "street" });
+    void act(() => useMapStyleStore.setState({ styleId: "street" }));
   });
   afterEach(() => {
-    useMapStyleStore.setState({ styleId: "street" });
+    void act(() => useMapStyleStore.setState({ styleId: "street" }));
   });
 
   it("renders one labelled button per entry in MAP_STYLES", () => {
@@ -21,7 +21,7 @@ describe("MapStyleSwitcher", () => {
   });
 
   it("marks the current selection with aria-pressed", () => {
-    useMapStyleStore.setState({ styleId: "satellite" });
+    void act(() => useMapStyleStore.setState({ styleId: "satellite" }));
     render(<MapStyleSwitcher />);
     expect(screen.getByTestId("map-style-satellite")).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByTestId("map-style-street")).toHaveAttribute("aria-pressed", "false");
@@ -41,31 +41,17 @@ describe("MapStyleSwitcher", () => {
 });
 
 describe("mapStyles catalogue", () => {
-  it("only exposes HTTPS tile sources (no mixed content)", () => {
+  it("does not expose remote tile or style URLs by default", () => {
     for (const s of MAP_STYLES) {
       if (typeof s.style === "string") {
-        expect(s.style.startsWith("https://")).toBe(true);
+        expect(s.style).not.toMatch(/^https?:\/\//);
         continue;
       }
       for (const source of Object.values(s.style.sources)) {
         if ("tiles" in source && source.tiles) {
           for (const url of source.tiles) {
-            expect(url.startsWith("https://")).toBe(true);
+            expect(url).not.toMatch(/^https?:\/\//);
           }
-        }
-      }
-    }
-  });
-
-  it("attaches attribution to every raster source", () => {
-    // Esri's ToS and good MapLibre practice both require sources to
-    // carry their own attribution; the catalogue is the place that
-    // enforces this.
-    for (const s of MAP_STYLES) {
-      if (typeof s.style === "string") continue;
-      for (const source of Object.values(s.style.sources)) {
-        if (source.type === "raster") {
-          expect(source.attribution).toBeTruthy();
         }
       }
     }
@@ -79,7 +65,7 @@ describe("mapStyles catalogue", () => {
 
 describe("useMapStyleStore", () => {
   beforeEach(() => {
-    useMapStyleStore.setState({ styleId: "street" });
+    void act(() => useMapStyleStore.setState({ styleId: "street" }));
   });
 
   it("rejects unknown style ids (defensive against stale localStorage)", () => {

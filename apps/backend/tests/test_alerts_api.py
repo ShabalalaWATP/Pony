@@ -9,7 +9,9 @@ import pytest
 from conftest import BackendClient
 from helpers import create_verified_admin
 
-from cheeky_pony_shared import Alert, AlertSeverity
+from cheeky_pony_backend.domain.users import UserRecord
+from cheeky_pony_backend.security import TokenService
+from cheeky_pony_shared import Alert, AlertRule, AlertSeverity
 
 pytestmark = pytest.mark.asyncio
 
@@ -100,6 +102,41 @@ async def test_alert_rule_admin_lifecycle_is_audited(
         "alerts.rules.update",
         "alerts.rules.delete",
     ]
+
+
+async def test_alert_rule_list_requires_admin_2fa(backend_client: BackendClient) -> None:
+    """Non-admin operators cannot read rule predicates."""
+
+    csrf = await create_verified_admin(backend_client)
+    await backend_client.store.create_alert_rule(
+        AlertRule(
+            id="rule-1",
+            name="Sensitive watch",
+            severity=AlertSeverity.HIGH,
+            predicate={"match": {"ssid": "^PrivateLab$"}},
+            created_by="user-1",
+        )
+    )
+    admin = await backend_client.client.get("/api/v1/alerts/rules")
+    await backend_client.store.create_user(
+        UserRecord(
+            id="operator-1",
+            email="operator@example.com",
+            password_hash="hash",
+            roles=["operator"],
+        )
+    )
+    backend_client.client.cookies.set(
+        "access_token",
+        TokenService(backend_client.settings).create_access_token("operator-1", csrf),
+    )
+
+    operator = await backend_client.client.get("/api/v1/alerts/rules")
+
+    assert admin.status_code == 200
+    assert admin.json()["total"] == 1
+    assert operator.status_code == 403
+    assert operator.json()["detail"] == "admin_required"
 
 
 async def test_alert_rule_predicates_are_validated(backend_client: BackendClient) -> None:

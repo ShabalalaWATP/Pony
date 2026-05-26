@@ -9,7 +9,10 @@ from uuid import uuid4
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 
-from cheeky_pony_backend.api.v1.engagement_end import cancel_lab_records, persist_engagement_end
+from cheeky_pony_backend.api.v1.engagement_end import (
+    persist_engagement_end,
+    request_lab_record_stops,
+)
 from cheeky_pony_backend.config import Settings, get_settings
 from cheeky_pony_backend.dependencies import (
     current_user,
@@ -223,6 +226,7 @@ async def remove_allowed_target(
     user: Annotated[UserRecord, Depends(require_admin_2fa)],
     store: Annotated[Store, Depends(get_store)],
     audit: Annotated[AuditLogger, Depends(get_audit_logger)],
+    command_broker: Annotated[SensorCommandBroker, Depends(get_sensor_command_broker)],
 ) -> None:
     """Remove a target from an engagement allow-list.
 
@@ -238,6 +242,23 @@ async def remove_allowed_target(
     await _get_engagement_or_audit_404(
         store, audit, user, engagement_id, "engagement.allow_list.remove", parameters
     )
+    active = await command_broker.list_lab_commands_for_target(
+        engagement_id,
+        payload.kind.value,
+        payload.value,
+    )
+    if active:
+        await audit.record(
+            user.id,
+            "engagement.allow_list.remove",
+            {"engagement_id": engagement_id, "kind": payload.kind.value, "value": payload.value},
+            parameters,
+            "denied:active_lab_command_exists",
+        )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="active_lab_command_exists",
+        )
     await store.remove_allowed_target(engagement_id, payload.kind, payload.value)
     await audit.record(
         user.id,
@@ -316,8 +337,8 @@ async def end_engagement(
     )
     should_dispatch_summary = engagement.ended_at is None
     persisted_ended_at = await persist_engagement_end(store, engagement, should_dispatch_summary)
-    records = await command_broker.stop_lab_commands_for_engagement(engagement_id)
-    await cancel_lab_records(
+    records = await command_broker.list_lab_commands_for_engagement(engagement_id)
+    await request_lab_record_stops(
         records, user, engagement_id, persisted_ended_at, audit, command_broker, operator_broker
     )
     await audit.record(user.id, "engagement.end", {"engagement_id": engagement_id}, {}, "ok")

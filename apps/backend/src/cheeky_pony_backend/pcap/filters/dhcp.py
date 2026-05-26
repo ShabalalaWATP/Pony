@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from cheeky_pony_backend.domain.oui_lookup import OuiService
+from cheeky_pony_backend.pcap.hostname_redaction import redact_hostname
 from cheeky_pony_backend.pcap.network_findings import (
     DhcpClientObservation,
     DhcpHostnamesEvidence,
@@ -46,13 +47,18 @@ def build_args() -> list[str]:
     ]
 
 
-def parse(output: str, clients: list[Client], oui: OuiService) -> DhcpHostnamesEvidence:
+def parse(
+    output: str,
+    clients: list[Client],
+    oui: OuiService,
+    internal_hostname_suffixes: list[str],
+) -> DhcpHostnamesEvidence:
     """Parse DHCP field output and enrich observed clients with known vendors."""
 
     known_clients = _known_clients(clients)
     grouped: dict[str, _DhcpRow] = {}
     for line in output.splitlines():
-        row = _parse_line(line)
+        row = _parse_line(line, internal_hostname_suffixes)
         if row is None:
             continue
         existing = grouped.setdefault(row.mac, _DhcpRow(mac=row.mac))
@@ -70,7 +76,7 @@ def _known_clients(clients: list[Client]) -> dict[str, Client]:
     return known
 
 
-def _parse_line(line: str) -> _DhcpRow | None:
+def _parse_line(line: str, internal_hostname_suffixes: list[str]) -> _DhcpRow | None:
     parts = line.split("\t")
     if not parts:
         return None
@@ -79,7 +85,7 @@ def _parse_line(line: str) -> _DhcpRow | None:
         return None
     return _DhcpRow(
         mac=mac,
-        hostname=_bounded_text(parts[1], 128) if len(parts) > 1 else None,
+        hostname=_hostname(parts[1], internal_hostname_suffixes) if len(parts) > 1 else None,
         vendor_class_id=_bounded_text(parts[2], 128) if len(parts) > 2 else None,
         requested_options=_split_options(parts[3]) if len(parts) > 3 else [],
     )
@@ -123,6 +129,13 @@ def _normalize_mac(value: str) -> str | None:
 def _bounded_text(value: str, max_length: int) -> str | None:
     cleaned = value.strip()
     return cleaned[:max_length] if cleaned else None
+
+
+def _hostname(value: str, internal_hostname_suffixes: list[str]) -> str | None:
+    bounded = _bounded_text(value, 128)
+    if bounded is None:
+        return None
+    return redact_hostname(bounded, internal_hostname_suffixes)
 
 
 def _split_options(value: str) -> list[str]:

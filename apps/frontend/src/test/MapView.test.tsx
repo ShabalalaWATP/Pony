@@ -22,17 +22,19 @@ interface MapCanvasStubProps {
 
 vi.mock("@/components/map/MapCanvas", () => ({
   MapCanvas: ({ pins, style, sensorMarkers, onSensorClick }: MapCanvasStubProps) => {
+    const layerIds =
+      style && typeof style === "object" && "layers" in style
+        ? (style as { layers: { id: string }[] }).layers.map((layer) => layer.id)
+        : [];
     const styleId =
       typeof style === "string"
         ? "street"
         : style && typeof style === "object" && "sources" in style && "layers" in style
-          ? Object.keys((style as { sources: Record<string, unknown> }).sources).length === 0
-            ? "street"
-            : Object.keys((style as { sources: Record<string, unknown> }).sources).includes(
-                  "esri-labels",
-                )
-              ? "hybrid"
-              : "satellite"
+          ? layerIds.includes("hybrid-background")
+            ? "hybrid"
+            : layerIds.includes("satellite-background")
+              ? "satellite"
+              : "street"
           : "unknown";
     const sensors = sensorMarkers ?? {};
     return (

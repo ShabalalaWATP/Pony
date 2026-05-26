@@ -4,11 +4,14 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
+from io import StringIO
 
 from cheeky_pony_backend.pcap.findings import DeauthBurst, DeauthBurstsEvidence
 
 _WINDOW_SECONDS = 300
 _THRESHOLD = 10
+_MAX_PARSED_ROWS = 10_000
+_MAX_TIMESTAMPS_PER_BSSID = 2_000
 
 
 def build_args() -> list[str]:
@@ -36,12 +39,18 @@ def parse(output: str) -> DeauthBurstsEvidence:
     """Parse deauthentication frame fields and detect bursts."""
 
     by_bssid: dict[str, list[float]] = defaultdict(list)
-    for line in output.splitlines():
+    parsed_rows = 0
+    for line in StringIO(output):
         parsed = _parse_line(line)
         if parsed is None:
             continue
+        parsed_rows += 1
+        if parsed_rows > _MAX_PARSED_ROWS:
+            break
         timestamp, bssid = parsed
-        by_bssid[bssid].append(timestamp)
+        timestamps = by_bssid[bssid]
+        if len(timestamps) < _MAX_TIMESTAMPS_PER_BSSID:
+            timestamps.append(timestamp)
     return DeauthBurstsEvidence(
         bursts=_detect_bursts(by_bssid),
         threshold=_THRESHOLD,
@@ -57,7 +66,7 @@ def _parse_line(line: str) -> tuple[float, str] | None:
         timestamp = float(parts[0])
     except ValueError:
         return None
-    bssid = (parts[3] or parts[1] or "unknown").lower()
+    bssid = (parts[3] or parts[1] or "unknown").strip().lower()
     return timestamp, bssid[:32]
 
 

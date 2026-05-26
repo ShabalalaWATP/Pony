@@ -109,6 +109,7 @@ describe("useLogout", () => {
     qc.setQueryData(AUTH_QUERY_KEY, { csrf_token: "x", user: fixtures.user });
     qc.setQueryData(["sensors", { limit: 1, offset: 0 }], { items: [{ id: "s1" }] });
     qc.setQueryData(["devices", { limit: 1, offset: 0 }], { items: [{ mac: "x" }] });
+    qc.setQueryData(["audit", { limit: 200, offset: 0 }], { items: [fixtures.auditEntry] });
     const { result } = renderHook(() => useLogout(), { wrapper });
     result.current.mutate();
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -116,6 +117,7 @@ describe("useLogout", () => {
     expect(qc.getQueryData(AUTH_QUERY_KEY)).toBeNull();
     expect(qc.getQueryData(["sensors", { limit: 1, offset: 0 }])).toBeUndefined();
     expect(qc.getQueryData(["devices", { limit: 1, offset: 0 }])).toBeUndefined();
+    expect(qc.getQueryData(["audit", { limit: 200, offset: 0 }])).toBeUndefined();
   });
 
   it("still clears local state when the backend returns 401 (session already gone)", async () => {

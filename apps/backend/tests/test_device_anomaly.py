@@ -84,3 +84,27 @@ async def test_same_ssid_peers_excludes_hidden_and_self() -> None:
 
     assert same_ssid_peers(ap, [ap, peer, hidden]) == [peer]
     assert same_ssid_peers(hidden, [ap, peer, hidden]) == []
+
+
+async def test_recent_deauth_counts_bounds_malicious_payload_depth() -> None:
+    """Deep sensor payloads are ignored rather than recursively traversed."""
+
+    store = InMemoryStore()
+    await store.insert_event(
+        Event(
+            id="deep",
+            sensor_id="pi-1",
+            kind=EventKind.COMMAND_RESULT,
+            payload=_deep_payload(600),
+            occurred_at=datetime.now(tz=UTC),
+        )
+    )
+
+    assert await recent_deauth_counts(store) == {}
+
+
+def _deep_payload(depth: int) -> dict[str, object]:
+    payload: dict[str, object] = {"value": "deauth"}
+    for _ in range(depth):
+        payload = {"nested": payload}
+    return payload
