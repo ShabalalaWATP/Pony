@@ -23,7 +23,7 @@ the operator's tailnet. Subsequent sensor deployments should follow the same flo
 | SSH host key (ed25519) | `SHA256:zNmqKZU0z5mQ0/XD369FjqdvJRLyO8HGreMoywrEwLs` |
 | Built-in WiFi | `wlan0` 88:a2:9e:bf:b5:43 — managed by NetworkManager, carries the operator's SSH lifeline |
 | Alfa adapter | AWUS036ACH (Realtek RTL8812AU, USB ID `0bda:0811`), exposes as `wlan1` MAC `00:c0:ca:b9:aa:1a` |
-| Alfa mode | `monitor` on whichever channel the hopper service has it on (default cycle through 1/6/11/36/40/44/48/149/153/157/161) |
+| Alfa mode | `monitor`; Kismet owns channel hopping on `wlan1mon` during normal sensor operation |
 | Sensor-agent | **NOT YET DEPLOYED**; the `apps/sensor-agent/` package + `infra/pi/install.sh` are ready to run but no cert pair has been issued for this Pi yet |
 
 ## Stage-by-stage replay
@@ -143,8 +143,9 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now cheeky-pony-channel-hop.service
 ```
 
-> ⚠ **Conflict.** Kismet and bettercap both do their own channel control. Stop
-> the hopper before starting either: `sudo systemctl stop cheeky-pony-channel-hop`.
+> ⚠ **Superseded for normal operation.** Stage 6 makes Kismet the channel
+> authority for Hermes. Keep this standalone hopper on disk as a fallback for
+> ad-hoc `tcpdump` sweeps, but do not leave it enabled while Kismet is running.
 
 ### Stage 4 — Kismet + bettercap
 
@@ -210,6 +211,32 @@ tailscale status   # → hermes + alex-hp-zbook (and any other tailnet peers)
 > `100.74.122.35`. That's the address the sensor-agent's `backend_ws_url` will
 > point at once the backend runs there in production-ish mode.
 
+### Stage 6 — Switch channel authority to Kismet
+
+Hermes originally used the standalone channel-hopper systemd unit while we were
+validating monitor mode with `tcpdump`. The deployed sensor path is different:
+`infra/pi/kismet_site.conf` now declares `wlan1mon` as a Kismet source with
+`hop=true`, so Kismet owns channel rotation when the sensor-agent starts it.
+
+Disable the standalone hopper before deploying the sensor bundle:
+
+```bash
+sudo systemctl disable --now cheeky-pony-channel-hop.service
+# If an older local note created this shorter alias, disable it too.
+sudo systemctl disable --now cheeky-pony-hopper.service 2>/dev/null || true
+```
+
+The hopper script and unit can stay on disk as a fallback, but they are not
+enabled by default. After rerunning `infra/pi/install.sh`, verify Kismet sees the
+configured source and that both raw capture and Kismet observe traffic:
+
+```bash
+grep '^source=wlan1mon:name=alfa-awus036ach' /etc/kismet/kismet_site.conf
+kismet_cli -- show-sources
+sudo tcpdump -i wlan1mon -c 10
+curl -s http://127.0.0.1:2501/devices/views/all_devices/devices.json | head
+```
+
 ## Verifying monitor mode is actually working
 
 The driver will sometimes report `type monitor` while silently delivering zero
@@ -217,19 +244,19 @@ frames (a class of Realtek bug). To prove the chain end-to-end:
 
 ```bash
 sudo apt-get install -y tcpdump   # one-time
-sudo systemctl stop cheeky-pony-channel-hop   # so we know which channel we're on
-sudo iw dev wlan1 set channel 1
+sudo systemctl stop cheeky-pony-channel-hop.service 2>/dev/null || true
+sudo iw dev wlan1mon set channel 1
 
 # Capture 4s of 802.11 management frames
-sudo timeout 4 tcpdump -i wlan1 -nn -e -c 25 'type mgt subtype beacon'
+sudo timeout 4 tcpdump -i wlan1mon -nn -e -c 25 'type mgt subtype beacon'
 
 # Expect 20+ beacons from neighbouring APs (SSIDs like BT-xxxxxx,
 # Sky_xxxx, EE WiFi, etc., RSSI -50 to -75 dBm depending on geometry)
 
-sudo systemctl start cheeky-pony-channel-hop   # back to scanning
+# Leave the standalone hopper stopped; Kismet owns hopping during sensor runs.
 ```
 
-If `tcpdump` reports zero beacons but `iw dev wlan1 info` reports `type monitor`,
+If `tcpdump` reports zero beacons but `iw dev wlan1mon info` reports `type monitor`,
 the driver bound but the device is mis-keyed for monitor capture — `dmesg | tail`
 will usually show the `88XXau` driver complaining; rebooting once after the
 DKMS install almost always resolves it.
@@ -246,7 +273,7 @@ The pieces that exist but aren't wired together:
 | Per-Pi cert + key pair | issued by backend's `POST /api/v1/sensors` | **Not yet generated for Hermes** |
 | Pi install script | `infra/pi/install.sh` | Idempotent installer, drops the systemd unit + venv |
 | Sensor systemd unit | `infra/pi/cheeky-pony-sensor.service` | Ready, expects `/etc/cheeky-pony/sensor.toml` |
-| Kismet remote-capture profile | `infra/pi/kismet_site.conf` | Pre-configured for the sensor-agent's WS bridge |
+| Kismet remote-capture profile | `infra/pi/kismet_site.conf` | Pre-configured with `wlan1mon` source + Kismet channel hopping |
 
 The remaining work is:
 
@@ -255,10 +282,10 @@ The remaining work is:
    backend mints a CA-signed mTLS cert pair and returns it once (the existing
    register flow already enforces one-shot retrieval).
 2. **Pi side (Codex / operator).** Copy the cert + key to
-   `/etc/cheeky-pony/client.{crt,key,ca.crt}` on Hermes. Set
-   `backend_ws_url` in `/etc/cheeky-pony/sensor.toml` to
-   `wss://100.74.122.35:8000/ws/sensor-gateway` (the operator's tailnet IP).
-   Run `infra/pi/install.sh` to register the systemd unit and start the agent.
+   `/etc/cheeky-pony/client.{crt,key,ca.crt}` on Hermes and paste the
+   `sensor_toml` body returned by registration into
+   `/etc/cheeky-pony/sensor.toml`. Run `infra/pi/install.sh` to register the
+   systemd unit and start the agent.
 3. **First-flight check.** Frontend `/sensors` should show Hermes as `live`
    within 30 s; `/networks` should start receiving real APs alongside the
    synthetic demo set within a minute.
@@ -272,9 +299,10 @@ These were called out during the initial onboarding but are not yet fixed:
    operator's SSH public key to `~/.ssh/authorized_keys`, then disable
    password auth in `sshd_config`.
 2. **`sudo` still accepts that password.** Same risk; same fix as #1.
-3. **Channel hopper runs as root.** Future tightening: cap to `CAP_NET_ADMIN`
-   only, or hand the lifecycle to the sensor-agent's unprivileged user with a
-   sudo rule limited to `iw dev wlan1 set channel`.
+3. **Standalone channel hopper runs as root.** Stage 6 disables it by default
+   because Kismet now owns channel hopping. If we re-enable the fallback hopper
+   for ad-hoc capture workflows, tighten it to `CAP_NET_ADMIN` or a narrow
+   sudo rule limited to `iw dev wlan1mon set channel`.
 4. **No firewall rules yet.** The Pi is exposed on the LAN; only Tailscale ACLs
    currently restrict who can reach it on the tailnet. Adding nftables to drop
    anything not from the tailnet or the operator's `/24` is a sensible next

@@ -1,4 +1,4 @@
-# ADR 0022: Hermes Sensor — Alfa Driver, Channel Hopper, and Capture-Tool Stack
+# ADR 0022: Hermes Sensor — Alfa Driver, Kismet Channel Control, and Capture-Tool Stack
 
 ## Status
 
@@ -48,7 +48,7 @@ We chose **`aircrack-ng/rtl8812au`** because:
 Module name installed: `88XXau`. Currently pinned to driver version
 `5.6.4.2_35491.20191025` (the project's most recent tag at install time).
 
-### 2. Channel selection — passive hopper systemd service
+### 2. Channel selection — Kismet-owned hopping
 
 Monitor mode locked to a single channel sees ~9% of 2.4 GHz traffic and 0% of
 5 GHz. Three options for channel control:
@@ -56,25 +56,30 @@ Monitor mode locked to a single channel sees ~9% of 2.4 GHz traffic and 0% of
 - **Single static channel** — simplest, useful for targeted captures but
   useless for situational-awareness sweeps. Rejected as default.
 - **Kismet-driven hopping** — Kismet's own channel control. The right answer
-  when Kismet is running, but useless when it isn't (which is most of the
-  time during dev / one-shot ad-hoc captures).
+  for dashboard streaming because the sensor-agent starts and supervises Kismet.
 - **Independent channel-hopper service** — a tiny systemd unit cycling `wlan1`
-  across the operator-relevant channels.
+  across the operator-relevant channels. Useful for ad-hoc `tcpdump` sweeps,
+  but conflicts with Kismet's source lifecycle.
 
-We picked the **independent hopper as the default**, with the explicit rule
-that Kismet / bettercap operators stop it first via
-`sudo systemctl stop cheeky-pony-channel-hop`. The hopper's `ExecStartPre`
-chain also re-applies monitor mode, so monitor mode persists across reboot
-without a separate service.
+We initially used the independent hopper to validate the Alfa driver. Once
+Hermes moved toward first dashboard streaming, we switched the default to
+**Kismet-owned hopping** via `infra/pi/kismet_site.conf`:
 
-Channel set: `1, 6, 11, 36, 40, 44, 48, 149, 153, 157, 161` — the
-2.4 GHz non-overlapping triplet plus UNII-1 and UNII-3. **DFS channels are
-deliberately omitted** so the radio isn't blocked listening for radar avoidance
-silence during channel dwell.
+```ini
+source=wlan1mon:name=alfa-awus036ach,hop=true,channel_hop_speed=5/sec,channels="1,6,11"
+```
 
-Dwell time: 400 ms per channel. Beacons go out every ~100 ms, so a 400 ms
-dwell catches 3-4 beacon intervals per channel — enough for AP discovery
-without making client-frame capture impractically sparse.
+The standalone hopper remains on disk as a fallback, but it is disabled by
+default and must not run at the same time as Kismet.
+
+Default Kismet channel set: `1, 6, 11` — the 2.4 GHz non-overlapping triplet.
+The older standalone fallback still knows the UNII-1 and UNII-3 channels for
+manual sweeps. **DFS channels are deliberately omitted** so the radio isn't
+blocked listening for radar avoidance silence during channel dwell.
+
+Kismet hop speed is `5/sec`. The fallback standalone hopper uses a 400 ms dwell
+for manual sweeps; beacons go out every ~100 ms, so that dwell catches 3-4
+beacon intervals per channel.
 
 ### 3. Capture tools — Kismet from upstream, bettercap from apt
 
@@ -124,10 +129,9 @@ if they want NM hands-off automatically without per-interface config).
 
 - DKMS rebuilds the driver automatically on kernel updates — no manual
   re-install after `apt full-upgrade`.
-- The channel hopper is the default capture strategy; Kismet/bettercap need
-  the operator to stop it first. This is documented in the runbook and is the
-  source of the most likely operational confusion ("Kismet sees no frames" →
-  hopper still running).
+- Kismet is the default channel authority for dashboard streaming. The
+  standalone hopper is retained only as an ad-hoc fallback and should be
+  disabled during normal sensor-agent operation.
 - Operators on the Vodafone LAN can still reach the Pi via SSH; tighter
   network isolation (Tailscale-only SSH) is a future hardening step listed
   in the runbook's "Outstanding security follow-ups".

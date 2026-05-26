@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import tomllib
+
 import pytest
 from conftest import BackendClient
 from helpers import create_verified_admin
@@ -54,6 +56,65 @@ async def test_sensor_register_and_revoke_are_audited(backend_client: BackendCli
         ("sensor.revoke", "denied:not_found"),
     ]
     assert "BEGIN CERTIFICATE" not in backend_client.store.audit_logs[-4].model_dump_json()
+
+
+async def test_sensor_register_returns_ready_sensor_toml(backend_client: BackendClient) -> None:
+    """Registration returns paste-ready sensor config alongside one-time PEMs."""
+
+    csrf = await create_verified_admin(backend_client)
+    response = await backend_client.client.post(
+        "/api/v1/sensors",
+        headers={"x-csrf-token": csrf},
+        json={
+            "id": "hermes",
+            "name": "Hermes",
+            "tailnet_ip": "100.116.150.111",
+            "capabilities": ["passive_capture"],
+            "version": "0.1.0",
+            "backend_ws_url": "wss://workstation.example.ts.net/ws/sensor-gateway",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    config = tomllib.loads(body["sensor_toml"])
+    assert config == {
+        "sensor_id": "hermes",
+        "sensor_name": "Hermes",
+        "backend_ws_url": "wss://workstation.example.ts.net/ws/sensor-gateway",
+        "client_cert_path": "/etc/cheeky-pony/client.crt",
+        "client_key_path": "/etc/cheeky-pony/client.key",
+        "ca_cert_path": "/etc/cheeky-pony/ca.crt",
+        "manage_kismet": True,
+    }
+    stored = await backend_client.store.get_sensor("hermes")
+    assert stored is not None
+    assert stored.name == "Hermes"
+
+
+async def test_sensor_register_toml_uses_backend_placeholder_when_missing(
+    backend_client: BackendClient,
+) -> None:
+    """Operators get an editable backend URL placeholder when registration omits it."""
+
+    csrf = await create_verified_admin(backend_client)
+    response = await backend_client.client.post(
+        "/api/v1/sensors",
+        headers={"x-csrf-token": csrf},
+        json={
+            "id": "pi-placeholder",
+            "name": "Pi Placeholder",
+            "tailnet_ip": "100.64.0.10",
+            "capabilities": ["passive_capture"],
+            "version": "0.1.0",
+        },
+    )
+
+    assert response.status_code == 200
+    sensor_toml = response.json()["sensor_toml"]
+    config = tomllib.loads(sensor_toml)
+    assert "backend_ws_url" not in config
+    assert '# backend_ws_url = "wss://<backend-tailnet-host>/ws/sensor-gateway"' in sensor_toml
 
 
 async def test_sensor_reads_return_geo_fields(backend_client: BackendClient) -> None:
